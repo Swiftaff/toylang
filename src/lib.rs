@@ -29,7 +29,7 @@ struct Errors<'a> {
     invalid_program_syntax: &'a str,
 }
 
-const errors: Errors = Errors {
+const ERRORS: Errors = Errors {
     invalid_program_syntax: "Invalid Program Syntax: Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
 };
 
@@ -37,13 +37,14 @@ fn tokenizer(input_string: &String) -> Result<(), &str> {
     //let mut current = 0;
     //let mut tokens: Vec<char> = vec![];
     let mut input: String = input_string.clone();
-    //while input.len() > 0 {
-    input = check_program_syntax(input)?;
-    //let char = input.chars().nth(current).unwrap();
-    //println!("{:?}: {:?}\n", current, char);
-    //current += 1;
-    //tokens.push(char);
-    //}
+    while input.len() > 0 {
+        input = check_program_syntax(input)?;
+        input = check_variable_assignment(input)?;
+        //let char = input.chars().nth(current).unwrap();
+        //println!("{:?}: {:?}\n", current, char);
+        //current += 1;
+        //tokens.push(char);
+    }
     //println!("compiled successfully. Tokens = {:?}\n", tokens);
     Ok(())
     /*
@@ -109,18 +110,18 @@ fn tokenizer(input_string: &String) -> Result<(), &str> {
 fn check_program_syntax<'a>(input_string: String) -> Result<String, &'a str> {
     let mut input = input_string.clone();
     if input.len() < 8 {
-        return Err(errors.invalid_program_syntax);
+        return Err(ERRORS.invalid_program_syntax);
     } else {
         let starts_with_run = &input[..5] == "RUN\r\n";
         if !starts_with_run {
-            return Err(errors.invalid_program_syntax);
+            return Err(ERRORS.invalid_program_syntax);
         }
         input = input[5..].to_string();
         println!("input = {:?}\n", &input);
 
         let ends_with_end = &input[input.len() - 3..] == "END";
         if !ends_with_end {
-            return Err(errors.invalid_program_syntax);
+            return Err(ERRORS.invalid_program_syntax);
         }
         input = input[..input.len() - 3].to_string();
         println!("input = {:?}\n", &input);
@@ -128,9 +129,26 @@ fn check_program_syntax<'a>(input_string: String) -> Result<String, &'a str> {
     Ok(input)
 }
 
+fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str> {
+    let mut input = input_string.clone();
+    if input.len() < 3 {
+        return Ok(input);
+    } else {
+        let starts_with_x = &input[..3] == "x =";
+        if starts_with_x {
+            println!("yes");
+            input = input[3..].to_string();
+            return Ok(input);
+        }
+        println!("no");
+    }
+
+    Ok(input)
+}
+
 // assign to variable
 // Lang         Rust
-// = x 2;       let x = 2;
+// x = Int 2;   let x:int64 = 2;
 
 // add two integers, assign to variable
 // Lang         Rust
@@ -142,7 +160,7 @@ mod tests {
 
     #[test]
     fn program_syntax() {
-        let err = Err(errors.invalid_program_syntax);
+        let err = Err(ERRORS.invalid_program_syntax);
         assert_eq!(check_program_syntax("".to_string()), err);
         assert_eq!(check_program_syntax("commands".to_string()), err);
         assert_eq!(check_program_syntax("RUN".to_string()), err);
@@ -163,6 +181,32 @@ mod tests {
         assert_eq!(
             check_program_syntax("RUN\r\ncommands\r\ncommands\r\ncommands\r\nEND".to_string()),
             Ok("commands\r\ncommands\r\ncommands\r\n".to_string())
+        );
+    }
+
+    #[test]
+    fn variable_assignment() {
+        //let err = Err(ERRORS.invalid_variable_assignment);
+        assert_eq!(
+            check_variable_assignment("".to_string()),
+            Ok("".to_string())
+        );
+
+        assert_eq!(
+            check_variable_assignment(" x = 2".to_string()),
+            Ok(" x = 2".to_string())
+        );
+        assert_eq!(
+            check_variable_assignment("2 = x".to_string()),
+            Ok("2 = x".to_string())
+        );
+        assert_eq!(
+            check_variable_assignment("let x = 2".to_string()),
+            Ok("let x = 2".to_string())
+        );
+        assert_eq!(
+            check_variable_assignment("x = 2".to_string()),
+            Ok(" 2".to_string())
         );
     }
 }
