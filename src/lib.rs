@@ -27,10 +27,12 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 
 struct Errors<'a> {
     invalid_program_syntax: &'a str,
+    variable_assignment: &'a str,
 }
 
 const ERRORS: Errors = Errors {
-    invalid_program_syntax: "Invalid Program Syntax: Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
+    invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
+    variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2"
 };
 
 fn tokenizer(input_string: &String) -> Result<(), &str> {
@@ -134,21 +136,39 @@ fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str
     if input.len() < 3 {
         return Ok(input);
     } else {
-        let starts_with_x = &input[..3] == "x =";
-        if starts_with_x {
-            println!("yes");
-            input = input[3..].to_string();
-            return Ok(input);
+        let starts_with_x = &input[..4] == "x = ";
+        if !starts_with_x {
+            println!("no");
+            return Ok(input_string);
         }
-        println!("no");
+        println!("yes x = ");
+        input = input[4..].to_string();
+        println!("next {:?}", &input);
+        if input.len() > 3 {
+            let has_type_int = &input[..3] == "Int";
+            if has_type_int {
+                println!("yes Int");
+                input = input[3..].to_string();
+            } else {
+                let has_type_float = input.len() > 5 && &input[..5] == "Float";
+                if !has_type_float {
+                    println!("no");
+                    return Err(ERRORS.variable_assignment);
+                }
+                println!("yes Float");
+                input = input[5..].to_string();
+            }
+        } else {
+            return Err(ERRORS.variable_assignment);
+        }
     }
-
     Ok(input)
 }
 
 // assign to variable
-// Lang         Rust
-// x = Int 2;   let x:int64 = 2;
+// Lang                 Rust
+// x = Int 2;           let x: int64 = 2;
+// x = Float 3.14;      let x: f64 = 3.14;
 
 // add two integers, assign to variable
 // Lang         Rust
@@ -186,12 +206,11 @@ mod tests {
 
     #[test]
     fn variable_assignment() {
-        //let err = Err(ERRORS.invalid_variable_assignment);
+        let err = Err(ERRORS.variable_assignment);
         assert_eq!(
             check_variable_assignment("".to_string()),
             Ok("".to_string())
         );
-
         assert_eq!(
             check_variable_assignment(" x = 2".to_string()),
             Ok(" x = 2".to_string())
@@ -204,9 +223,19 @@ mod tests {
             check_variable_assignment("let x = 2".to_string()),
             Ok("let x = 2".to_string())
         );
+        assert_eq!(check_variable_assignment("x = 2".to_string()), err);
+        assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
+        assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);
+        assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
+
+        //OK
         assert_eq!(
-            check_variable_assignment("x = 2".to_string()),
+            check_variable_assignment("x = Int 2".to_string()),
             Ok(" 2".to_string())
+        );
+        assert_eq!(
+            check_variable_assignment("x = Float 2.2".to_string()),
+            Ok(" 2.2".to_string())
         );
     }
 }
