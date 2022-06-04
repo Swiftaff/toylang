@@ -28,19 +28,23 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 struct Errors<'a> {
     invalid_program_syntax: &'a str,
     variable_assignment: &'a str,
+    no_valid_identifier_found: &'a str,
 }
 
 const ERRORS: Errors = Errors {
     invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
-    variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2"
+    variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
+    no_valid_identifier_found:"No valid identifier found"
 };
 
 fn tokenizer(input_string: &String) -> Result<(), &str> {
+    //ref: https://doc.rust-lang.org/reference/tokens.html
     //let mut current = 0;
     //let mut tokens: Vec<char> = vec![];
     let mut input: String = input_string.clone();
     while input.len() > 0 {
         input = check_program_syntax(input)?;
+        //input = check_for strings (because they might have spaces)
         input = check_variable_assignment(input)?;
         //let char = input.chars().nth(current).unwrap();
         //println!("{:?}: {:?}\n", current, char);
@@ -136,7 +140,11 @@ fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str
     if input.len() < 3 {
         return Ok(input);
     } else {
-        let starts_with_x = &input[..4] == "x = ";
+        // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
+
+        let input = strip_leading_whitespace(input_string.clone());
+        println!("**{:?}", input2);
+        let starts_with_x = &input2[..4] == "x = ";
         if !starts_with_x {
             println!("no");
             return Ok(input_string);
@@ -165,6 +173,66 @@ fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str
     Ok(input)
 }
 
+fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
+    let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
+    let char_vec: Vec<char> = identifier.chars().collect();
+    if identifier == "".to_string() {
+        Err(ERRORS.no_valid_identifier_found)
+    } else {
+        for i in 0..identifier.len() {
+            let c = char_vec[i];
+            if i == 0 {
+                if !c.is_alphabetic() && !(c == '_') {
+                    // must start with a letter or underscore
+                    return Err(ERRORS.no_valid_identifier_found);
+                }
+            } else {
+                if !c.is_alphanumeric() && !(c == '_') {
+                    {
+                        // all other chars must be letter or number or underscore
+                        return Err(ERRORS.no_valid_identifier_found);
+                    }
+                }
+            }
+        }
+        Ok((identifier, remainder))
+    }
+}
+
+fn get_until_whitespace_or_eof(input: String) -> (String, String) {
+    let mut output = "".to_string();
+    let mut remainder = "".to_string();
+    let char_vec: Vec<char> = input.chars().collect();
+    for i in 0..input.len() {
+        if i == input.len() {
+            remainder = "".to_string();
+        } else {
+            remainder = input[i + 1..].to_string();
+        }
+        if char_vec[i].is_whitespace() {
+            break;
+        } else {
+            output.push(char_vec[i]);
+        }
+    }
+    (output, remainder)
+}
+
+fn strip_leading_whitespace(input: String) -> String {
+    let char_vec: Vec<char> = input.chars().collect();
+    let mut checking_for_whitespace = true;
+    let mut first_non_whitespace_index = 0;
+    for i in 0..input.len() {
+        if checking_for_whitespace {
+            if !char_vec[i].is_whitespace() {
+                first_non_whitespace_index = i;
+                checking_for_whitespace = false;
+            }
+        }
+    }
+    input[first_non_whitespace_index..].to_string()
+}
+
 // assign to variable
 // Lang                 Rust
 // x = Int 2;           let x: int64 = 2;
@@ -179,7 +247,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn program_syntax() {
+    fn test_check_program_syntax() {
         let err = Err(ERRORS.invalid_program_syntax);
         assert_eq!(check_program_syntax("".to_string()), err);
         assert_eq!(check_program_syntax("commands".to_string()), err);
@@ -205,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn variable_assignment() {
+    fn test_check_variable_assignment() {
         let err = Err(ERRORS.variable_assignment);
         assert_eq!(
             check_variable_assignment("".to_string()),
@@ -236,6 +304,78 @@ mod tests {
         assert_eq!(
             check_variable_assignment("x = Float 2.2".to_string()),
             Ok(" 2.2".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_until_whitespace_or_eof() {
+        assert_eq!(
+            get_until_whitespace_or_eof("".to_string()),
+            ("".to_string(), "".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc".to_string()),
+            ("abc".to_string(), "".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc def".to_string()),
+            ("abc".to_string(), "def".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc\r\ndef".to_string()),
+            ("abc".to_string(), "\ndef".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof(" abc".to_string()),
+            ("".to_string(), "abc".to_string())
+        );
+    }
+    #[test]
+    fn test_strip_leading_whitespace() {
+        assert_eq!(strip_leading_whitespace("".to_string()), "".to_string());
+        assert_eq!(
+            strip_leading_whitespace("abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("abc   \r\n".to_string()),
+            "abc   \r\n".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace(" abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("    abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("\r\n    abc  \r\n".to_string()),
+            "abc  \r\n".to_string()
+        );
+    }
+    #[test]
+    fn test_get_identifier() {
+        let err = Err(ERRORS.no_valid_identifier_found);
+        assert_eq!(get_identifier("".to_string()), err);
+        assert_eq!(get_identifier("  abc".to_string()), err);
+        assert_eq!(get_identifier("1abc = 123".to_string()), err);
+        assert_eq!(get_identifier("-abc = 123".to_string()), err);
+        assert_eq!(
+            get_identifier("abc".to_string()),
+            Ok(("abc".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            get_identifier("_abc".to_string()),
+            Ok(("_abc".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            get_identifier("abc = 123".to_string()),
+            Ok(("abc".to_string(), "= 123".to_string()))
+        );
+        assert_eq!(
+            get_identifier("abc_123def = 123".to_string()),
+            Ok(("abc_123def".to_string(), "= 123".to_string()))
         );
     }
 }
