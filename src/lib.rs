@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fs;
 
+#[derive(Debug)]
 pub struct Config {
     pub filename: String,
 }
@@ -12,6 +13,9 @@ impl Config {
         }
         let filename = args[1].clone();
         Ok(Config { filename })
+    }
+    pub fn testy(&self) {
+        println!("testy {:?}", self);
     }
 }
 
@@ -249,6 +253,31 @@ fn strip_leading_whitespace(input: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_new() {
+        let args = ["rustlang".to_string(), "filename_example".to_string()];
+        let config_result = Config::new(&args);
+        let filename = "filename_example".to_string();
+        match config_result {
+            Ok(config) => assert_eq!(config.filename, filename),
+            Err(_) => assert!(false, "error should not exist"),
+        }
+    }
+
+    #[test]
+    fn test_testy() {
+        let args = ["rustlang".to_string(), "filename_example".to_string()];
+        let config_result = Config::new(&args);
+        let filename = "filename_example".to_string();
+        match config_result {
+            Ok(config) => {
+                config.testy();
+                assert_eq!(config.filename, filename);
+            }
+            Err(_) => assert!(false, "error should not exist"),
+        }
+    }
 
     #[test]
     fn test_check_program_syntax() {
