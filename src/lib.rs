@@ -42,10 +42,11 @@ fn tokenizer(input_string: &String) -> Result<(), &str> {
     //let mut current = 0;
     //let mut tokens: Vec<char> = vec![];
     let mut input: String = input_string.clone();
+    let mut variable: String = "".to_string();
     while input.len() > 0 {
         input = check_program_syntax(input)?;
         //input = check_for strings (because they might have spaces)
-        input = check_variable_assignment(input)?;
+        (variable, input) = check_variable_assignment(input)?;
         //let char = input.chars().nth(current).unwrap();
         //println!("{:?}: {:?}\n", current, char);
         //current += 1;
@@ -135,16 +136,19 @@ fn check_program_syntax<'a>(input_string: String) -> Result<String, &'a str> {
     Ok(input)
 }
 
-fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str> {
+fn check_variable_assignment<'a>(input_string: String) -> Result<(String, String), &'a str> {
     let mut input = input_string.clone();
     if input.len() < 3 {
-        return Ok(input);
+        return Err(ERRORS.variable_assignment);
     } else {
         // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
 
-        let input = strip_leading_whitespace(input_string.clone());
-        println!("**{:?}", input2);
-        let starts_with_x = &input2[..4] == "x = ";
+        let temp_input = strip_leading_whitespace(input_string.clone());
+        let identifier = get_identifier(temp_input)?;
+        Ok(identifier)
+        /*
+                //println!("**{:?}", input2);
+        let starts_with_x = &input[..4] == "x = ";
         if !starts_with_x {
             println!("no");
             return Ok(input_string);
@@ -168,9 +172,8 @@ fn check_variable_assignment<'a>(input_string: String) -> Result<String, &'a str
             }
         } else {
             return Err(ERRORS.variable_assignment);
-        }
+        }*/
     }
-    Ok(input)
 }
 
 fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
@@ -207,12 +210,13 @@ fn get_until_whitespace_or_eof(input: String) -> (String, String) {
         if i == input.len() {
             remainder = "".to_string();
         } else {
-            remainder = input[i + 1..].to_string();
-        }
-        if char_vec[i].is_whitespace() {
-            break;
-        } else {
-            output.push(char_vec[i]);
+            if char_vec[i].is_whitespace() {
+                remainder = input[i..].to_string();
+                break;
+            } else {
+                remainder = input[i + 1..].to_string();
+                output.push(char_vec[i]);
+            }
         }
     }
     (output, remainder)
@@ -274,29 +278,22 @@ mod tests {
 
     #[test]
     fn test_check_variable_assignment() {
-        let err = Err(ERRORS.variable_assignment);
-        assert_eq!(
-            check_variable_assignment("".to_string()),
-            Ok("".to_string())
-        );
-        assert_eq!(
-            check_variable_assignment(" x = 2".to_string()),
-            Ok(" x = 2".to_string())
-        );
-        assert_eq!(
-            check_variable_assignment("2 = x".to_string()),
-            Ok("2 = x".to_string())
-        );
-        assert_eq!(
-            check_variable_assignment("let x = 2".to_string()),
-            Ok("let x = 2".to_string())
-        );
-        assert_eq!(check_variable_assignment("x = 2".to_string()), err);
-        assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
-        assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);
-        assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
+        let err: Result<(String, String), &str> = Err(ERRORS.variable_assignment);
+        let err2: Result<(String, String), &str> = Err(ERRORS.no_valid_identifier_found);
+        assert_eq!(check_variable_assignment("".to_string()), err);
+        assert_eq!(check_variable_assignment("2 = x".to_string()), err2);
+        //assert_eq!(check_variable_assignment("let x = 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
 
         //OK
+        assert_eq!(
+            check_variable_assignment(" x = 2".to_string()),
+            Ok(("x".to_string(), " = 2".to_string()))
+        );
+        /*
         assert_eq!(
             check_variable_assignment("x = Int 2".to_string()),
             Ok(" 2".to_string())
@@ -305,6 +302,7 @@ mod tests {
             check_variable_assignment("x = Float 2.2".to_string()),
             Ok(" 2.2".to_string())
         );
+        */
     }
 
     #[test]
@@ -319,15 +317,15 @@ mod tests {
         );
         assert_eq!(
             get_until_whitespace_or_eof("abc def".to_string()),
-            ("abc".to_string(), "def".to_string())
+            ("abc".to_string(), " def".to_string())
         );
         assert_eq!(
             get_until_whitespace_or_eof("abc\r\ndef".to_string()),
-            ("abc".to_string(), "\ndef".to_string())
+            ("abc".to_string(), "\r\ndef".to_string())
         );
         assert_eq!(
             get_until_whitespace_or_eof(" abc".to_string()),
-            ("".to_string(), "abc".to_string())
+            ("".to_string(), " abc".to_string())
         );
     }
     #[test]
@@ -371,11 +369,11 @@ mod tests {
         );
         assert_eq!(
             get_identifier("abc = 123".to_string()),
-            Ok(("abc".to_string(), "= 123".to_string()))
+            Ok(("abc".to_string(), " = 123".to_string()))
         );
         assert_eq!(
             get_identifier("abc_123def = 123".to_string()),
-            Ok(("abc_123def".to_string(), "= 123".to_string()))
+            Ok(("abc_123def".to_string(), " = 123".to_string()))
         );
     }
 }
