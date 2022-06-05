@@ -295,12 +295,12 @@ fn strip_leading_whitespace(input: String) -> String {
 }
 
 // assign to variable
-// Lang                 Rust
+// Toy                  Rust
 // x = Int 2;           let x: int64 = 2;
 // x = Float 3.14;      let x: f64 = 3.14;
 
 // add two integers, assign to variable
-// Lang         Rust
+// Toy          Rust
 // = x + 2 2;   let x = 2 + 2;
 
 #[cfg(test)]
@@ -321,7 +321,7 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let args = ["rustlang".to_string(), "filename_example".to_string()];
+        let args = ["toylang".to_string(), "filename_example".to_string()];
         let config_result = Config::new(&args);
         let filename = "filename_example".to_string();
         match config_result {

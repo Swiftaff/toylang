@@ -1,10 +1,10 @@
-# RUSTLANG
+# TOYLANG
 
 A toy language which compiles to rust for fun and experimentation.
 
 ## Build
 
-Builds the executable at `/target/debug/rustlang.exe`
+Builds the executable at `/target/debug/toylang.exe`
 
 ```
 cargo build
@@ -12,16 +12,16 @@ cargo build
 
 ## Usage
 
-Create a file e.g. "test.y" containing the toy language in the same directory (or elsewhere). Pass the filepath to the exe to compile it:
+Create a file e.g. "test.toy" containing the toy language in the same directory (or elsewhere). Pass the filepath to the exe to compile it:
 
 ```
-rustlang.exe test.y
+toylang test.toy
 ```
 
 or
 
 ```
-rustlang.exe ../../somewhere/else/test.y
+toylang.exe ../../somewhere/else/test.toy
 ```
 
 Compile errors will appear in the console.
@@ -45,6 +45,7 @@ Last line must be END
 
 ```
 RUN
+// comment
 x = 2
 END
 ```
@@ -53,6 +54,7 @@ END
 
 ```rust
 fn main() {
+    // comment
     let x = 2;
 }
 ```

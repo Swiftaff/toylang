@@ -1,5 +1,5 @@
 [package]
-name = "rustlang"
+name = "toylang"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 
 [[bin]]
-name = "rustlang"
+name = "toylang"
 path = "src/main.rs"
