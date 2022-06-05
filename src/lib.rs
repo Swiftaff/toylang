@@ -8,6 +8,8 @@ pub struct Config {
     pub remaining: String,
     pub output: String,
     pub outputcursor: usize,
+    pub pass: usize,
+    pub indent: usize,
 }
 
 impl Config {
@@ -20,12 +22,16 @@ impl Config {
         let remaining = "".to_string();
         let output = "".to_string();
         let outputcursor = 0;
+        let pass = 0;
+        let indent = 0;
         Ok(Config {
             filename,
             filecontents,
             remaining,
             output,
             outputcursor,
+            pass,
+            indent,
         })
     }
 
@@ -36,41 +42,47 @@ impl Config {
             &self.filename, &self.filecontents
         );
         self.tokenizer()?;
+        fs::write("output.rs", &self.output)?;
         Ok(())
     }
 
     fn tokenizer(self: &mut Self) -> Result<(), &str> {
         //ref: https://doc.rust-lang.org/reference/tokens.html
         self.remaining = self.filecontents.clone();
-        while self.remaining.len() > 0 {
+        while self.remaining.len() > 0 && self.pass == 0 {
+            println!("pass:{:?}", self.pass);
             self.check_program_syntax()?;
             println!("{:?} {:?}\n", self.output, self.outputcursor);
             //input = check_for strings (because they might have spaces)
             self.check_variable_assignment()?;
+            self.pass = self.pass + 1;
         }
         println!("compiled successfully. Output = {:?}\n", self.output);
         Ok(())
     }
 
     fn check_program_syntax<'a>(self: &mut Self) -> Result<(), &'a str> {
-        if self.remaining.len() < 8 {
-            return Err(ERRORS.invalid_program_syntax);
-        } else {
-            let starts_with_run = &self.remaining[..5] == "RUN\r\n";
-            if !starts_with_run {
+        if self.pass == 0 {
+            if self.remaining.len() < 8 {
                 return Err(ERRORS.invalid_program_syntax);
-            }
-            self.remaining = self.remaining[5..].to_string();
-            println!("input = {:?}\n", &self.remaining);
+            } else {
+                let starts_with_run = &self.remaining[..5] == "RUN\r\n";
+                if !starts_with_run {
+                    return Err(ERRORS.invalid_program_syntax);
+                }
+                self.remaining = self.remaining[5..].to_string();
+                println!("input = {:?}\n", &self.remaining);
 
-            let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
-            if !ends_with_end {
-                return Err(ERRORS.invalid_program_syntax);
+                let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
+                if !ends_with_end {
+                    return Err(ERRORS.invalid_program_syntax);
+                }
+                self.remaining = self.remaining[..self.remaining.len() - 3].to_string();
+                println!("input = {:?}\n", &self.remaining);
+                self.output = "fn main() {\r\n}".to_string();
+                self.indent = 1;
+                self.outputcursor = 13; // anything new will be inserted before end bracket
             }
-            self.remaining = self.remaining[..self.remaining.len() - 3].to_string();
-            println!("input = {:?}\n", &self.remaining);
-            self.output = "fn main() {\r\n}".to_string();
-            self.outputcursor = 13; // anything new will be inserted before end bracket
         }
         Ok(())
     }
@@ -80,10 +92,27 @@ impl Config {
             return Err(ERRORS.variable_assignment);
         } else {
             // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
-            let temp_input = strip_leading_whitespace(self.remaining.clone());
-            let (identifier, remainder) = get_identifier(temp_input)?;
-            self.remaining = remainder;
-            self.output.insert_str(self.outputcursor, &identifier);
+            let mut temp_input = strip_leading_whitespace(self.remaining.clone());
+            //println!("input:{:?}", &temp_input);
+            let (identifier, mut remainder) = get_identifier(temp_input)?;
+
+            remainder = strip_leading_whitespace(remainder);
+            remainder = get_str(remainder, "=")?;
+
+            remainder = strip_leading_whitespace(remainder);
+            let (text, remain) = get_until_whitespace_or_eof(remainder);
+
+            self.remaining = remain;
+            self.output.insert_str(
+                self.outputcursor,
+                &format!(
+                    "{}let {} = {};\r\n",
+                    " ".repeat(self.indent * 4),
+                    &identifier,
+                    &text
+                ),
+            );
+            println!("{:?} {:?}", self.output, self.remaining);
             Ok(())
         }
     }
@@ -125,6 +154,14 @@ fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
         }
         Ok((identifier, remainder))
     }
+}
+
+fn get_str<'a>(input: String, matchstr: &str) -> Result<String, &'a str> {
+    let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
+    if identifier == "".to_string() || &identifier != matchstr {
+        return Err(ERRORS.no_valid_identifier_found);
+    }
+    Ok(remainder)
 }
 
 fn get_until_whitespace_or_eof(input: String) -> (String, String) {
@@ -182,6 +219,8 @@ mod tests {
             remaining: contents.to_string(),
             output: "".to_string(),
             outputcursor: 0,
+            pass: 0,
+            indent: 1,
         }
     }
 
@@ -240,24 +279,19 @@ mod tests {
         let err2: Result<(), &str> = Err(ERRORS.no_valid_identifier_found);
         assert_eq!(mock_config("").check_variable_assignment(), err);
         assert_eq!(mock_config("2 = x").check_variable_assignment(), err2);
-        //assert_eq!(check_variable_assignment("let x = 2".to_string()), err);
+        assert_eq!(mock_config("let x = 2").check_variable_assignment(), err2);
         //assert_eq!(check_variable_assignment("x = 2".to_string()), err);
         //assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
         //assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);
         //assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
 
         //OK
+        assert_eq!(mock_config("x = Int 2").check_variable_assignment(), Ok(()));
         assert_eq!(mock_config(" x = 2").check_variable_assignment(), Ok(()));
-        /*
         assert_eq!(
-            check_variable_assignment("x = Int 2".to_string()),
-            Ok(" 2".to_string())
+            mock_config("x = Float 2.2").check_variable_assignment(),
+            Ok(())
         );
-        assert_eq!(
-            check_variable_assignment("x = Float 2.2".to_string()),
-            Ok(" 2.2".to_string())
-        );
-        */
     }
 
     #[test]
@@ -329,6 +363,24 @@ mod tests {
         assert_eq!(
             get_identifier("abc_123def = 123".to_string()),
             Ok(("abc_123def".to_string(), " = 123".to_string()))
+        );
+    }
+    #[test]
+    fn test_get_str() {
+        let err = Err(ERRORS.no_valid_identifier_found);
+        assert_eq!(get_str("".to_string(), ""), err);
+        assert_eq!(get_str("  abc".to_string(), "abc"), err);
+        assert_eq!(get_str("1abc = 123".to_string(), "abc"), err);
+        assert_eq!(get_str("-abc = 123".to_string(), "abc"), err);
+        assert_eq!(get_str("abc".to_string(), "abc"), Ok("".to_string()));
+        assert_eq!(get_str("_abc".to_string(), "_abc"), Ok("".to_string()));
+        assert_eq!(
+            get_str("abc = 123".to_string(), "abc"),
+            Ok(" = 123".to_string())
+        );
+        assert_eq!(
+            get_str("abc_123def = 123".to_string(), "abc_123def"),
+            Ok(" = 123".to_string())
         );
     }
 }
