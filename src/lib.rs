@@ -38,7 +38,7 @@ impl Config {
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.filecontents = fs::read_to_string(&self.filename)?;
         println!(
-            "1. Reading contents of filename: {:?}\n----------\n{}",
+            "\r\nINPUT contents of filename: {:?}\n----------\n{}",
             &self.filename, &self.filecontents
         );
         self.tokenizer()?;
@@ -50,14 +50,17 @@ impl Config {
         //ref: https://doc.rust-lang.org/reference/tokens.html
         self.remaining = self.filecontents.clone();
         while self.remaining.len() > 0 && self.pass == 0 {
-            println!("pass:{:?}", self.pass);
+            //println!("pass:{:?}", self.pass);
             self.check_program_syntax()?;
-            println!("{:?} {:?}\n", self.output, self.outputcursor);
+            //println!("{:?} {:?}\n", self.output, self.outputcursor);
             //input = check_for strings (because they might have spaces)
             self.check_variable_assignment()?;
             self.pass = self.pass + 1;
         }
-        println!("compiled successfully. Output = {:?}\n", self.output);
+        println!(
+            "----------\r\n\r\nOUTPUT compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
+            self.output
+        );
         Ok(())
     }
 
@@ -71,14 +74,14 @@ impl Config {
                     return Err(ERRORS.invalid_program_syntax);
                 }
                 self.remaining = self.remaining[5..].to_string();
-                println!("input = {:?}\n", &self.remaining);
+                //println!("input = {:?}\n", &self.remaining);
 
                 let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
                 if !ends_with_end {
                     return Err(ERRORS.invalid_program_syntax);
                 }
                 self.remaining = self.remaining[..self.remaining.len() - 3].to_string();
-                println!("input = {:?}\n", &self.remaining);
+                //println!("input = {:?}\n", &self.remaining);
                 self.output = "fn main() {\r\n}".to_string();
                 self.indent = 1;
                 self.outputcursor = 13; // anything new will be inserted before end bracket
@@ -112,7 +115,7 @@ impl Config {
                     &text
                 ),
             );
-            println!("{:?} {:?}", self.output, self.remaining);
+            //println!("{:?} {:?}", self.output, self.remaining);
             Ok(())
         }
     }
