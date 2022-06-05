@@ -4,6 +4,10 @@ use std::fs;
 #[derive(Debug)]
 pub struct Config {
     pub filename: String,
+    pub filecontents: String,
+    pub remaining: String,
+    pub output: String,
+    pub outputcursor: usize,
 }
 
 impl Config {
@@ -12,21 +16,130 @@ impl Config {
             return Err("missing filename argument");
         }
         let filename = args[1].clone();
-        Ok(Config { filename })
+        let filecontents = "".to_string();
+        let remaining = "".to_string();
+        let output = "".to_string();
+        let outputcursor = 0;
+        Ok(Config {
+            filename,
+            filecontents,
+            remaining,
+            output,
+            outputcursor,
+        })
     }
-    pub fn testy(&self) {
-        println!("testy {:?}", self);
-    }
-}
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let contents = fs::read_to_string(&config.filename)?;
-    println!(
-        "1. Reading contents of filename: {:?}\n----------\n{}",
-        &config.filename, &contents
-    );
-    tokenizer(&contents)?;
-    Ok(())
+    pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
+        self.filecontents = fs::read_to_string(&self.filename)?;
+        println!(
+            "1. Reading contents of filename: {:?}\n----------\n{}",
+            &self.filename, &self.filecontents
+        );
+        self.tokenizer()?;
+        Ok(())
+    }
+
+    fn tokenizer(self: &mut Self) -> Result<(), &str> {
+        //ref: https://doc.rust-lang.org/reference/tokens.html
+        //let mut current = 0;
+        //let mut tokens: Vec<char> = vec![];
+        let mut input: String = self.filecontents.clone();
+        self.remaining = self.filecontents.clone();
+        let mut variable: String = "".to_string();
+        while input.len() > 0 {
+            self.check_program_syntax()?;
+            println!("{:?} {:?}\n", self.output, self.outputcursor);
+            //input = check_for strings (because they might have spaces)
+            (variable, input) = check_variable_assignment(input)?;
+            //let char = input.chars().nth(current).unwrap();
+            //println!("{:?}: {:?}\n", current, char);
+            //current += 1;
+            //tokens.push(char);
+        }
+        //println!("compiled successfully. Tokens = {:?}\n", tokens);
+        Ok(())
+        /*
+        //looking at this: https://github.com/jamiebuilds/the-super-tiny-compiler/blob/master/the-super-tiny-compiler.js
+            while (current < input.length) {
+              if (char === '(') {
+                tokens.push({
+                  type: 'paren',
+                  value: '(',
+                });
+                current++;
+                continue;
+              }
+              if (char === ')') {
+                tokens.push({
+                  type: 'paren',
+                  value: ')',
+                });
+                current++;
+                continue;
+              }
+              let WHITESPACE = /\s/;
+              if (WHITESPACE.test(char)) {
+                current++;
+                continue;
+              }
+            let NUMBERS = /[0-9]/;
+              if (NUMBERS.test(char)) {
+                let value = '';
+                while (NUMBERS.test(char)) {
+                  value += char;
+                  char = input[++current];
+                }
+                tokens.push({ type: 'number', value });
+                continue;
+              }
+              if (char === '"') {
+                let value = '';
+                char = input[++current];
+                while (char !== '"') {
+                  value += char;
+                  char = input[++current];
+                }
+                char = input[++current];
+                tokens.push({ type: 'string', value });
+                continue;
+              }
+              let LETTERS = /[a-z]/i;
+              if (LETTERS.test(char)) {
+                let value = '';
+                while (LETTERS.test(char)) {
+                  value += char;
+                  char = input[++current];
+                }
+                tokens.push({ type: 'name', value });
+                continue;
+              }
+              throw new TypeError('I dont know what this character is: ' + char);
+            }
+            */
+    }
+
+    fn check_program_syntax<'a>(self: &mut Self) -> Result<(), &'a str> {
+        if self.remaining.len() < 8 {
+            return Err(ERRORS.invalid_program_syntax);
+        } else {
+            let starts_with_run = &self.remaining[..5] == "RUN\r\n";
+            if !starts_with_run {
+                return Err(ERRORS.invalid_program_syntax);
+            }
+            self.remaining = self.remaining[5..].to_string();
+            println!("input = {:?}\n", &self.remaining);
+
+            let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
+            if !ends_with_end {
+                return Err(ERRORS.invalid_program_syntax);
+            }
+            self.remaining = self.remaining[..self.remaining.len() - 3].to_string();
+            println!("input = {:?}\n", &self.remaining);
+            self.output = "fn main() {\r\n}".to_string();
+            self.outputcursor = 13; // anything new will be inserted before end bracket
+        }
+        Ok(())
+    }
 }
 
 struct Errors<'a> {
@@ -40,83 +153,6 @@ const ERRORS: Errors = Errors {
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
     no_valid_identifier_found:"No valid identifier found"
 };
-
-fn tokenizer(input_string: &String) -> Result<(), &str> {
-    //ref: https://doc.rust-lang.org/reference/tokens.html
-    //let mut current = 0;
-    //let mut tokens: Vec<char> = vec![];
-    let mut input: String = input_string.clone();
-    let mut variable: String = "".to_string();
-    while input.len() > 0 {
-        input = check_program_syntax(input)?;
-        //input = check_for strings (because they might have spaces)
-        (variable, input) = check_variable_assignment(input)?;
-        //let char = input.chars().nth(current).unwrap();
-        //println!("{:?}: {:?}\n", current, char);
-        //current += 1;
-        //tokens.push(char);
-    }
-    //println!("compiled successfully. Tokens = {:?}\n", tokens);
-    Ok(())
-    /*
-    //looking at this: https://github.com/jamiebuilds/the-super-tiny-compiler/blob/master/the-super-tiny-compiler.js
-        while (current < input.length) {
-          if (char === '(') {
-            tokens.push({
-              type: 'paren',
-              value: '(',
-            });
-            current++;
-            continue;
-          }
-          if (char === ')') {
-            tokens.push({
-              type: 'paren',
-              value: ')',
-            });
-            current++;
-            continue;
-          }
-          let WHITESPACE = /\s/;
-          if (WHITESPACE.test(char)) {
-            current++;
-            continue;
-          }
-        let NUMBERS = /[0-9]/;
-          if (NUMBERS.test(char)) {
-            let value = '';
-            while (NUMBERS.test(char)) {
-              value += char;
-              char = input[++current];
-            }
-            tokens.push({ type: 'number', value });
-            continue;
-          }
-          if (char === '"') {
-            let value = '';
-            char = input[++current];
-            while (char !== '"') {
-              value += char;
-              char = input[++current];
-            }
-            char = input[++current];
-            tokens.push({ type: 'string', value });
-            continue;
-          }
-          let LETTERS = /[a-z]/i;
-          if (LETTERS.test(char)) {
-            let value = '';
-            while (LETTERS.test(char)) {
-              value += char;
-              char = input[++current];
-            }
-            tokens.push({ type: 'name', value });
-            continue;
-          }
-          throw new TypeError('I dont know what this character is: ' + char);
-        }
-        */
-}
 
 fn check_program_syntax<'a>(input_string: String) -> Result<String, &'a str> {
     let mut input = input_string.clone();
@@ -266,14 +302,16 @@ mod tests {
     }
 
     #[test]
-    fn test_testy() {
+    fn test_tokenizer() {
         let args = ["rustlang".to_string(), "filename_example".to_string()];
         let config_result = Config::new(&args);
-        let filename = "filename_example".to_string();
         match config_result {
-            Ok(config) => {
-                config.testy();
-                assert_eq!(config.filename, filename);
+            Ok(mut config) => {
+                //all of above just mocks a new config for assert scenarios below
+                config.filecontents = "RUN\r\ntesty\r\nEND".to_string();
+                config.tokenizer();
+                assert_eq!(config.output, "fn main() {\r\n}");
+                assert_eq!(config.outputcursor, 13);
             }
             Err(_) => assert!(false, "error should not exist"),
         }
