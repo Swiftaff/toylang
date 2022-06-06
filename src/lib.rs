@@ -200,7 +200,7 @@ impl Config {
                 validation_error = Some(e);
             }
 
-            remainder = strip_leading_whitespace(remainder[(&identifier.len() + 2)..].to_string());
+            remainder = strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
             let (text, remain) = get_until_eol_or_eof(remainder);
 
             // handle expressions here
@@ -508,15 +508,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_tokenizer_assignment_immutable_err() {
-        let mut config = mock_config("RUN\r\n= x 2\r\n= x 3\r\nEND");
-        match config.tokenizer() {
-            Ok(_) => assert!(false, "error should not exist"),
-            Err(e) => assert_eq!(e, ERRORS.no_valid_expression), // constants_are_immutable
-        }
-    }
-
     /*
     #[test]
     fn test_check_program_syntax() {
@@ -562,13 +553,14 @@ mod tests {
         //assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
 
         //OK
+        assert_eq!(mock_config("= x 2").check_variable_assignment(), Ok(None));
+        assert_eq!(mock_config("= x 2.2").check_variable_assignment(), Ok(None));
         assert_eq!(
-            mock_config("= x Int 2").check_variable_assignment(),
+            mock_config("= x 1\r\n= y x").check_variable_assignment(),
             Ok(None)
         );
-        assert_eq!(mock_config(" = x 2").check_variable_assignment(), Ok(None));
         assert_eq!(
-            mock_config("= x Float 2.2").check_variable_assignment(),
+            mock_config("= x \"string\"").check_variable_assignment(),
             Ok(None)
         );
     }

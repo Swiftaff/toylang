@@ -45,18 +45,26 @@ Last line must be END
 
 ```
 RUN
-// comment
-= x 2
+// single line comments
+= a 123
+= b 123.45
+= c a
+= d "string"
 END
+
 ```
 
 </td><td>
 
 ```rust
 fn main() {
-    // comment
-    let x = 2;
+    // single line comments
+    let a = 123;
+    let b = 123.45;
+    let c = a;
+    let d = "string";
 }
+
 ```
 
 </td></tr></table>
