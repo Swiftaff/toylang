@@ -335,11 +335,8 @@ mod tests {
         let mut config = mock_config("RUN\r\nx = 2\r\nEND");
         match config.tokenizer() {
             Ok(_) => {
-                assert_eq!(
-                    config.output,
-                    "fn main() {\r\n    let x = 2;// test comment\r\n}"
-                );
-                assert_eq!(config.outputcursor, 13);
+                assert_eq!(config.output, "fn main() {\r\n    let x = 2;\r\n}");
+                assert_eq!(config.outputcursor, 29);
             }
             Err(_) => assert!(false, "error should not exist"),
         }
