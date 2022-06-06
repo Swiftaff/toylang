@@ -87,7 +87,7 @@ impl Config {
         Ok(())
     }
 
-    fn check_one_or_more_succeeds<'a>(self: &mut Self) -> Result<(), Vec<String>> {
+    fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
         println!("e0:{:?}... r::{:?}", self.remaining, self.error_stack);
         if self.check_one_succeeds("check_variable_assignment") {
             println!("e1:{:?}", self.error_stack);
@@ -98,14 +98,14 @@ impl Config {
             return Ok(());
         }
 
-        let e = self.get_error(0, ERRORS.no_valid_expression);
+        let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
         println!("e3:{:?}", self.error_stack);
         println!("{:?}", self);
         Err(self.error_stack.clone())
     }
 
-    fn check_one_succeeds<'a>(self: &mut Self, function_name: &str) -> bool {
+    fn check_one_succeeds(self: &mut Self, function_name: &str) -> bool {
         let mut succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
@@ -147,7 +147,7 @@ impl Config {
         self.error_stack = to_clone.error_stack;
     }
 
-    fn check_program_syntax<'a>(self: &mut Self) -> Result<(), Vec<String>> {
+    fn check_program_syntax(self: &mut Self) -> Result<(), Vec<String>> {
         if self.pass == 0 {
             if self.remaining.len() < 8 {
                 self.error_stack
@@ -182,7 +182,7 @@ impl Config {
         Ok(())
     }
 
-    fn check_variable_assignment<'a>(self: &mut Self) -> Result<Option<String>, String> {
+    fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
             println!("error here?");
             return Err(ERRORS.variable_assignment.to_string());
@@ -195,41 +195,109 @@ impl Config {
             remainder = strip_leading_whitespace(remainder);
             let (identifier, mut remainder) = get_identifier(remainder)?;
             let mut validation_error = None;
-            if self.constants.iter().any(|c| c == &identifier) {
-                //self.error_stack.push(ERRORS.constants_are_immutable);
-                println!("r: {:?}\r\ne:{:?}", self.remaining, self.error_stack);
-                let e = self.get_error(2, ERRORS.constants_are_immutable);
+            if self.exists_constant(&identifier) {
+                let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
                 validation_error = Some(e);
             }
 
-            remainder = strip_leading_whitespace(remainder);
-            let (text, remain) = get_until_whitespace_or_eof(remainder);
+            remainder = strip_leading_whitespace(remainder[(&identifier.len() + 2)..].to_string());
+            let (text, remain) = get_until_eol_or_eof(remainder);
 
-            let insert = &format!(
-                "{}let {} = {};\r\n",
-                " ".repeat(self.indent * 4),
-                &identifier,
-                &text
-            );
-            self.constants.push(identifier);
-            self.output.insert_str(self.outputcursor, &insert);
-            self.outputcursor = self.outputcursor + insert.len();
-            self.remaining = strip_leading_whitespace(remain);
+            // handle expressions here
+            let expression_result = self.check_expression(&identifier);
+            match expression_result {
+                Ok(Some(expression)) => {
+                    let insert = &format!(
+                        "{}let {} = {};\r\n",
+                        " ".repeat(self.indent * 4),
+                        &identifier,
+                        &expression
+                    );
+                    self.constants.push(identifier);
+                    self.output.insert_str(self.outputcursor, &insert);
+                    self.outputcursor = self.outputcursor + insert.len();
+                    self.remaining = strip_leading_whitespace(remain);
+                }
+                Err(e) => validation_error = Some(e),
+                _ => validation_error = Some("some other error".to_string()),
+            }
             Ok(validation_error)
         }
     }
 
-    fn get_error(self: &Self, indent_arrow: usize, error: &str) -> String {
+    fn exists_constant(self: &Self, constant: &str) -> bool {
+        self.constants.iter().any(|c| c == &constant)
+    }
+
+    fn check_expression(self: &mut Self, identifier: &str) -> Result<Option<String>, String> {
+        let remainder =
+            strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
+        let (text, remain) = get_until_eol_or_eof(remainder);
+        println!("EXPRESSION:{:?}", text);
+        if !self.is_integer(&text)
+            && !self.is_float(&text)
+            && !self.exists_constant(&text)
+            && !self.is_string(&text)
+        {
+            return Err(self.get_error(
+                3 + identifier.len(),
+                text.len(),
+                "is not a valid expression: must be either an:\r\ninteger, e.g. 12345\r\nfloat, e.g. 123.45\r\nexisting constant, e.g. x\r\nstring, e.g. \"string\"\r\nTODO function",
+            ));
+        }
+        // Function (e.g. arithmetic expression)
+        Ok(Some(text))
+    }
+
+    fn is_integer(self: &Self, text: &String) -> bool {
+        println!("is_integer? {}", text);
+        let mut is_valid = true;
+        if !text.chars().into_iter().all(|c| c.is_numeric()) {
+            println!("iter? {}", text);
+            is_valid = false;
+        }
+        is_valid
+    }
+
+    fn is_float(self: &Self, text: &String) -> bool {
+        println!("is_float? {}", text);
+        let mut is_valid = true;
+        let mut count_decimal_points = 0;
+        let char_vec: Vec<char> = text.chars().collect();
+        for i in 0..text.len() {
+            let c = char_vec[i];
+            if c == '.' {
+                count_decimal_points = count_decimal_points + 1;
+            } else {
+                if !c.is_numeric() {
+                    is_valid = false;
+                }
+            }
+        }
+        is_valid && count_decimal_points == 1
+    }
+
+    fn is_string(self: &Self, text: &String) -> bool {
+        println!("is_string? {}", text);
+        let mut is_valid = true;
+        let char_vec: Vec<char> = text.chars().collect();
+        if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
+            is_valid = false;
+        }
+        is_valid
+    }
+
+    fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
-            "----------\r\n{}\r\n{}{}{}",
+            "----------\r\n{}\r\n{}{} {}",
             get_until_eol_or_eof(self.remaining.to_string()).0,
-            " ".repeat(indent_arrow),
-            "^ ",
+            " ".repeat(arrow_indent),
+            "^".repeat(arrow_len),
             error,
         )
     }
 
-    fn check_comment_single_line<'a>(self: &mut Self) -> Result<Option<String>, String> {
+    fn check_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
             return Err(ERRORS.no_valid_comment_single_line.to_string());
         } else {
@@ -267,7 +335,7 @@ const ERRORS: Errors = Errors {
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
-fn get_identifier<'a>(input: String) -> Result<(String, String), String> {
+fn get_identifier(input: String) -> Result<(String, String), String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     let char_vec: Vec<char> = identifier.chars().collect();
     if identifier == "".to_string() {
@@ -296,7 +364,7 @@ fn get_identifier<'a>(input: String) -> Result<(String, String), String> {
     }
 }
 
-fn get_comment<'a>(input: String) -> Result<(String, String), String> {
+fn get_comment(input: String) -> Result<(String, String), String> {
     let temp_input = strip_leading_whitespace(input.clone());
     let (comment, remainder) = get_until_eol_or_eof(temp_input);
     //let char_vec: Vec<char> = comment.chars().collect();
@@ -307,7 +375,7 @@ fn get_comment<'a>(input: String) -> Result<(String, String), String> {
     }
 }
 
-fn get_str<'a>(input: String, matchstr: &str) -> Result<String, String> {
+fn get_str(input: String, matchstr: &str) -> Result<String, String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     if identifier == "".to_string() || &identifier != matchstr {
         println!("get_str");
