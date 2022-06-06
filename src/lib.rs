@@ -11,13 +11,13 @@ pub struct Config {
     pub pass: usize,
     pub indent: usize,
     pub constants: Vec<String>,
-    pub error_stack: Vec<&'static str>,
+    pub error_stack: Vec<String>,
 }
 
 impl Config {
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
+    pub fn new(args: &[String]) -> Result<Config, String> {
         if args.len() < 2 {
-            return Err("missing filename argument");
+            return Err("missing filename argument".to_string());
         }
         let filename = args[1].clone();
         let filecontents = "".to_string();
@@ -54,7 +54,7 @@ impl Config {
         Ok(())
     }
 
-    fn tokenizer(self: &mut Self) -> Result<(), &str> {
+    fn tokenizer(self: &mut Self) -> Result<(), String> {
         //ref: https://doc.rust-lang.org/reference/tokens.html
         self.remaining = self.filecontents.clone();
         match self.main_loop() {
@@ -65,16 +65,17 @@ impl Config {
                 );
             }
             Err(e) => {
-                println!(
-                    "----------\r\n\r\nTOYLANG COMPILE ERROR:\r\n----------\r\n{:?}\r\n----------\r\n",
-                    e
-                );
+                println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                for error in e {
+                    println!("{}", error);
+                }
+                println!("----------\r\n");
             }
         };
         Ok(())
     }
 
-    fn main_loop(self: &mut Self) -> Result<(), Vec<&str>> {
+    fn main_loop(self: &mut Self) -> Result<(), Vec<String>> {
         while self.remaining.len() > 0 {
             //println!("pass:{:?}", self.pass);
             self.check_program_syntax()?;
@@ -86,7 +87,7 @@ impl Config {
         Ok(())
     }
 
-    fn check_one_or_more_succeeds<'a>(self: &mut Self) -> Result<(), Vec<&'a str>> {
+    fn check_one_or_more_succeeds<'a>(self: &mut Self) -> Result<(), Vec<String>> {
         println!("e0:{:?}... r::{:?}", self.remaining, self.error_stack);
         if self.check_one_succeeds("check_variable_assignment") {
             println!("e1:{:?}", self.error_stack);
@@ -97,8 +98,8 @@ impl Config {
             return Ok(());
         }
 
-        let e = ERRORS.no_valid_expression;
-        self.error_stack.push(e);
+        let e = self.get_error(0, ERRORS.no_valid_expression);
+        self.error_stack.push(e.to_string());
         println!("e3:{:?}", self.error_stack);
         println!("{:?}", self);
         Err(self.error_stack.clone())
@@ -146,16 +147,18 @@ impl Config {
         self.error_stack = to_clone.error_stack;
     }
 
-    fn check_program_syntax<'a>(self: &mut Self) -> Result<(), Vec<&'a str>> {
+    fn check_program_syntax<'a>(self: &mut Self) -> Result<(), Vec<String>> {
         if self.pass == 0 {
             if self.remaining.len() < 8 {
-                self.error_stack.push(ERRORS.invalid_program_syntax);
+                self.error_stack
+                    .push(ERRORS.invalid_program_syntax.to_string());
                 return Err(self.error_stack.clone());
                 //return Err();
             } else {
                 let starts_with_run = &self.remaining[..5] == "RUN\r\n";
                 if !starts_with_run {
-                    self.error_stack.push(ERRORS.invalid_program_syntax);
+                    self.error_stack
+                        .push(ERRORS.invalid_program_syntax.to_string());
                     return Err(self.error_stack.clone());
                     //return Err(ERRORS.invalid_program_syntax);
                 }
@@ -164,7 +167,8 @@ impl Config {
 
                 let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
                 if !ends_with_end {
-                    self.error_stack.push(ERRORS.invalid_program_syntax);
+                    self.error_stack
+                        .push(ERRORS.invalid_program_syntax.to_string());
                     return Err(self.error_stack.clone());
                     //return Err(ERRORS.invalid_program_syntax);
                 }
@@ -178,10 +182,10 @@ impl Config {
         Ok(())
     }
 
-    fn check_variable_assignment<'a>(self: &mut Self) -> Result<Option<&'a str>, &'a str> {
+    fn check_variable_assignment<'a>(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
             println!("error here?");
-            return Err(ERRORS.variable_assignment);
+            return Err(ERRORS.variable_assignment.to_string());
         } else {
             // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
             let mut remainder = strip_leading_whitespace(self.remaining.clone());
@@ -194,7 +198,8 @@ impl Config {
             if self.constants.iter().any(|c| c == &identifier) {
                 //self.error_stack.push(ERRORS.constants_are_immutable);
                 println!("r: {:?}\r\ne:{:?}", self.remaining, self.error_stack);
-                validation_error = Some(ERRORS.constants_are_immutable);
+                let e = self.get_error(2, ERRORS.constants_are_immutable);
+                validation_error = Some(e);
             }
 
             remainder = strip_leading_whitespace(remainder);
@@ -214,9 +219,19 @@ impl Config {
         }
     }
 
-    fn check_comment_single_line<'a>(self: &mut Self) -> Result<Option<&'a str>, &'a str> {
+    fn get_error(self: &Self, indent_arrow: usize, error: &str) -> String {
+        format!(
+            "----------\r\n{}\r\n{}{}{}",
+            get_until_eol_or_eof(self.remaining.to_string()).0,
+            " ".repeat(indent_arrow),
+            "^ ",
+            error,
+        )
+    }
+
+    fn check_comment_single_line<'a>(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
-            return Err(ERRORS.no_valid_comment_single_line);
+            return Err(ERRORS.no_valid_comment_single_line.to_string());
         } else {
             let temp_input = strip_leading_whitespace(self.remaining.clone());
             let (comment, remainder) = get_comment(temp_input)?;
@@ -234,13 +249,13 @@ impl Config {
     }
 }
 
-struct Errors<'a> {
-    invalid_program_syntax: &'a str,
-    variable_assignment: &'a str,
-    no_valid_identifier_found: &'a str,
-    no_valid_comment_single_line: &'a str,
-    no_valid_expression: &'a str,
-    constants_are_immutable: &'a str,
+struct Errors {
+    invalid_program_syntax: &'static str,
+    variable_assignment: &'static str,
+    no_valid_identifier_found: &'static str,
+    no_valid_comment_single_line: &'static str,
+    no_valid_expression: &'static str,
+    constants_are_immutable: &'static str,
 }
 
 const ERRORS: Errors = Errors {
@@ -252,12 +267,12 @@ const ERRORS: Errors = Errors {
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
-fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
+fn get_identifier<'a>(input: String) -> Result<(String, String), String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     let char_vec: Vec<char> = identifier.chars().collect();
     if identifier == "".to_string() {
         println!("empty string?");
-        Err(ERRORS.no_valid_identifier_found)
+        Err(ERRORS.no_valid_identifier_found.to_string())
     } else {
         for i in 0..identifier.len() {
             let c = char_vec[i];
@@ -265,14 +280,14 @@ fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
                 if !c.is_alphabetic() && !(c == '_') {
                     // must start with a letter or underscore
                     println!("letter or underscore?");
-                    return Err(ERRORS.no_valid_identifier_found);
+                    return Err(ERRORS.no_valid_identifier_found.to_string());
                 }
             } else {
                 if !c.is_alphanumeric() && !(c == '_') {
                     {
                         // all other chars must be letter or number or underscore
                         println!("alphanumeric?");
-                        return Err(ERRORS.no_valid_identifier_found);
+                        return Err(ERRORS.no_valid_identifier_found.to_string());
                     }
                 }
             }
@@ -281,22 +296,22 @@ fn get_identifier<'a>(input: String) -> Result<(String, String), &'a str> {
     }
 }
 
-fn get_comment<'a>(input: String) -> Result<(String, String), &'a str> {
+fn get_comment<'a>(input: String) -> Result<(String, String), String> {
     let temp_input = strip_leading_whitespace(input.clone());
     let (comment, remainder) = get_until_eol_or_eof(temp_input);
     //let char_vec: Vec<char> = comment.chars().collect();
     if comment.len() < 3 || &comment[..2] != "//" {
-        Err(ERRORS.no_valid_comment_single_line)
+        Err(ERRORS.no_valid_comment_single_line.to_string())
     } else {
         Ok((comment, remainder))
     }
 }
 
-fn get_str<'a>(input: String, matchstr: &str) -> Result<String, &'a str> {
+fn get_str<'a>(input: String, matchstr: &str) -> Result<String, String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     if identifier == "".to_string() || &identifier != matchstr {
         println!("get_str");
-        return Err(ERRORS.no_valid_identifier_found);
+        return Err(ERRORS.no_valid_identifier_found.to_string());
     }
     Ok(remainder)
 }
@@ -467,8 +482,9 @@ mod tests {
 
     #[test]
     fn test_check_variable_assignment() {
-        let err: Result<Option<&str>, &str> = Err(ERRORS.variable_assignment);
-        let err2: Result<Option<&str>, &str> = Err(ERRORS.no_valid_identifier_found);
+        let err: Result<Option<String>, String> = Err(ERRORS.variable_assignment.to_string());
+        let err2: Result<Option<String>, String> =
+            Err(ERRORS.no_valid_identifier_found.to_string());
         assert_eq!(mock_config("").check_variable_assignment(), err);
         assert_eq!(mock_config("2 = x").check_variable_assignment(), err2);
         assert_eq!(mock_config("let x = 2").check_variable_assignment(), err2);
@@ -538,7 +554,7 @@ mod tests {
     }
     #[test]
     fn test_get_identifier() {
-        let err = Err(ERRORS.no_valid_identifier_found);
+        let err = Err(ERRORS.no_valid_identifier_found.to_string());
         assert_eq!(get_identifier("".to_string()), err);
         assert_eq!(get_identifier("  abc".to_string()), err);
         assert_eq!(get_identifier("1abc = 123".to_string()), err);
@@ -562,7 +578,7 @@ mod tests {
     }
     #[test]
     fn test_get_str() {
-        let err = Err(ERRORS.no_valid_identifier_found);
+        let err = Err(ERRORS.no_valid_identifier_found.to_string());
         assert_eq!(get_str("".to_string(), ""), err);
         assert_eq!(get_str("  abc".to_string(), "abc"), err);
         assert_eq!(get_str("1abc = 123".to_string(), "abc"), err);
