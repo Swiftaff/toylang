@@ -46,7 +46,7 @@ Last line must be END
 ```
 RUN
 // comment
-x = 2
+= x 2
 END
 ```
 

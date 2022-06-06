@@ -65,28 +65,36 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds<'a>(self: &mut Self) -> Result<(), &'a str> {
-        let mut clone1 = self.clone();
-        let result_for_variable = clone1.check_variable_assignment();
-        match result_for_variable {
-            Ok(()) => {
-                self.clone_mut_ref(clone1);
-                return Ok(());
-            }
-            _ => (),
-        }
-
-        let mut clone2 = self.clone();
-        let result_for_comment = clone2.check_comment_single_line();
-        match result_for_comment {
-            Ok(()) => {
-                self.clone_mut_ref(clone2);
-                return Ok(());
-            }
-            _ => (),
+        if self.check_one_succeeds("check_variable_assignment") {
+            return Ok(());
+        };
+        if self.check_one_succeeds("check_comment_single_line") {
+            return Ok(());
         }
 
         println!("{:?}", self);
         Err(ERRORS.no_valid_expression)
+    }
+
+    fn check_one_succeeds<'a>(self: &mut Self, function_name: &str) -> bool {
+        let mut succeeded = false;
+        let mut clone = self.clone();
+        let result = match function_name {
+            "check_variable_assignment" => clone.check_variable_assignment(),
+            "check_comment_single_line" => clone.check_comment_single_line(),
+            _ => {
+                println!("check_one_succeeds: provided an unknown function_name");
+                Ok(())
+            }
+        };
+        match result {
+            Ok(()) => {
+                self.clone_mut_ref(clone);
+                succeeded = true;
+            }
+            _ => (),
+        }
+        succeeded
     }
 
     fn clone_mut_ref(self: &mut Self, to_clone: Config) -> () {
@@ -131,12 +139,11 @@ impl Config {
             return Err(ERRORS.variable_assignment);
         } else {
             // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
-            let temp_input = strip_leading_whitespace(self.remaining.clone());
-            //println!("input:{:?}", &temp_input);
-            let (identifier, mut remainder) = get_identifier(temp_input)?;
+            let mut remainder = strip_leading_whitespace(self.remaining.clone());
+            remainder = get_str(remainder, "=")?;
 
             remainder = strip_leading_whitespace(remainder);
-            remainder = get_str(remainder, "=")?;
+            let (identifier, mut remainder) = get_identifier(remainder)?;
 
             remainder = strip_leading_whitespace(remainder);
             let (text, remain) = get_until_whitespace_or_eof(remainder);
@@ -150,7 +157,6 @@ impl Config {
             self.output.insert_str(self.outputcursor, &insert);
             self.outputcursor = self.outputcursor + insert.len();
             self.remaining = strip_leading_whitespace(remain);
-            //println!("{:?} {:?}", self.output, self.remaining);
             Ok(())
         }
     }
@@ -357,7 +363,10 @@ mod tests {
         assert_eq!(mock_config("RUNEND").check_program_syntax(), err);
         assert_eq!(mock_config("END\r\nRUN").check_program_syntax(), err);
         assert_eq!(mock_config("RUN commands END").check_program_syntax(), err);
-        assert_eq!(mock_config("RUN\r\nEND").check_program_syntax(), Ok(()));
+        assert_eq!(
+            mock_config("RUN\r\n//comment\r\nEND").check_program_syntax(),
+            Ok(())
+        );
         assert_eq!(
             mock_config("RUN\r\ncommands\r\nEND").check_program_syntax(),
             Ok(())
@@ -381,10 +390,10 @@ mod tests {
         //assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
 
         //OK
-        assert_eq!(mock_config("x = Int 2").check_variable_assignment(), Ok(()));
-        assert_eq!(mock_config(" x = 2").check_variable_assignment(), Ok(()));
+        assert_eq!(mock_config("= x Int 2").check_variable_assignment(), Ok(()));
+        assert_eq!(mock_config(" = x 2").check_variable_assignment(), Ok(()));
         assert_eq!(
-            mock_config("x = Float 2.2").check_variable_assignment(),
+            mock_config("= x Float 2.2").check_variable_assignment(),
             Ok(())
         );
     }
