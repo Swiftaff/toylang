@@ -50,10 +50,11 @@ RUN
 = b 123.45
 = c a
 = d "string"
+
+// basic arithmetic
 = e + 1 2
 = f - 5.4 3.2
 END
-
 ```
 
 </td><td>
@@ -65,10 +66,11 @@ fn main() {
     let b = 123.45;
     let c = a;
     let d = "string";
+
+    // basic arithmetic
     let e = 1 + 2;
     let f = 5.4 - 3.2;
 }
-
 ```
 
 </td></tr></table>
