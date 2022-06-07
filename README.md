@@ -50,6 +50,8 @@ RUN
 = b 123.45
 = c a
 = d "string"
+= e + 1 2
+= f - 5.4 3.2
 END
 
 ```
@@ -63,6 +65,8 @@ fn main() {
     let b = 123.45;
     let c = a;
     let d = "string";
+    let e = 1 + 2;
+    let f = 5.4 - 3.2;
 }
 
 ```

@@ -11,6 +11,7 @@ pub struct Config {
     pub pass: usize,
     pub indent: usize,
     pub constants: Vec<String>,
+    pub functions: Vec<(String, String, Vec<String>)>,
     pub error_stack: Vec<String>,
 }
 
@@ -27,6 +28,23 @@ impl Config {
         let pass = 0;
         let indent = 0;
         let constants = vec![];
+        let arithmetic_operators = vec![
+            (
+                "+".to_string(),
+                "{1} + {2}".to_string(),
+                vec!["i64".to_string(), "i64".to_string()],
+            ),
+            (
+                "-".to_string(),
+                "{1} - {2}".to_string(),
+                vec!["i64".to_string(), "i64".to_string()],
+            ),
+        ];
+        let functions = vec![]
+            .iter()
+            .chain(&arithmetic_operators)
+            .map(|x| x.clone())
+            .collect();
         let error_stack = vec![];
         Ok(Config {
             filename,
@@ -37,6 +55,7 @@ impl Config {
             pass,
             indent,
             constants,
+            functions,
             error_stack,
         })
     }
@@ -144,6 +163,7 @@ impl Config {
         self.pass = to_clone.pass;
         self.indent = to_clone.indent;
         self.constants = to_clone.constants;
+        self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
     }
 
@@ -229,6 +249,23 @@ impl Config {
         self.constants.iter().any(|c| c == &constant)
     }
 
+    fn exists_function(self: &Self, function_name: &str) -> bool {
+        self.functions.iter().any(|c| c.0 == *function_name)
+    }
+
+    fn get_function(self: &Self, function_name: &str) -> Option<(String, String, Vec<String>)> {
+        let function_vec = self
+            .functions
+            .iter()
+            .filter(|c| c.0 == *function_name)
+            .collect::<Vec<_>>();
+        if function_vec.len() == 0 {
+            None
+        } else {
+            Some(function_vec[0].clone())
+        }
+    }
+
     fn check_expression(self: &mut Self, identifier: &str) -> Result<Option<String>, String> {
         let remainder =
             strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
@@ -238,14 +275,54 @@ impl Config {
             && !self.is_float(&text)
             && !self.exists_constant(&text)
             && !self.is_string(&text)
+            && !self.is_function_call(&text)
         {
             return Err(self.get_error(
                 3 + identifier.len(),
                 text.len(),
-                "is not a valid expression: must be either an:\r\ninteger, e.g. 12345\r\nfloat, e.g. 123.45\r\nexisting constant, e.g. x\r\nstring, e.g. \"string\"\r\nTODO function",
+                "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
             ));
         }
-        // Function (e.g. arithmetic expression)
+
+        if self.is_function_call(&text) {
+            let (function_name, remainder) = get_until_whitespace_or_eol_or_eof(text.clone());
+            let fun = self.get_function(&function_name);
+            match fun {
+                Some((_, function_format, function_args)) => {
+                    let mut values: Vec<String> = vec![];
+                    let mut val: String; // = text.clone();
+                    let mut remain = strip_leading_whitespace(remainder.clone());
+                    for _ in 0..function_args.len() {
+                        (val, remain) =
+                            get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain));
+                        values.push(val.clone());
+                    }
+
+                    // TODO check types of values
+
+                    let output = match function_args.len() {
+                        2 => {
+                            let out1 = function_format.replace("{1}", &values[0]);
+                            let out2 = out1.replace("{2}", &values[1]);
+                            out2
+                        }
+                        1 => {
+                            let out1 = function_format.replace("{1}", &values[0]);
+                            out1
+                        }
+                        _ => function_format,
+                    };
+                    return Ok(Some(output));
+                }
+                _ => {
+                    return Err(self.get_error(
+                    3 + identifier.len(),
+                    text.len(),
+                    "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
+                ));
+                }
+            }
+        }
         Ok(Some(text))
     }
 
@@ -282,6 +359,16 @@ impl Config {
         let mut is_valid = true;
         let char_vec: Vec<char> = text.chars().collect();
         if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
+            is_valid = false;
+        }
+        is_valid
+    }
+
+    fn is_function_call(self: &Self, text: &String) -> bool {
+        println!("is_function_call? {}", text);
+        let mut is_valid = true;
+        let (function_name, _) = get_until_whitespace_or_eol_or_eof(text.clone());
+        if text.len() == 0 || !self.exists_function(&function_name) {
             is_valid = false;
         }
         is_valid
@@ -424,6 +511,26 @@ fn get_until_eol_or_eof(input: String) -> (String, String) {
     (output, remainder)
 }
 
+fn get_until_whitespace_or_eol_or_eof(input: String) -> (String, String) {
+    let mut output = "".to_string();
+    let mut remainder = "".to_string();
+    let char_vec: Vec<char> = input.chars().collect();
+    for i in 0..input.len() {
+        if i == input.len() {
+            remainder = "".to_string();
+        } else {
+            if char_vec[i] == '\r' || char_vec[i].is_whitespace() {
+                remainder = input[i..].to_string();
+                break;
+            } else {
+                remainder = input[i + 1..].to_string();
+                output.push(char_vec[i]);
+            }
+        }
+    }
+    (output, remainder)
+}
+
 fn strip_leading_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
@@ -466,6 +573,7 @@ mod tests {
             pass: 0,
             indent: 1,
             constants: vec![],
+            functions: vec![],
             error_stack: vec![],
         }
     }
