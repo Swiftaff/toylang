@@ -4,15 +4,21 @@ A toy language which compiles to rust for fun and experimentation.
 
 ## Build
 
-Builds the executable at `/target/debug/toylang.exe`
+Builds the `'/src/main.rs` into an executable at `/target/debug/toylang.exe` or `/target/release/toylang.exe`
 
 ```
 cargo build
 ```
 
+or
+
+```
+cargo build --release
+```
+
 ## Usage
 
-Create a file e.g. "test.toy" containing the toy language in the same directory (or elsewhere). Pass the filepath to the exe to compile it:
+Create a file e.g. `test.toy` containing the toy language in the same directory (or elsewhere). Pass the filepath to the exe to compile it:
 
 ```
 toylang test.toy
@@ -26,8 +32,40 @@ toylang.exe ../../somewhere/else/test.toy
 
 Compile errors will appear in the console.
 
-Or on success a compiled file will be saved in the same directory as "output.rs".
-You can then build that file with rust as needed.
+```
+TOYLANG COMPILE ERROR:
+----------
+= monkey monkeys
+         ^^^^^^^ is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. "string", function, e.g. + 1 2
+----------
+= monkey monkeys
+^ No valid expression was found
+----------
+```
+
+Or on success a compiled file will be saved.
+By default we assume the toylang.exe is in the `/target/debug` or /`target/release` directory, so it will save the output into `../../src/bin/output.rs`
+
+You can then build THAT file with cargo as needed, i.e. add this to the "Cargo.toml"
+
+```
+[[bin]]
+name = "output"
+```
+
+Then compile and run the output file
+
+```
+cargo run --bin output
+```
+
+or
+
+```
+cargo run --release --bin output
+```
+
+And your final compiled `output.exe` will be run from `/target/debug` or `/target/release`
 
 ## Toy language Syntax Examples
 

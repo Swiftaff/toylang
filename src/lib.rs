@@ -68,7 +68,7 @@ impl Config {
         );
         self.tokenizer()?;
         if self.error_stack.len() == 0 {
-            fs::write("output.rs", &self.output)?;
+            fs::write("../../src/bin/output.rs", &self.output)?;
         }
         Ok(())
     }
