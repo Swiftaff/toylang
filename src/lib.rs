@@ -1,6 +1,17 @@
 use std::error::Error;
 use std::fs;
 
+type FunctionName = String;
+type FunctionFormat = String;
+type FunctionType = String;
+type FunctionValidation = String;
+type FunctionDefinition = (
+    FunctionName,
+    FunctionFormat,
+    Vec<FunctionType>,
+    Vec<FunctionValidation>,
+);
+
 #[derive(Clone, Debug)]
 pub struct Config {
     pub filename: String,
@@ -11,7 +22,7 @@ pub struct Config {
     pub pass: usize,
     pub indent: usize,
     pub constants: Vec<String>,
-    pub functions: Vec<(String, String, Vec<String>)>,
+    pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
 }
 
@@ -28,19 +39,39 @@ impl Config {
         let pass = 0;
         let indent = 0;
         let constants = vec![];
-        let arithmetic_operators = vec![
+        let arithmetic_operators: Vec<FunctionDefinition> = vec![
             (
                 "+".to_string(),
                 "{1} + {2}".to_string(),
-                vec!["i64".to_string(), "i64".to_string()],
+                vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                vec!["arg_types_must_match".to_string()],
             ),
             (
                 "-".to_string(),
                 "{1} - {2}".to_string(),
-                vec!["i64".to_string(), "i64".to_string()],
+                vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                vec!["arg_types_must_match".to_string()],
+            ),
+            (
+                "*".to_string(),
+                "{1} * {2}".to_string(),
+                vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                vec!["arg_types_must_match".to_string()],
+            ),
+            (
+                "/".to_string(),
+                "{1} / {2}".to_string(),
+                vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                vec!["arg_types_must_match".to_string()],
+            ),
+            (
+                "%".to_string(),
+                "{1} % {2}".to_string(),
+                vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                vec!["arg_types_must_match".to_string()],
             ),
         ];
-        let functions = vec![]
+        let functions: Vec<FunctionDefinition> = vec![]
             .iter()
             .chain(&arithmetic_operators)
             .map(|x| x.clone())
@@ -253,7 +284,7 @@ impl Config {
         self.functions.iter().any(|c| c.0 == *function_name)
     }
 
-    fn get_function(self: &Self, function_name: &str) -> Option<(String, String, Vec<String>)> {
+    fn get_function(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
         let function_vec = self
             .functions
             .iter()
@@ -271,12 +302,7 @@ impl Config {
             strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
         let (text, remain) = get_until_eol_or_eof(remainder);
         println!("EXPRESSION:{:?}", text);
-        if !self.is_integer(&text)
-            && !self.is_float(&text)
-            && !self.exists_constant(&text)
-            && !self.is_string(&text)
-            && !self.is_function_call(&text)
-        {
+        if self.get_type(&text) == "Undefined".to_string() && !self.exists_constant(&text) {
             return Err(self.get_error(
                 3 + identifier.len(),
                 text.len(),
@@ -288,7 +314,7 @@ impl Config {
             let (function_name, remainder) = get_until_whitespace_or_eol_or_eof(text.clone());
             let fun = self.get_function(&function_name);
             match fun {
-                Some((_, function_format, function_args)) => {
+                Some((_, function_format, function_args, function_validation)) => {
                     let mut values: Vec<String> = vec![];
                     let mut val: String; // = text.clone();
                     let (mut remain, _) =
@@ -301,6 +327,7 @@ impl Config {
                         }
                     }
 
+                    // check number of arguments supplied
                     if function_args.len() != values.len() {
                         return Err(self.get_error(
                             3 + identifier.len(),
@@ -313,8 +340,46 @@ impl Config {
                         ));
                     }
 
-                    // TODO check types of values
-                    println!("### {:?} {:?}", values, function_args);
+                    // check types of values
+                    let mut value_types: Vec<String> = vec![];
+                    for i in 0..values.len() {
+                        value_types.push(self.get_type(&values[i]));
+                    }
+                    for i in 0..values.len() {
+                        if !function_args[i].contains(&value_types[i]) {
+                            return Err(self.get_error(
+                                3 + identifier.len(),
+                                text.len(),
+                                &format!(
+                                    "function arguments are not the correct types. Expected: {:?}. Found {:?}",
+                                    function_args,
+                                    value_types
+                                ),
+                            ));
+                        }
+                    }
+
+                    // check all types match
+                    if values.len() > 0 {
+                        // need to check if at least one value otherwise can't determine 'first' below
+                        if function_validation.contains(&"arg_types_must_match".to_string()) {
+                            let first = &value_types[0];
+                            println!("###first {}", first);
+                            if value_types.clone().into_iter().any(|c| {
+                                println!("###c {}", c);
+                                return &c != first;
+                            }) {
+                                return Err(self.get_error(
+                                3 + identifier.len(),
+                                text.len(),
+                                &format!(
+                                    "This function's arguments must all be of the same type. Some values have types that appear to differ: {:?}",
+                                    value_types
+                                ),
+                            ));
+                            }
+                        }
+                    }
 
                     let output = match function_args.len() {
                         2 => {
@@ -340,6 +405,22 @@ impl Config {
             }
         }
         Ok(Some(text))
+    }
+
+    fn get_type(self: &Self, text: &String) -> String {
+        if self.is_integer(text) {
+            return "Int".to_string();
+        }
+        if self.is_float(text) {
+            return "Float".to_string();
+        }
+        if self.is_string(text) {
+            return "String".to_string();
+        }
+        if self.is_function_call(text) {
+            return "Function".to_string();
+        }
+        "Undefined".to_string()
     }
 
     fn is_integer(self: &Self, text: &String) -> bool {

@@ -84,14 +84,17 @@ Last line must be END
 ```
 RUN
 // single line comments
-= a 123
-= b 123.45
-= c a
-= d "string"
+= integer 123
+= float 123.45
+= reference a
+= string "string"
 
 // basic arithmetic
-= e + 1 2
-= f - 5.4 3.2
+= addition + 1 2
+= subtraction - 5.4 3.2
+= multiplication * 3 4
+= division / 1.0 2.0
+= modulus % 42 3.14
 END
 ```
 
@@ -100,14 +103,17 @@ END
 ```rust
 fn main() {
     // single line comments
-    let a = 123;
-    let b = 123.45;
-    let c = a;
-    let d = "string";
+    let an_integer = 123;
+    let a_float = 123.45;
+    let a_reference = a;
+    let a_string = "string";
 
     // basic arithmetic
-    let e = 1 + 2;
-    let f = 5.4 - 3.2;
+    let addition = 1 + 2;
+    let subtraction = 5.4 - 3.2;
+    let multiplication = 3 * 4;
+    let division = 1.0 / 2.0;
+    let modulus = 42 % 3.14;
 }
 ```
 
