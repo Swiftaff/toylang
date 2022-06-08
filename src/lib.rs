@@ -291,14 +291,30 @@ impl Config {
                 Some((_, function_format, function_args)) => {
                     let mut values: Vec<String> = vec![];
                     let mut val: String; // = text.clone();
-                    let mut remain = strip_leading_whitespace(remainder.clone());
-                    for _ in 0..function_args.len() {
+                    let (mut remain, _) =
+                        get_until_eol_or_eof((strip_leading_whitespace(remainder.clone())));
+                    while remain.len() > 0 {
                         (val, remain) =
                             get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain));
-                        values.push(val.clone());
+                        if val != "" {
+                            values.push(val.clone());
+                        }
+                    }
+
+                    if function_args.len() != values.len() {
+                        return Err(self.get_error(
+                            3 + identifier.len(),
+                            text.len(),
+                            &format!(
+                                "wrong number of function arguments. Expected: {}. Found {}.",
+                                function_args.len(),
+                                values.len()
+                            ),
+                        ));
                     }
 
                     // TODO check types of values
+                    println!("### {:?} {:?}", values, function_args);
 
                     let output = match function_args.len() {
                         2 => {
