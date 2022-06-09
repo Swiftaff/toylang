@@ -39,41 +39,28 @@ impl Config {
         let pass = 0;
         let indent = 0;
         let constants = vec![];
-        let arithmetic_operators: Vec<FunctionDefinition> = vec![
-            (
-                "+".to_string(),
-                "{1} + {2}".to_string(),
-                vec!["Int|Float".to_string(), "Int|Float".to_string()],
-                vec!["arg_types_must_match".to_string()],
-            ),
-            (
-                "-".to_string(),
-                "{1} - {2}".to_string(),
-                vec!["Int|Float".to_string(), "Int|Float".to_string()],
-                vec!["arg_types_must_match".to_string()],
-            ),
-            (
-                "*".to_string(),
-                "{1} * {2}".to_string(),
-                vec!["Int|Float".to_string(), "Int|Float".to_string()],
-                vec!["arg_types_must_match".to_string()],
-            ),
-            (
-                "/".to_string(),
-                "{1} / {2}".to_string(),
-                vec!["Int|Float".to_string(), "Int|Float".to_string()],
-                vec!["arg_types_must_match".to_string()],
-            ),
-            (
-                "%".to_string(),
-                "{1} % {2}".to_string(),
-                vec!["Int|Float".to_string(), "Int|Float".to_string()],
-                vec!["arg_types_must_match".to_string()],
-            ),
-        ];
+        let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
+        let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
+            .into_iter()
+            .map(|prim| {
+                (
+                    prim.to_string(),
+                    format!("#1 {} #2", prim).to_string(),
+                    vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                    vec!["arg_types_must_match".to_string()],
+                )
+            })
+            .collect();
+        let function_def: FunctionDefinition = (
+            "\\".to_string(),
+            "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
+            vec![],
+            vec!["lambda".to_string()],
+        );
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
             .chain(&arithmetic_operators)
+            .chain(&vec![function_def])
             .map(|x| x.clone())
             .collect();
         let error_stack = vec![];
@@ -100,6 +87,8 @@ impl Config {
         self.tokenizer()?;
         if self.error_stack.len() == 0 {
             fs::write("../../src/bin/output.rs", &self.output)?;
+        } else {
+            println!("DIDN'T SAVE - error stack: {:?}", self.error_stack);
         }
         Ok(())
     }
@@ -138,20 +127,20 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        println!("e0:{:?}... r::{:?}", self.remaining, self.error_stack);
+        //println!("e0:{:?}... r::{:?}", self.remaining, self.error_stack);
+        if self.check_one_succeeds("check_function_definition") {
+            return Ok(());
+        }
         if self.check_one_succeeds("check_variable_assignment") {
-            println!("e1:{:?}", self.error_stack);
             return Ok(());
         }
         if self.check_one_succeeds("check_comment_single_line") {
-            println!("e2:{:?}", self.error_stack);
             return Ok(());
         }
-
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
-        println!("e3:{:?}", self.error_stack);
-        println!("{:?}", self);
+        //println!("e3:{:?}", self.error_stack);
+        //println!("{:?}", self);
         Err(self.error_stack.clone())
     }
 
@@ -159,10 +148,11 @@ impl Config {
         let mut succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
+            "check_function_definition" => clone.check_function_definition(),
             "check_variable_assignment" => clone.check_variable_assignment(),
             "check_comment_single_line" => clone.check_comment_single_line(),
             _ => {
-                println!("check_one_succeeds: provided an unknown function_name");
+                //println!("check_one_succeeds: provided an unknown function_name");
                 return false;
             }
         };
@@ -172,7 +162,7 @@ impl Config {
                 self.clone_mut_ref(clone);
                 match validation_error {
                     Some(e) => {
-                        println!("one_succeeds e{:?}", e);
+                        //println!("one_succeeds e{:?}", e);
                         self.error_stack.push(e);
                         succeeded = false;
                     }
@@ -235,16 +225,17 @@ impl Config {
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
-            println!("error here?");
+            //println!("error here?");
             return Err(ERRORS.variable_assignment.to_string());
         } else {
             // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
             let mut remainder = strip_leading_whitespace(self.remaining.clone());
-            println!("check_var {:?}", self);
+            //println!("check_var {:?}", self);
             remainder = get_str(remainder.clone(), "=")?;
 
             remainder = strip_leading_whitespace(remainder);
             let (identifier, mut remainder) = get_identifier(remainder)?;
+            println!("##id{}", identifier);
             let mut validation_error = None;
             if self.exists_constant(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
@@ -254,7 +245,6 @@ impl Config {
             remainder = strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
             let (text, remain) = get_until_eol_or_eof(remainder);
 
-            // handle expressions here
             let expression_result = self.check_expression(&identifier);
             match expression_result {
                 Ok(Some(expression)) => {
@@ -271,6 +261,60 @@ impl Config {
                 }
                 Err(e) => validation_error = Some(e),
                 _ => validation_error = Some("some other error".to_string()),
+            }
+            Ok(validation_error)
+        }
+    }
+
+    fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
+        if self.remaining.len() < 3 {
+            return Err(ERRORS.function_definition.to_string());
+        } else {
+            let mut remainder = strip_leading_whitespace(self.remaining.clone());
+            remainder = get_str(remainder.clone(), "=")?;
+            remainder = strip_leading_whitespace(remainder);
+            let (identifier, mut remainder) = get_identifier(remainder)?;
+            println!("##id{}", identifier);
+            let mut validation_error = None;
+            if identifier == "\\" {
+                //check for pre-existing same function_name
+
+                remainder =
+                    strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
+                let (text, remain) = get_until_eol_or_eof(remainder);
+                println!("### {} {} '{}'", identifier, text, remain);
+                let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
+                let fun = self.get_function(&"\\");
+                match fun {
+                    Some((_, function_format, function_args, function_validation)) => {
+                        let insert = function_format
+                            .replace("#0", &" ".repeat(self.indent * 4))
+                            .replace("#1", &function_name)
+                            .replace("#2", &"function_arg: &str")
+                            .replace(
+                                "#3",
+                                &format!(
+                                    "{}{}",
+                                    " ".repeat((self.indent + 1) * 4),
+                                    "let x = function_arg;"
+                                ),
+                            );
+
+                        // create and push function
+                        //self.functions.push(identifier);
+
+                        self.output.insert_str(self.outputcursor, &insert);
+                        self.outputcursor = self.outputcursor + insert.len();
+                        self.remaining = strip_leading_whitespace(remain);
+                        println!("DONE? {:?}", self);
+                    }
+                    _ => {
+                        println!("NOPE - not a function definition");
+                        validation_error = Some("NOPE - not a function definition".to_string());
+                    }
+                }
+            } else {
+                return Err(ERRORS.function_definition.to_string());
             }
             Ok(validation_error)
         }
@@ -301,7 +345,7 @@ impl Config {
         let remainder =
             strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
         let (text, remain) = get_until_eol_or_eof(remainder);
-        println!("EXPRESSION:{:?}", text);
+        println!("EXPRESSION: {} {:?}", identifier, text);
         if self.get_type(&text) == "Undefined".to_string() && !self.exists_constant(&text) {
             return Err(self.get_error(
                 3 + identifier.len(),
@@ -318,7 +362,7 @@ impl Config {
                     let mut values: Vec<String> = vec![];
                     let mut val: String; // = text.clone();
                     let (mut remain, _) =
-                        get_until_eol_or_eof((strip_leading_whitespace(remainder.clone())));
+                        get_until_eol_or_eof(strip_leading_whitespace(remainder.clone()));
                     while remain.len() > 0 {
                         (val, remain) =
                             get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain));
@@ -364,9 +408,9 @@ impl Config {
                         // need to check if at least one value otherwise can't determine 'first' below
                         if function_validation.contains(&"arg_types_must_match".to_string()) {
                             let first = &value_types[0];
-                            println!("###first {}", first);
+                            //println!("###first {}", first);
                             if value_types.clone().into_iter().any(|c| {
-                                println!("###c {}", c);
+                                //println!("###c {}", c);
                                 return &c != first;
                             }) {
                                 return Err(self.get_error(
@@ -383,12 +427,12 @@ impl Config {
 
                     let output = match function_args.len() {
                         2 => {
-                            let out1 = function_format.replace("{1}", &values[0]);
-                            let out2 = out1.replace("{2}", &values[1]);
+                            let out1 = function_format.replace("#1", &values[0]);
+                            let out2 = out1.replace("#2", &values[1]);
                             out2
                         }
                         1 => {
-                            let out1 = function_format.replace("{1}", &values[0]);
+                            let out1 = function_format.replace("#1", &values[0]);
                             out1
                         }
                         _ => function_format,
@@ -420,21 +464,24 @@ impl Config {
         if self.is_function_call(text) {
             return "Function".to_string();
         }
+        //if self.is_function_def(text) {
+        //    return "FunctionDef".to_string();
+        //}
         "Undefined".to_string()
     }
 
     fn is_integer(self: &Self, text: &String) -> bool {
-        println!("is_integer? {}", text);
+        //println!("is_integer? {}", text);
         let mut is_valid = true;
         if !text.chars().into_iter().all(|c| c.is_numeric()) {
-            println!("iter? {}", text);
+            //println!("iter? {}", text);
             is_valid = false;
         }
         is_valid
     }
 
     fn is_float(self: &Self, text: &String) -> bool {
-        println!("is_float? {}", text);
+        //println!("is_float? {}", text);
         let mut is_valid = true;
         let mut count_decimal_points = 0;
         let char_vec: Vec<char> = text.chars().collect();
@@ -452,7 +499,7 @@ impl Config {
     }
 
     fn is_string(self: &Self, text: &String) -> bool {
-        println!("is_string? {}", text);
+        //println!("is_string? {}", text);
         let mut is_valid = true;
         let char_vec: Vec<char> = text.chars().collect();
         if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
@@ -462,7 +509,7 @@ impl Config {
     }
 
     fn is_function_call(self: &Self, text: &String) -> bool {
-        println!("is_function_call? {}", text);
+        //println!("is_function_call? {}", text);
         let mut is_valid = true;
         let (function_name, _) = get_until_whitespace_or_eol_or_eof(text.clone());
         if text.len() == 0 || !self.exists_function(&function_name) {
@@ -504,6 +551,7 @@ impl Config {
 struct Errors {
     invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
+    function_definition: &'static str,
     no_valid_identifier_found: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_expression: &'static str,
@@ -513,6 +561,7 @@ struct Errors {
 const ERRORS: Errors = Errors {
     invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
+    function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
     no_valid_identifier_found:"No valid identifier found",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_expression: "No valid expression was found",
@@ -523,22 +572,22 @@ fn get_identifier(input: String) -> Result<(String, String), String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     let char_vec: Vec<char> = identifier.chars().collect();
     if identifier == "".to_string() {
-        println!("empty string?");
+        //println!("empty string?");
         Err(ERRORS.no_valid_identifier_found.to_string())
     } else {
         for i in 0..identifier.len() {
             let c = char_vec[i];
             if i == 0 {
-                if !c.is_alphabetic() && !(c == '_') {
-                    // must start with a letter or underscore
-                    println!("letter or underscore?");
+                if !c.is_alphabetic() && !(c == '_') && !(c == '\\' && identifier.len() == 1) {
+                    // must start with a letter or underscore (or '\' if function definition)
+                    //println!("letter or underscore?");
                     return Err(ERRORS.no_valid_identifier_found.to_string());
                 }
             } else {
                 if !c.is_alphanumeric() && !(c == '_') {
                     {
                         // all other chars must be letter or number or underscore
-                        println!("alphanumeric?");
+                        //println!("alphanumeric?");
                         return Err(ERRORS.no_valid_identifier_found.to_string());
                     }
                 }
@@ -562,7 +611,7 @@ fn get_comment(input: String) -> Result<(String, String), String> {
 fn get_str(input: String, matchstr: &str) -> Result<String, String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     if identifier == "".to_string() || &identifier != matchstr {
-        println!("get_str");
+        //println!("get_str");
         return Err(ERRORS.no_valid_identifier_found.to_string());
     }
     Ok(remainder)
