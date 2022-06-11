@@ -131,21 +131,26 @@ impl Config {
             let mut index_to = 0;
             let char_vec: Vec<char> = self.lines_of_chars[line].clone();
             //println!("line: {}", line);
-            //let mut inside_quotes = false;
+            let mut inside_quotes = false;
             let mut line_of_tokens: Vec<String> = vec![];
             while index_to < char_vec.len() {
-                println!(
-                    "line: {}, index_from: {}, index_to: {}",
-                    line, index_from, index_to
-                );
                 let c = char_vec[index_to];
+                println!(
+                    "line: {}, index_from: {}, index_to: {} - '{}'",
+                    line, index_from, index_to, c
+                );
                 let eof = index_to == char_vec.len() - 1;
-                if (c.is_whitespace() && index_to != 0) || eof {
+                inside_quotes = if c == '"' {
+                    !inside_quotes
+                } else {
+                    inside_quotes
+                };
+                if (c.is_whitespace() && index_to != 0 && !inside_quotes) || eof {
                     let token_chars = char_vec[index_from..index_to + (if eof { 1 } else { 0 })]
                         .iter()
                         .cloned()
                         .collect::<String>();
-                    println!("token_chars:{:?}", token_chars);
+                    println!("token_chars:{:}", token_chars);
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
                 }
@@ -227,7 +232,7 @@ impl Config {
                     None => succeeded = true,
                 }
             }
-            Err(e) => println!("error"), //self.error_stack.push(e), // just testing - move to a temporary error_stack
+            Err(_e) => println!("error"), //self.error_stack.push(e), // just testing - move to a temporary error_stack
         }
         succeeded
     }
@@ -285,11 +290,12 @@ impl Config {
 
             match expression_result {
                 Ok((expression, exp_type)) => {
-                    //let expression = "testy";
+                    let type_colon = if exp_type.len() == 0 { "" } else { ": " };
                     let insert = &format!(
-                        "{}let {}: {} = {};\r\n",
+                        "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
+                        type_colon,
                         &exp_type,
                         &expression
                     );
@@ -381,12 +387,31 @@ impl Config {
     }
 
     fn check_expression(
-        self: &mut Self,
+        self: &Self,
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(String, String), String> {
         if tokens.len() == 1 && self.is_integer(&tokens[0]) {
             return Ok((tokens[0].clone(), "i64".to_string()));
+        }
+        if tokens.len() == 1 && self.is_float(&tokens[0]) {
+            return Ok((tokens[0].clone(), "f64".to_string()));
+        }
+        if tokens.len() == 1 && self.exists_constant(&tokens[0]) {
+            return Ok((tokens[0].clone(), "".to_string()));
+        }
+        if tokens.len() > 1 {
+            println!("ISSTRING? {:} {:}", tokens[0], tokens[1]);
+        }
+        let possible_string: Vec<char> = tokens[0].chars().collect();
+        if tokens.len() == 1
+            && possible_string[0] == '\"'
+            && possible_string[possible_string.len() - 1] == '\"'
+        {
+            return Ok((
+                format!("{}{}", tokens[0], ".to_string()",).to_string(),
+                "String".to_string(),
+            ));
         }
         let text: String = tokens.iter().map(String::as_str).collect();
         Err(self.get_error(
