@@ -345,7 +345,7 @@ impl Config {
         let remainder =
             strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
         let (text, remain) = get_until_eol_or_eof(remainder);
-        println!("EXPRESSION: {} {:?}", identifier, text);
+        //println!("EXPRESSION: {} {:?}", identifier, text);
         if self.get_type(&text) == "Undefined".to_string() && !self.exists_constant(&text) {
             return Err(self.get_error(
                 3 + identifier.len(),
@@ -353,8 +353,10 @@ impl Config {
                 "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
             ));
         }
-
-        if self.is_function_call(&text) {
+        if self.is_lambda(&text) {
+            println!("### testing function_def");
+            self.get_function_def(&text);
+        } else if self.is_function_call(&text) {
             let (function_name, remainder) = get_until_whitespace_or_eol_or_eof(text.clone());
             let fun = self.get_function(&function_name);
             match fun {
@@ -464,9 +466,9 @@ impl Config {
         if self.is_function_call(text) {
             return "Function".to_string();
         }
-        //if self.is_function_def(text) {
-        //    return "FunctionDef".to_string();
-        //}
+        if self.is_lambda(text) {
+            return "FunctionDef".to_string();
+        }
         "Undefined".to_string()
     }
 
@@ -508,6 +510,15 @@ impl Config {
         is_valid
     }
 
+    fn is_lambda(self: &Self, text: &String) -> bool {
+        let mut is_valid = true;
+        let char_vec: Vec<char> = text.chars().collect();
+        if char_vec[0] != '\\' {
+            is_valid = false;
+        }
+        is_valid
+    }
+
     fn is_function_call(self: &Self, text: &String) -> bool {
         //println!("is_function_call? {}", text);
         let mut is_valid = true;
@@ -516,6 +527,29 @@ impl Config {
             is_valid = false;
         }
         is_valid
+    }
+
+    fn get_function_def(self: &Self, text: &String) -> () {
+        let mut is_valid = true;
+        let (slash, remain1) = get_until_whitespace_or_eol_or_eof(text.clone());
+        let arrow_option = remain1.find("=>");
+        let mut args: Vec<String> = vec![];
+        match arrow_option {
+            Some(arrow) => {
+                let mut remain2 = strip_trailing_whitespace(strip_leading_whitespace(
+                    remain1[0..arrow].to_string(),
+                ));
+                while remain2.len() > 0 {
+                    let (arg, remainder) = get_until_whitespace_or_eol_or_eof(remain2.clone());
+                    println!("#{}", remain2);
+                    remain2 = remainder.clone();
+                    args.push(arg);
+                }
+                println!("fn'{}' '{}' '{:?}'", slash, remain2, args);
+            }
+            _ => (),
+        };
+        //let (slash, remain2) = get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain1));
     }
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
@@ -694,6 +728,25 @@ fn strip_leading_whitespace(input: String) -> String {
         return "".to_string();
     }
     input[first_non_whitespace_index..].to_string()
+}
+
+fn strip_trailing_whitespace(input: String) -> String {
+    let char_vec: Vec<char> = input.chars().collect();
+    let mut checking_for_whitespace = true;
+    let mut first_non_whitespace_index = input.len();
+    for i in (0..input.len()).rev() {
+        if checking_for_whitespace {
+            if !char_vec[i].is_whitespace() {
+                first_non_whitespace_index = i + 1;
+                checking_for_whitespace = false;
+            }
+        }
+    }
+    if first_non_whitespace_index == 0 && checking_for_whitespace {
+        //if you get to end of string and it's all whitespace return empty string
+        return "".to_string();
+    }
+    input[..first_non_whitespace_index].to_string()
 }
 
 // assign to variable
