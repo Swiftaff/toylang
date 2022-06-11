@@ -27,7 +27,6 @@ pub struct Config {
     pub outputcursor: usize,
     pub pass: usize,
     pub indent: usize,
-    pub constants: Vec<String>,
     pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
 }
@@ -46,7 +45,6 @@ impl Config {
         let outputcursor = 0;
         let pass = 0;
         let indent = 0;
-        let constants = vec![];
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
             .into_iter()
@@ -84,7 +82,7 @@ impl Config {
             outputcursor,
             pass,
             indent,
-            constants,
+
             functions,
             error_stack,
         })
@@ -92,10 +90,7 @@ impl Config {
 
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.filecontents = fs::read_to_string(&self.filename)?;
-        println!(
-            "\r\nINPUT contents of filename: {:?}\n----------\n{}",
-            &self.filename, &self.filecontents
-        );
+        println!("\r\nINPUT contents of filename: {:?}", &self.filename); //, &self.filecontents
         self.get_lines_of_chars();
         self.get_lines_of_tokens();
         self.run_main_loop()?;
@@ -128,7 +123,7 @@ impl Config {
             }
             index_to = index_to + incr;
         }
-        println!("@@ {:?}", self.lines_of_chars);
+        //println!("@@ {:?}", self.lines_of_chars);
     }
 
     fn get_lines_of_tokens(self: &mut Self) {
@@ -141,10 +136,10 @@ impl Config {
             let mut line_of_tokens: Vec<String> = vec![];
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
-                println!(
-                    "line: {}, index_from: {}, index_to: {} - '{}'",
-                    line, index_from, index_to, c
-                );
+                //println!(
+                //    "line: {}, index_from: {}, index_to: {} - '{}'",
+                //    line, index_from, index_to, c
+                //);
                 let eof = index_to == char_vec.len() - 1;
                 inside_quotes = if c == '"' {
                     !inside_quotes
@@ -156,7 +151,7 @@ impl Config {
                         .iter()
                         .cloned()
                         .collect::<String>();
-                    println!("token_chars:{:}", token_chars);
+                    //println!("token_chars:{:}", token_chars);
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
                 }
@@ -164,7 +159,7 @@ impl Config {
             }
             self.lines_of_tokens.push(line_of_tokens);
         }
-        println!("@@ {:?}", self.lines_of_tokens);
+        //println!("@@ {:?}", self.lines_of_tokens);
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
@@ -173,7 +168,7 @@ impl Config {
         match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
                 println!(
-                    "----------\r\n\r\nToylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
+                    "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
             }
@@ -204,7 +199,7 @@ impl Config {
         //    return Ok(());
         //}
         if self.check_one_succeeds("check_variable_assignment") {
-            println!("succeeded");
+            //println!("succeeded");
             return Ok(());
         }
         //if self.check_one_succeeds("check_comment_single_line") {
@@ -227,7 +222,7 @@ impl Config {
                 return false;
             }
         };
-        println!("check result {:?} {:?}", function_name, result);
+        //println!("check result {:?} {:?}", function_name, result);
         match result {
             Ok(validation_error) => {
                 self.clone_mut_ref(clone);
@@ -256,7 +251,7 @@ impl Config {
         self.outputcursor = to_clone.outputcursor;
         self.pass = to_clone.pass;
         self.indent = to_clone.indent;
-        self.constants = to_clone.constants;
+
         self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
     }
@@ -281,33 +276,66 @@ impl Config {
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = &self.lines_of_tokens[self.pass];
-        println!("tokens {:?}", &tokens);
+        if tokens[1] == "c" {
+            //println!("tokens {:?}", &tokens);
+        }
         if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
         } else {
             let identifier = tokens[1].clone();
             let mut validation_error = None;
-            if self.exists_constant(&identifier) {
+            if self.exists_function(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
                 validation_error = Some(e);
             }
 
             let expression_result =
                 self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
-            println!("expression_result {:?}", expression_result);
+            if tokens[1] == "c" {
+                //println!(
+                //    "expression_result {:?} {:?}",
+                //    expression_result,
+                //    tokens[2].to_string()
+                //);
+            }
 
             match expression_result {
                 Ok((expression, exp_type)) => {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
+                    let mut value = expression;
+                    let mut final_type = exp_type.clone();
+                    let mut validations = vec![];
+
+                    if tokens[1] == "c" {
+                        //println!("!!!!!!!!!!!!!!!");
+                    }
+                    if self.exists_function(&tokens[2]) {
+                        //println!("!!!!!!!!!!!!!!! {:?}", tokens[2]);
+                        final_type = "".to_string();
+                        validations.push("get_type_from_referred_function".to_string());
+                        value = tokens[2].to_string();
+                    }
+
                     let insert = &format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
                         type_colon,
                         &exp_type,
-                        &expression
+                        &value
                     );
-                    self.constants.push(identifier.to_string());
+
+                    let new_constant_function = (
+                        identifier.to_string(),
+                        value,
+                        vec![],
+                        validations,
+                        final_type,
+                    );
+                    if tokens[1] == "c" {
+                        //println!("!!!!!!!!!!!!!!! {:?}", new_constant_function);
+                    }
+                    self.functions.push(new_constant_function);
                     self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
                 }
@@ -335,7 +363,7 @@ impl Config {
                 remainder =
                     strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
                 let (text, remain) = get_until_eol_or_eof(remainder);
-                println!("### {} {} '{}'", identifier, text, remain);
+                //println!("### {} {} '{}'", identifier, text, remain);
                 let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
                 let fun = self.get_function(&"\\");
                 match fun {
@@ -365,10 +393,10 @@ impl Config {
                         self.output.insert_str(self.outputcursor, &insert);
                         self.outputcursor = self.outputcursor + insert.len();
                         self.remaining = strip_leading_whitespace(remain);
-                        println!("DONE? {:?}", self);
+                        //println!("DONE? {:?}", self);
                     }
                     _ => {
-                        println!("NOPE - not a function definition");
+                        //println!("NOPE - not a function definition");
                         validation_error = Some("NOPE - not a function definition".to_string());
                     }
                 }
@@ -377,10 +405,6 @@ impl Config {
             }
             Ok(validation_error)
         }
-    }
-
-    fn exists_constant(self: &Self, constant: &str) -> bool {
-        self.constants.iter().any(|c| c == &constant)
     }
 
     fn exists_function(self: &Self, function_name: &str) -> bool {
@@ -427,6 +451,9 @@ impl Config {
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
+        if tokens[0] == "c" {
+            dbg!("check_expression", identifier, &tokens);
+        }
         if tokens.len() == 1 {
             if self.is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -434,9 +461,7 @@ impl Config {
             if self.is_float(&tokens[0]) {
                 return Ok((tokens[0].clone(), "f64".to_string()));
             }
-            if self.exists_constant(&tokens[0]) {
-                return Ok((tokens[0].clone(), "".to_string()));
-            }
+
             let possible_string: Vec<char> = tokens[0].chars().collect();
             if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
                 return Ok((
@@ -448,6 +473,9 @@ impl Config {
 
         if tokens.len() > 0 && self.is_function_call(&tokens[0]) {
             let fn_option: Option<FunctionDefinition> = self.get_function_definition(&tokens[0]);
+            if (tokens[0] == "c") {
+                dbg!("ARGH {:?}", &fn_option);
+            };
             match fn_option {
                 Some((
                     function_name,
@@ -462,7 +490,11 @@ impl Config {
                     let expression_indents = 3 + function_name.len();
                     let validate_arg_types_must_match =
                         function_validation.contains(&"arg_types_must_match".to_string());
+
                     let mut final_return_type = &function_return_type;
+                    if tokens[0] == "c" {
+                        dbg!(function_name);
+                    }
                     // check number of arguments
                     if function_args.len() != count_arguments {
                         return Err(self.get_error(
@@ -502,7 +534,7 @@ impl Config {
                         if final_return_type == "" {
                             final_return_type = first;
                         };
-                        println!("###first {}", first);
+                        //println!("###first {}", first);
                         if value_types.clone().into_iter().any(|c| &c != first) {
                             return Err(self.get_error(
                                     expression_indents,
@@ -528,6 +560,16 @@ impl Config {
                         _ => function_format,
                     };
 
+                    let get_type_from_referred_function = function_validation
+                        .contains(&"get_type_from_referred_function".to_string());
+                    if get_type_from_referred_function {
+                        // this is variable assignment is just a reference to another constant (i.e. a function) e.g. let x: ? = a;
+                        // So to determine the return type ? of x, we must get it from a
+
+                        let testy = &self.recurs_get_referred_function(function_name);
+                    }
+
+                    //println!("ARGH2 {:?}", output);
                     return Ok((output, final_return_type.clone()));
                 }
                 _ => {
@@ -547,6 +589,22 @@ impl Config {
             text.len(),
             "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
         ))
+    }
+
+    fn recurs_get_referred_function(self: &Self, function_name: &String) -> String {
+        let referred_function_option = self.get_function_definition(&function_name.clone());
+        match referred_function_option {
+            Some((ref_func_name, _, _, ref_validations, ref_func_return_type)) => {
+                let get_type_from_referred_function =
+                    ref_validations.contains(&"get_type_from_referred_function".to_string());
+                if get_type_from_referred_function {
+                    return self.recurs_get_referred_function(&ref_func_name);
+                } else {
+                    return ref_func_return_type;
+                };
+            }
+            None => return "".to_string(),
+        };
     }
 
     fn get_type(self: &Self, text: &String) -> String {
@@ -631,11 +689,11 @@ impl Config {
                 ));
                 while remain2.len() > 0 {
                     let (arg, remainder) = get_until_whitespace_or_eol_or_eof(remain2.clone());
-                    println!("#{}", remain2);
+                    //println!("#{}", remain2);
                     remain2 = remainder.clone();
                     args.push(arg);
                 }
-                println!("fn'{}' '{}' '{:?}'", slash, remain2, args);
+                //println!("fn'{}' '{}' '{:?}'", slash, remain2, args);
             }
             _ => (),
         };
@@ -866,7 +924,7 @@ mod tests {
             outputcursor: 0,
             pass: 0,
             indent: 1,
-            constants: vec![],
+
             functions: vec![],
             error_stack: vec![],
         }
