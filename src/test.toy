@@ -3,11 +3,11 @@ RUN
 = b 123.45
 = c a
 = d "a string"
-= e + 1.1 2.2
-= f + 1 2
+= e + 1 2
+= f + 1.1 2.1
 = g * 1 2
 = h / 1 2
 = i % 1 2
-= newfunction \ arg1 arg2 => + arg1 arg2
+
 = j 1234
 END

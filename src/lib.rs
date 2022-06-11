@@ -5,12 +5,16 @@ type FunctionName = String;
 type FunctionFormat = String;
 type FunctionType = String;
 type FunctionValidation = String;
+type FunctionReturnType = String;
 type FunctionDefinition = (
     FunctionName,
     FunctionFormat,
     Vec<FunctionType>,
     Vec<FunctionValidation>,
+    FunctionReturnType,
 );
+type Expression = String;
+type ExpressionType = String;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -50,8 +54,9 @@ impl Config {
                 (
                     prim.to_string(),
                     format!("#1 {} #2", prim).to_string(),
-                    vec!["Int|Float".to_string(), "Int|Float".to_string()],
+                    vec!["i64|f64".to_string(), "i64|f64".to_string()],
                     vec!["arg_types_must_match".to_string()],
+                    "".to_string(),
                 )
             })
             .collect();
@@ -60,6 +65,7 @@ impl Config {
             "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
             vec![],
             vec!["lambda".to_string()],
+            "".to_string(),
         );
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
@@ -185,8 +191,10 @@ impl Config {
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
         self.check_program_syntax()?;
         for line in 1..self.lines_of_tokens.len() - 1 {
-            self.pass = line;
-            self.check_one_or_more_succeeds()?;
+            if self.lines_of_tokens[line].len() > 0 {
+                self.pass = line;
+                self.check_one_or_more_succeeds()?;
+            }
         }
         Ok(())
     }
@@ -331,7 +339,13 @@ impl Config {
                 let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
                 let fun = self.get_function(&"\\");
                 match fun {
-                    Some((_, function_format, function_args, function_validation)) => {
+                    Some((
+                        _,
+                        function_format,
+                        function_args,
+                        function_validation,
+                        function_return_type,
+                    )) => {
                         let insert = function_format
                             .replace("#0", &" ".repeat(self.indent * 4))
                             .replace("#1", &function_name)
@@ -373,6 +387,19 @@ impl Config {
         self.functions.iter().any(|c| c.0 == *function_name)
     }
 
+    fn get_function_definition(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
+        let funcs: Vec<&FunctionDefinition> = self
+            .functions
+            .iter()
+            .filter(|c| c.0 == *function_name)
+            .collect::<Vec<_>>();
+        if funcs.len() == 1 {
+            return Some(funcs[0].clone());
+        } else {
+            return None;
+        }
+    }
+
     fn get_function(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
         let function_vec = self
             .functions
@@ -386,94 +413,79 @@ impl Config {
         }
     }
 
+    fn get_tokens_string_len(self: &Self, tokens: &Vec<String>) -> usize {
+        let mut total = 0;
+        for i in 0..tokens.len() {
+            total += tokens[i].len();
+        }
+        let num_spaces_inbetween = total - 1;
+        total + num_spaces_inbetween
+    }
+
     fn check_expression(
         self: &Self,
         identifier: &String,
         tokens: Vec<String>,
-    ) -> Result<(String, String), String> {
-        if tokens.len() == 1 && self.is_integer(&tokens[0]) {
-            return Ok((tokens[0].clone(), "i64".to_string()));
+    ) -> Result<(Expression, ExpressionType), String> {
+        if tokens.len() == 1 {
+            if self.is_integer(&tokens[0]) {
+                return Ok((tokens[0].clone(), "i64".to_string()));
+            }
+            if self.is_float(&tokens[0]) {
+                return Ok((tokens[0].clone(), "f64".to_string()));
+            }
+            if self.exists_constant(&tokens[0]) {
+                return Ok((tokens[0].clone(), "".to_string()));
+            }
+            let possible_string: Vec<char> = tokens[0].chars().collect();
+            if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
+                return Ok((
+                    format!("{}{}", tokens[0], ".to_string()",).to_string(),
+                    "String".to_string(),
+                ));
+            }
         }
-        if tokens.len() == 1 && self.is_float(&tokens[0]) {
-            return Ok((tokens[0].clone(), "f64".to_string()));
-        }
-        if tokens.len() == 1 && self.exists_constant(&tokens[0]) {
-            return Ok((tokens[0].clone(), "".to_string()));
-        }
-        if tokens.len() > 1 {
-            println!("ISSTRING? {:} {:}", tokens[0], tokens[1]);
-        }
-        let possible_string: Vec<char> = tokens[0].chars().collect();
-        if tokens.len() == 1
-            && possible_string[0] == '\"'
-            && possible_string[possible_string.len() - 1] == '\"'
-        {
-            return Ok((
-                format!("{}{}", tokens[0], ".to_string()",).to_string(),
-                "String".to_string(),
-            ));
-        }
-        let text: String = tokens.iter().map(String::as_str).collect();
-        Err(self.get_error(
-            3 + identifier.len(),
-            text.len(),
-            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
-        ))
-        /*
-        let remainder =
-            strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
-        let (text, remain) = get_until_eol_or_eof(remainder);
-        //println!("EXPRESSION: {} {:?}", identifier, text);
-        if self.get_type(&text) == "Undefined".to_string() && !self.exists_constant(&text) {
-            return Err(self.get_error(
-                3 + identifier.len(),
-                text.len(),
-                "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
-            ));
-        }
-        if self.is_lambda(&text) {
-            println!("### testing function_def");
-            //self.get_function_def(&text);
-        } else if self.is_function_call(&text) {
-            let (function_name, remainder) = get_until_whitespace_or_eol_or_eof(text.clone());
-            let fun = self.get_function(&function_name);
-            match fun {
-                Some((_, function_format, function_args, function_validation)) => {
-                    let mut values: Vec<String> = vec![];
-                    let mut val: String; // = text.clone();
-                    let (mut remain, _) =
-                        get_until_eol_or_eof(strip_leading_whitespace(remainder.clone()));
-                    while remain.len() > 0 {
-                        (val, remain) =
-                            get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain));
-                        if val != "" {
-                            values.push(val.clone());
-                        }
-                    }
 
-                    // check number of arguments supplied
-                    if function_args.len() != values.len() {
+        if tokens.len() > 0 && self.is_function_call(&tokens[0]) {
+            let fn_option: Option<FunctionDefinition> = self.get_function_definition(&tokens[0]);
+            match fn_option {
+                Some((
+                    function_name,
+                    function_format,
+                    function_args,
+                    function_validation,
+                    function_return_type,
+                )) => {
+                    let allow_for_fn_name = 1;
+                    let count_arguments = tokens.len() - allow_for_fn_name;
+                    let tokens_string_length = self.get_tokens_string_len(&tokens);
+                    let expression_indents = 3 + function_name.len();
+                    let validate_arg_types_must_match =
+                        function_validation.contains(&"arg_types_must_match".to_string());
+                    let mut final_return_type = &function_return_type;
+                    // check number of arguments
+                    if function_args.len() != count_arguments {
                         return Err(self.get_error(
-                            3 + identifier.len(),
-                            text.len(),
+                            expression_indents,
+                            tokens_string_length,
                             &format!(
                                 "wrong number of function arguments. Expected: {}. Found {}.",
                                 function_args.len(),
-                                values.len()
+                                count_arguments
                             ),
                         ));
                     }
 
                     // check types of values
                     let mut value_types: Vec<String> = vec![];
-                    for i in 0..values.len() {
-                        value_types.push(self.get_type(&values[i]));
+                    for i in allow_for_fn_name..tokens.len() {
+                        value_types.push(self.get_type(&tokens[i]));
                     }
-                    for i in 0..values.len() {
+                    for i in 0..count_arguments {
                         if !function_args[i].contains(&value_types[i]) {
                             return Err(self.get_error(
-                                3 + identifier.len(),
-                                text.len(),
+                                expression_indents,
+                                tokens_string_length,
                                 &format!(
                                     "function arguments are not the correct types. Expected: {:?}. Found {:?}",
                                     function_args,
@@ -483,61 +495,66 @@ impl Config {
                         }
                     }
 
-                    // check all types match
-                    if values.len() > 0 {
+                    // validation: check all types match
+                    if count_arguments > 0 && validate_arg_types_must_match {
                         // need to check if at least one value otherwise can't determine 'first' below
-                        if function_validation.contains(&"arg_types_must_match".to_string()) {
-                            let first = &value_types[0];
-                            //println!("###first {}", first);
-                            if value_types.clone().into_iter().any(|c| {
-                                //println!("###c {}", c);
-                                return &c != first;
-                            }) {
-                                return Err(self.get_error(
-                                3 + identifier.len(),
-                                text.len(),
+                        let first = &value_types[0];
+                        if final_return_type == "" {
+                            final_return_type = first;
+                        };
+                        println!("###first {}", first);
+                        if value_types.clone().into_iter().any(|c| &c != first) {
+                            return Err(self.get_error(
+                                    expression_indents,
+                                tokens_string_length,
                                 &format!(
                                     "This function's arguments must all be of the same type. Some values have types that appear to differ: {:?}",
                                     value_types
                                 ),
                             ));
-                            }
                         }
                     }
 
                     let output = match function_args.len() {
                         2 => {
-                            let out1 = function_format.replace("#1", &values[0]);
-                            let out2 = out1.replace("#2", &values[1]);
+                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
+                            let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
                             out2
                         }
                         1 => {
-                            let out1 = function_format.replace("#1", &values[0]);
+                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
                             out1
                         }
                         _ => function_format,
                     };
-                    return Ok(Some(output));
+
+                    return Ok((output, final_return_type.clone()));
                 }
                 _ => {
                     return Err(self.get_error(
-                    3 + identifier.len(),
-                    text.len(),
-                    "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
-                ));
+                        3 + identifier.len(),
+                        10, //text.len(),
+                        &format!("is not a valid call to function '{}'", tokens[0]),
+                    ));
                 }
             }
         }
-        Ok(Some(text))
-        */
+
+        // or error if none of above
+        let text: String = tokens.iter().map(String::as_str).collect();
+        Err(self.get_error(
+            3 + identifier.len(),
+            text.len(),
+            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
+        ))
     }
 
     fn get_type(self: &Self, text: &String) -> String {
         if self.is_integer(text) {
-            return "Int".to_string();
+            return "i64".to_string();
         }
         if self.is_float(text) {
-            return "Float".to_string();
+            return "f64".to_string();
         }
         if self.is_string(text) {
             return "String".to_string();
@@ -599,13 +616,7 @@ impl Config {
     }
 
     fn is_function_call(self: &Self, text: &String) -> bool {
-        //println!("is_function_call? {}", text);
-        let mut is_valid = true;
-        let (function_name, _) = get_until_whitespace_or_eol_or_eof(text.clone());
-        if text.len() == 0 || !self.exists_function(&function_name) {
-            is_valid = false;
-        }
-        is_valid
+        self.exists_function(&text)
     }
 
     fn get_function_def(self: &Self, text: &String) -> () {
