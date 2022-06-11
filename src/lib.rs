@@ -17,7 +17,8 @@ pub struct Config {
     pub filename: String,
     pub filecontents: String,
     pub remaining: String,
-    pub lines: Vec<Vec<char>>,
+    pub lines_of_chars: Vec<Vec<char>>,
+    pub lines_of_tokens: Vec<Vec<String>>,
     pub output: String,
     pub outputcursor: usize,
     pub pass: usize,
@@ -35,7 +36,8 @@ impl Config {
         let filename = args[1].clone();
         let filecontents = "".to_string();
         let remaining = "".to_string();
-        let lines = vec![];
+        let lines_of_chars = vec![];
+        let lines_of_tokens = vec![];
         let output = "".to_string();
         let outputcursor = 0;
         let pass = 0;
@@ -70,7 +72,8 @@ impl Config {
             filename,
             filecontents,
             remaining,
-            lines,
+            lines_of_chars,
+            lines_of_tokens,
             output,
             outputcursor,
             pass,
@@ -87,7 +90,8 @@ impl Config {
             "\r\nINPUT contents of filename: {:?}\n----------\n{}",
             &self.filename, &self.filecontents
         );
-        self.tokenizer();
+        self.get_lines_of_chars();
+        self.get_lines_of_tokens();
         self.run_main_loop()?;
         if self.error_stack.len() == 0 {
             fs::write("../../src/bin/output.rs", &self.output)?;
@@ -97,26 +101,59 @@ impl Config {
         Ok(())
     }
 
-    fn tokenizer(self: &mut Self) {
+    fn get_lines_of_chars(self: &mut Self) {
         self.remaining = self.filecontents.clone();
         let mut index_from = 0;
         let mut index_to = 0;
         let char_vec: Vec<char> = self.filecontents.chars().collect();
-        //let mut inside_quotes = false;
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
-            let incr = if index_to + 1 < char_vec.len() && char_vec[index_to + 1] == '\n' {
-                2
-            } else {
-                1
-            };
-            if c == '\r' || c == '\n' || index_to == char_vec.len() {
-                self.lines.push(char_vec[index_from..index_to].to_vec());
+            let incr =
+                if index_to + 1 < char_vec.len() && c == '\r' && char_vec[index_to + 1] == '\n' {
+                    2
+                } else {
+                    1
+                };
+            let eof = index_to == char_vec.len() - 1;
+            if c == '\r' || c == '\n' || eof {
+                self.lines_of_chars
+                    .push(char_vec[index_from..index_to + (if eof { 1 } else { 0 })].to_vec());
                 index_from = index_to + incr;
             }
             index_to = index_to + incr;
         }
-        println!("@@ {:?}", self.lines);
+        println!("@@ {:?}", self.lines_of_chars);
+    }
+
+    fn get_lines_of_tokens(self: &mut Self) {
+        for line in 0..self.lines_of_chars.len() {
+            let mut index_from = 0;
+            let mut index_to = 0;
+            let char_vec: Vec<char> = self.lines_of_chars[line].clone();
+            //println!("line: {}", line);
+            //let mut inside_quotes = false;
+            let mut line_of_tokens: Vec<String> = vec![];
+            while index_to < char_vec.len() {
+                println!(
+                    "line: {}, index_from: {}, index_to: {}",
+                    line, index_from, index_to
+                );
+                let c = char_vec[index_to];
+                let eof = index_to == char_vec.len() - 1;
+                if (c.is_whitespace() && index_to != 0) || eof {
+                    let token_chars = char_vec[index_from..index_to + (if eof { 1 } else { 0 })]
+                        .iter()
+                        .cloned()
+                        .collect::<String>();
+                    println!("token_chars:{:?}", token_chars);
+                    line_of_tokens.push(token_chars);
+                    index_from = index_to + 1;
+                }
+                index_to = index_to + 1;
+            }
+            self.lines_of_tokens.push(line_of_tokens);
+        }
+        println!("@@ {:?}", self.lines_of_tokens);
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
@@ -205,7 +242,8 @@ impl Config {
         self.filename = to_clone.filename;
         self.filecontents = to_clone.filecontents;
         self.remaining = to_clone.remaining;
-        self.lines = to_clone.lines;
+        self.lines_of_chars = to_clone.lines_of_chars;
+        self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
         self.outputcursor = to_clone.outputcursor;
         self.pass = to_clone.pass;
@@ -794,7 +832,8 @@ mod tests {
             filename: "".to_string(),
             filecontents: contents.to_string(),
             remaining: contents.to_string(),
-            lines: vec![],
+            lines_of_chars: vec![],
+            lines_of_tokens: vec![],
             output: "".to_string(),
             outputcursor: 0,
             pass: 0,
