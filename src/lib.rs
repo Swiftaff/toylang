@@ -159,7 +159,7 @@ impl Config {
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
         //ref: https://doc.rust-lang.org/reference/tokens.html
 
-        match self.main_loop() {
+        match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
                 println!(
                     "----------\r\n\r\nToylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
@@ -177,33 +177,28 @@ impl Config {
         Ok(())
     }
 
-    fn main_loop(self: &mut Self) -> Result<(), Vec<String>> {
-        while self.remaining.len() > 0 {
-            //println!("pass:{:?}", self.pass);
-            self.check_program_syntax()?;
-            //println!("{:?} {:?}\n", self.output, self.outputcursor);
-            //input = check_for strings (because they might have spaces)
+    fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
+        self.check_program_syntax()?;
+        for line in 1..self.lines_of_tokens.len() - 1 {
+            self.pass = line;
             self.check_one_or_more_succeeds()?;
-            self.pass = self.pass + 1;
         }
         Ok(())
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        //println!("e0:{:?}... r::{:?}", self.remaining, self.error_stack);
-        if self.check_one_succeeds("check_function_definition") {
-            return Ok(());
-        }
+        //if self.check_one_succeeds("check_function_definition") {
+        //    return Ok(());
+        //}
         if self.check_one_succeeds("check_variable_assignment") {
+            println!("succeeded");
             return Ok(());
         }
-        if self.check_one_succeeds("check_comment_single_line") {
-            return Ok(());
-        }
+        //if self.check_one_succeeds("check_comment_single_line") {
+        //    return Ok(());
+        //}
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
-        //println!("e3:{:?}", self.error_stack);
-        //println!("{:?}", self);
         Err(self.error_stack.clone())
     }
 
@@ -254,79 +249,58 @@ impl Config {
     }
 
     fn check_program_syntax(self: &mut Self) -> Result<(), Vec<String>> {
-        if self.pass == 0 {
-            if self.remaining.len() < 8 {
-                self.error_stack
-                    .push(ERRORS.invalid_program_syntax.to_string());
-                return Err(self.error_stack.clone());
-                //return Err();
-            } else {
-                let starts_with_run = &self.remaining[..5] == "RUN\r\n";
-                if !starts_with_run {
-                    self.error_stack
-                        .push(ERRORS.invalid_program_syntax.to_string());
-                    return Err(self.error_stack.clone());
-                    //return Err(ERRORS.invalid_program_syntax);
-                }
-                self.remaining = self.remaining[5..].to_string();
-                //println!("input = {:?}\n", &self.remaining);
-
-                let ends_with_end = &self.remaining[&self.remaining.len() - 3..] == "END";
-                if !ends_with_end {
-                    self.error_stack
-                        .push(ERRORS.invalid_program_syntax.to_string());
-                    return Err(self.error_stack.clone());
-                    //return Err(ERRORS.invalid_program_syntax);
-                }
-                self.remaining = self.remaining[..self.remaining.len() - 3].to_string();
-                //println!("input = {:?}\n", &self.remaining);
-                self.output = "fn main() {\r\n}".to_string();
-                self.indent = 1;
-                self.outputcursor = 13; // anything new will be inserted before end bracket
-            }
+        if self.lines_of_tokens.len() < 2
+            || self.lines_of_tokens[0][0] != "RUN".to_string()
+            || self.lines_of_tokens[self.lines_of_tokens.len() - 1][0] != "END".to_string()
+        {
+            self.error_stack
+                .push(ERRORS.invalid_program_syntax.to_string());
+            return Err(self.error_stack.clone());
+            //return Err();
+        } else {
+            self.output = "fn main() {\r\n}".to_string();
+            self.indent = 1;
+            self.outputcursor = 13; // anything new will be inserted before end bracket
         }
+
         Ok(())
     }
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
-        if self.remaining.len() < 3 {
-            //println!("error here?");
+        let tokens = &self.lines_of_tokens[self.pass];
+        println!("tokens {:?}", &tokens);
+        if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
         } else {
-            // TODO - return more errors throughout, fix tests and add new function to optionally 'try' various options and ignore errors instead
-            let mut remainder = strip_leading_whitespace(self.remaining.clone());
-            //println!("check_var {:?}", self);
-            remainder = get_str(remainder.clone(), "=")?;
-
-            remainder = strip_leading_whitespace(remainder);
-            let (identifier, mut remainder) = get_identifier(remainder)?;
-            println!("##id{}", identifier);
+            let identifier = tokens[1].clone();
             let mut validation_error = None;
             if self.exists_constant(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
                 validation_error = Some(e);
             }
 
-            remainder = strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
-            let (text, remain) = get_until_eol_or_eof(remainder);
+            let expression_result =
+                self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
+            println!("expression_result {:?}", expression_result);
 
-            let expression_result = self.check_expression(&identifier);
             match expression_result {
-                Ok(Some(expression)) => {
+                Ok((expression, exp_type)) => {
+                    //let expression = "testy";
                     let insert = &format!(
-                        "{}let {} = {};\r\n",
+                        "{}let {}: {} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
+                        &exp_type,
                         &expression
                     );
-                    self.constants.push(identifier);
+                    self.constants.push(identifier.to_string());
                     self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
-                    self.remaining = strip_leading_whitespace(remain);
                 }
                 Err(e) => validation_error = Some(e),
                 _ => validation_error = Some("some other error".to_string()),
             }
+
             Ok(validation_error)
         }
     }
@@ -339,7 +313,7 @@ impl Config {
             remainder = get_str(remainder.clone(), "=")?;
             remainder = strip_leading_whitespace(remainder);
             let (identifier, mut remainder) = get_identifier(remainder)?;
-            println!("##id{}", identifier);
+            //println!("##id{}", identifier);
             let mut validation_error = None;
             if identifier == "\\" {
                 //check for pre-existing same function_name
@@ -406,7 +380,21 @@ impl Config {
         }
     }
 
-    fn check_expression(self: &mut Self, identifier: &str) -> Result<Option<String>, String> {
+    fn check_expression(
+        self: &mut Self,
+        identifier: &String,
+        tokens: Vec<String>,
+    ) -> Result<(String, String), String> {
+        if tokens.len() == 1 && self.is_integer(&tokens[0]) {
+            return Ok((tokens[0].clone(), "i64".to_string()));
+        }
+        let text: String = tokens.iter().map(String::as_str).collect();
+        Err(self.get_error(
+            3 + identifier.len(),
+            text.len(),
+            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
+        ))
+        /*
         let remainder =
             strip_leading_whitespace(self.remaining.clone()[(identifier.len() + 2)..].to_string());
         let (text, remain) = get_until_eol_or_eof(remainder);
@@ -516,6 +504,7 @@ impl Config {
             }
         }
         Ok(Some(text))
+        */
     }
 
     fn get_type(self: &Self, text: &String) -> String {
@@ -620,7 +609,10 @@ impl Config {
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
             "----------\r\n{}\r\n{}{} {}",
-            get_until_eol_or_eof(self.remaining.to_string()).0,
+            self.lines_of_chars[self.pass]
+                .iter()
+                .cloned()
+                .collect::<String>(),
             " ".repeat(arrow_indent),
             "^".repeat(arrow_len),
             error,
