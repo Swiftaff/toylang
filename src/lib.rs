@@ -302,7 +302,7 @@ impl Config {
             match expression_result {
                 Ok((expression, exp_type)) => {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
-                    let mut value = expression;
+                    let mut value = expression.clone();
                     let mut final_type = exp_type.clone();
                     let mut validations = vec![];
 
@@ -315,14 +315,14 @@ impl Config {
                         validations.push("get_type_from_referred_function".to_string());
                         value = tokens[2].to_string();
                     }
-
+                    let new_expresion = expression.clone();
                     let insert = &format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
                         type_colon,
                         &exp_type,
-                        &value
+                        &new_expresion
                     );
 
                     let new_constant_function = (
@@ -411,7 +411,7 @@ impl Config {
         self.functions.iter().any(|c| c.0 == *function_name)
     }
 
-    fn get_function_definition(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
+    fn get_function_definition(self: &Self, function_name: String) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
@@ -472,7 +472,8 @@ impl Config {
         }
 
         if tokens.len() > 0 && self.is_function_call(&tokens[0]) {
-            let fn_option: Option<FunctionDefinition> = self.get_function_definition(&tokens[0]);
+            let fn_option: Option<FunctionDefinition> =
+                self.get_function_definition(tokens[0].clone());
             if (tokens[0] == "c") {
                 dbg!("ARGH {:?}", &fn_option);
             };
@@ -493,7 +494,7 @@ impl Config {
 
                     let mut final_return_type = &function_return_type;
                     if tokens[0] == "c" {
-                        dbg!(function_name);
+                        dbg!(&function_name);
                     }
                     // check number of arguments
                     if function_args.len() != count_arguments {
@@ -565,8 +566,10 @@ impl Config {
                     if get_type_from_referred_function {
                         // this is variable assignment is just a reference to another constant (i.e. a function) e.g. let x: ? = a;
                         // So to determine the return type ? of x, we must get it from a
-
-                        let testy = &self.recurs_get_referred_function(function_name);
+                        let fn_name = function_name.clone();
+                        let final_return_type_from_parent_refs =
+                            &self.recurs_get_referred_function(fn_name);
+                        return Ok((output, final_return_type_from_parent_refs.clone()));
                     }
 
                     //println!("ARGH2 {:?}", output);
@@ -591,14 +594,14 @@ impl Config {
         ))
     }
 
-    fn recurs_get_referred_function(self: &Self, function_name: &String) -> String {
-        let referred_function_option = self.get_function_definition(&function_name.clone());
+    fn recurs_get_referred_function(self: &Self, function_name: String) -> String {
+        let referred_function_option = self.get_function_definition(function_name.clone());
         match referred_function_option {
-            Some((ref_func_name, _, _, ref_validations, ref_func_return_type)) => {
+            Some((_, ref_func_name, _, ref_validations, ref_func_return_type)) => {
                 let get_type_from_referred_function =
                     ref_validations.contains(&"get_type_from_referred_function".to_string());
                 if get_type_from_referred_function {
-                    return self.recurs_get_referred_function(&ref_func_name);
+                    return self.recurs_get_referred_function(ref_func_name);
                 } else {
                     return ref_func_return_type;
                 };
