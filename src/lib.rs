@@ -1,11 +1,11 @@
 use std::error::Error;
 use std::fs;
 
-type FunctionName = &'static str;
+type FunctionName = String;
 type FunctionFormat = String;
-type FunctionType = &'static str;
+type FunctionType = String;
 type FunctionValidation = String;
-type FunctionReturnType = &'static str;
+type FunctionReturnType = String;
 type FunctionDefinition = (
     FunctionName,
     FunctionFormat,
@@ -13,36 +13,17 @@ type FunctionDefinition = (
     Vec<FunctionValidation>,
     FunctionReturnType,
 );
-type Expression = &'static str;
-type ExpressionType = &'static str;
-
-struct Errors {
-    invalid_program_syntax: &'static str,
-    variable_assignment: &'static str,
-    function_definition: &'static str,
-    no_valid_identifier_found: &'static str,
-    no_valid_comment_single_line: &'static str,
-    no_valid_expression: &'static str,
-    constants_are_immutable: &'static str,
-}
-
-const ERRORS: Errors = Errors {
-    invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
-    variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
-    function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
-    no_valid_identifier_found:"No valid identifier found",
-    no_valid_comment_single_line: "No valid single line comment found",
-    no_valid_expression: "No valid expression was found",
-    constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
-};
+type Expression = String;
+type ExpressionType = String;
 
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub filename: &'static str,
+    pub filename: String,
     pub filecontents: String,
+    pub remaining: String,
     pub lines_of_chars: Vec<Vec<char>>,
-    pub lines_of_tokens: Vec<Vec<&'static str>>,
-    pub output: &'static str,
+    pub lines_of_tokens: Vec<Vec<String>>,
+    pub output: String,
     pub outputcursor: usize,
     pub pass: usize,
     pub indent: usize,
@@ -51,16 +32,16 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn new(args: &[&'static str]) -> Result<Config, &'static str> {
+    pub fn new(args: &[String]) -> Result<Config, String> {
         if args.len() < 2 {
-            return Err("missing filename argument");
+            return Err("missing filename argument".to_string());
         }
         let filename = args[1].clone();
         let filecontents = "".to_string();
-
+        let remaining = "".to_string();
         let lines_of_chars = vec![];
         let lines_of_tokens = vec![];
-        let output = "";
+        let output = "".to_string();
         let outputcursor = 0;
         let pass = 0;
         let indent = 0;
@@ -68,22 +49,21 @@ impl Config {
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
             .into_iter()
             .map(|prim| {
-                let text = format!("#1 {} #2", prim);
                 (
-                    prim,
-                    text,
-                    vec!["i64|f64", "i64|f64"],
+                    prim.to_string(),
+                    format!("#1 {} #2", prim).to_string(),
+                    vec!["i64|f64".to_string(), "i64|f64".to_string()],
                     vec!["arg_types_must_match".to_string()],
-                    "",
+                    "".to_string(),
                 )
             })
             .collect();
         let function_def: FunctionDefinition = (
-            "\\",
+            "\\".to_string(),
             "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
             vec![],
             vec!["lambda".to_string()],
-            "",
+            "".to_string(),
         );
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
@@ -95,22 +75,25 @@ impl Config {
         Ok(Config {
             filename,
             filecontents,
+            remaining,
             lines_of_chars,
             lines_of_tokens,
             output,
             outputcursor,
             pass,
             indent,
+
             functions,
             error_stack,
         })
     }
+
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.filecontents = fs::read_to_string(&self.filename)?;
         println!("\r\nINPUT contents of filename: {:?}", &self.filename); //, &self.filecontents
         self.get_lines_of_chars();
-        //self.get_lines_of_tokens();
-        //self.run_main_loop()?;
+        self.get_lines_of_tokens();
+        self.run_main_loop()?;
         if self.error_stack.len() == 0 {
             fs::write("../../src/bin/output.rs", &self.output)?;
         } else {
@@ -120,6 +103,7 @@ impl Config {
     }
 
     fn get_lines_of_chars(self: &mut Self) {
+        self.remaining = self.filecontents.clone();
         let mut index_from = 0;
         let mut index_to = 0;
         let char_vec: Vec<char> = self.filecontents.chars().collect();
@@ -149,7 +133,7 @@ impl Config {
             let char_vec: Vec<char> = self.lines_of_chars[line].clone();
             //println!("line: {}", line);
             let mut inside_quotes = false;
-            let mut line_of_tokens: Vec<&str> = vec![];
+            let mut line_of_tokens: Vec<String> = vec![];
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
                 //println!(
@@ -177,15 +161,8 @@ impl Config {
         }
         //println!("@@ {:?}", self.lines_of_tokens);
     }
-}
-/*
 
-
-
-
-
-
-    fn run_main_loop(self: &mut Self) -> Result<(), &str> {
+    fn run_main_loop(self: &mut Self) -> Result<(), String> {
         //ref: https://doc.rust-lang.org/reference/tokens.html
 
         match self.main_loop_over_lines_of_tokens() {
@@ -229,7 +206,7 @@ impl Config {
         //    return Ok(());
         //}
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
-        self.error_stack.push(e);
+        self.error_stack.push(e.to_string());
         Err(self.error_stack.clone())
     }
 
@@ -237,9 +214,9 @@ impl Config {
         let mut succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
-            //"check_function_definition" => clone.check_function_definition(),
+            "check_function_definition" => clone.check_function_definition(),
             "check_variable_assignment" => clone.check_variable_assignment(),
-            //"check_comment_single_line" => clone.check_comment_single_line(),
+            "check_comment_single_line" => clone.check_comment_single_line(),
             _ => {
                 //println!("check_one_succeeds: provided an unknown function_name");
                 return false;
@@ -267,6 +244,7 @@ impl Config {
         // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
         self.filename = to_clone.filename;
         self.filecontents = to_clone.filecontents;
+        self.remaining = to_clone.remaining;
         self.lines_of_chars = to_clone.lines_of_chars;
         self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
@@ -280,15 +258,15 @@ impl Config {
 
     fn check_program_syntax(self: &mut Self) -> Result<(), Vec<String>> {
         if self.lines_of_tokens.len() < 2
-            || self.lines_of_tokens[0][0] != "RUN"
-            || self.lines_of_tokens[self.lines_of_tokens.len() - 1][0] != "END"
+            || self.lines_of_tokens[0][0] != "RUN".to_string()
+            || self.lines_of_tokens[self.lines_of_tokens.len() - 1][0] != "END".to_string()
         {
             self.error_stack
                 .push(ERRORS.invalid_program_syntax.to_string());
             return Err(self.error_stack.clone());
             //return Err();
         } else {
-            self.output = "fn main() {\r\n}";
+            self.output = "fn main() {\r\n}".to_string();
             self.indent = 1;
             self.outputcursor = 13; // anything new will be inserted before end bracket
         }
@@ -296,7 +274,7 @@ impl Config {
         Ok(())
     }
 
-    fn check_variable_assignment(self: &'static mut Self) -> Result<Option<String>, String> {
+    fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = &self.lines_of_tokens[self.pass];
         if tokens[1] == "c" {
             //println!("tokens {:?}", &tokens);
@@ -308,7 +286,7 @@ impl Config {
             let mut validation_error = None;
             if self.exists_function(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
-                validation_error = Some(e.to_string());
+                validation_error = Some(e);
             }
 
             let expression_result =
@@ -317,7 +295,7 @@ impl Config {
                 //println!(
                 //    "expression_result {:?} {:?}",
                 //    expression_result,
-                //    tokens[2]
+                //    tokens[2].to_string()
                 //);
             }
 
@@ -326,16 +304,16 @@ impl Config {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
                     let mut value = expression;
                     let mut final_type = exp_type.clone();
-                    let mut validations: Vec<String> = vec![];
+                    let mut validations = vec![];
 
                     if tokens[1] == "c" {
                         //println!("!!!!!!!!!!!!!!!");
                     }
                     if self.exists_function(&tokens[2]) {
                         //println!("!!!!!!!!!!!!!!! {:?}", tokens[2]);
-                        final_type = "";
+                        final_type = "".to_string();
                         validations.push("get_type_from_referred_function".to_string());
-                        value = tokens[2];
+                        value = tokens[2].to_string();
                     }
 
                     let insert = &format!(
@@ -347,18 +325,21 @@ impl Config {
                         &value
                     );
 
-                    let new_constant_function =
-                        (identifier, value, vec![], validations, final_type);
+                    let new_constant_function = (
+                        identifier.to_string(),
+                        value,
+                        vec![],
+                        validations,
+                        final_type,
+                    );
                     if tokens[1] == "c" {
                         //println!("!!!!!!!!!!!!!!! {:?}", new_constant_function);
                     }
                     self.functions.push(new_constant_function);
-                    self.output
-                        .to_string()
-                        .insert_str(self.outputcursor, &insert);
+                    self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
                 }
-                Err(e) => validation_error = Some(e.to_string()),
+                Err(e) => validation_error = Some(e),
                 _ => validation_error = Some("some other error".to_string()),
             }
 
@@ -366,15 +347,75 @@ impl Config {
         }
     }
 
+    fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
+        if self.remaining.len() < 3 {
+            return Err(ERRORS.function_definition.to_string());
+        } else {
+            let mut remainder = strip_leading_whitespace(self.remaining.clone());
+            remainder = get_str(remainder.clone(), "=")?;
+            remainder = strip_leading_whitespace(remainder);
+            let (identifier, mut remainder) = get_identifier(remainder)?;
+            //println!("##id{}", identifier);
+            let mut validation_error = None;
+            if identifier == "\\" {
+                //check for pre-existing same function_name
+
+                remainder =
+                    strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
+                let (text, remain) = get_until_eol_or_eof(remainder);
+                //println!("### {} {} '{}'", identifier, text, remain);
+                let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
+                let fun = self.get_function(&"\\");
+                match fun {
+                    Some((
+                        _,
+                        function_format,
+                        function_args,
+                        function_validation,
+                        function_return_type,
+                    )) => {
+                        let insert = function_format
+                            .replace("#0", &" ".repeat(self.indent * 4))
+                            .replace("#1", &function_name)
+                            .replace("#2", &"function_arg: &str")
+                            .replace(
+                                "#3",
+                                &format!(
+                                    "{}{}",
+                                    " ".repeat((self.indent + 1) * 4),
+                                    "let x = function_arg;"
+                                ),
+                            );
+
+                        // create and push function
+                        //self.functions.push(identifier);
+
+                        self.output.insert_str(self.outputcursor, &insert);
+                        self.outputcursor = self.outputcursor + insert.len();
+                        self.remaining = strip_leading_whitespace(remain);
+                        //println!("DONE? {:?}", self);
+                    }
+                    _ => {
+                        //println!("NOPE - not a function definition");
+                        validation_error = Some("NOPE - not a function definition".to_string());
+                    }
+                }
+            } else {
+                return Err(ERRORS.function_definition.to_string());
+            }
+            Ok(validation_error)
+        }
+    }
+
     fn exists_function(self: &Self, function_name: &str) -> bool {
-        self.functions.iter().any(|c| c.0 == function_name)
+        self.functions.iter().any(|c| c.0 == *function_name)
     }
 
     fn get_function_definition(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
-            .filter(|c| c.0 == function_name)
+            .filter(|c| c.0 == *function_name)
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
             return Some(funcs[0].clone());
@@ -387,7 +428,7 @@ impl Config {
         let function_vec = self
             .functions
             .iter()
-            .filter(|c| c.0 == function_name)
+            .filter(|c| c.0 == *function_name)
             .collect::<Vec<_>>();
         if function_vec.len() == 0 {
             None
@@ -396,7 +437,7 @@ impl Config {
         }
     }
 
-    fn get_tokens_string_len(self: &Self, tokens: &Vec<&str>) -> usize {
+    fn get_tokens_string_len(self: &Self, tokens: &Vec<String>) -> usize {
         let mut total = 0;
         for i in 0..tokens.len() {
             total += tokens[i].len();
@@ -406,24 +447,27 @@ impl Config {
     }
 
     fn check_expression(
-        self: &'static Self,
-        identifier: &str,
-        tokens: Vec<&'static str>,
+        self: &Self,
+        identifier: &String,
+        tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
         if tokens[0] == "c" {
             dbg!("check_expression", identifier, &tokens);
         }
         if tokens.len() == 1 {
             if self.is_integer(&tokens[0]) {
-                return Ok((tokens[0].clone(), "i64"));
+                return Ok((tokens[0].clone(), "i64".to_string()));
             }
             if self.is_float(&tokens[0]) {
-                return Ok((tokens[0].clone(), "f64"));
+                return Ok((tokens[0].clone(), "f64".to_string()));
             }
 
             let possible_string: Vec<char> = tokens[0].chars().collect();
             if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
-                return Ok((format!("{}{}", tokens[0], "").as_str(), "String"));
+                return Ok((
+                    format!("{}{}", tokens[0], ".to_string()",).to_string(),
+                    "String".to_string(),
+                ));
             }
         }
 
@@ -465,7 +509,7 @@ impl Config {
                     }
 
                     // check types of values
-                    let mut value_types: Vec<&str> = vec![];
+                    let mut value_types: Vec<String> = vec![];
                     for i in allow_for_fn_name..tokens.len() {
                         value_types.push(self.get_type(&tokens[i]));
                     }
@@ -487,7 +531,7 @@ impl Config {
                     if count_arguments > 0 && validate_arg_types_must_match {
                         // need to check if at least one value otherwise can't determine 'first' below
                         let first = &value_types[0];
-                        if *final_return_type == "" {
+                        if final_return_type == "" {
                             final_return_type = first;
                         };
                         //println!("###first {}", first);
@@ -505,16 +549,12 @@ impl Config {
 
                     let output = match function_args.len() {
                         2 => {
-                            let out1 = function_format
-                                .replace("#1", &tokens[allow_for_fn_name])
-                                .as_str();
-                            let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]).as_str();
+                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
+                            let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
                             out2
                         }
                         1 => {
-                            let out1 = function_format
-                                .replace("#1", &tokens[allow_for_fn_name])
-                                .as_str();
+                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
                             out1
                         }
                         _ => function_format,
@@ -543,17 +583,15 @@ impl Config {
         }
 
         // or error if none of above
-        //let text: String = tokens.iter().collect();
-
-        //        let text: &str = tokens.iter().map(|s| *s.to_string()).collect();
+        let text: String = tokens.iter().map(String::as_str).collect();
         Err(self.get_error(
             3 + identifier.len(),
-            tokens.len(),
+            text.len(),
             "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
         ))
     }
 
-    fn recurs_get_referred_function(self: &Self, function_name: &str) -> &str {
+    fn recurs_get_referred_function(self: &Self, function_name: &String) -> String {
         let referred_function_option = self.get_function_definition(&function_name.clone());
         match referred_function_option {
             Some((ref_func_name, _, _, ref_validations, ref_func_return_type)) => {
@@ -565,30 +603,30 @@ impl Config {
                     return ref_func_return_type;
                 };
             }
-            None => return "",
+            None => return "".to_string(),
         };
     }
 
-    fn get_type(self: &Self, text: &str) -> &str {
+    fn get_type(self: &Self, text: &String) -> String {
         if self.is_integer(text) {
-            return "i64";
+            return "i64".to_string();
         }
         if self.is_float(text) {
-            return "f64";
+            return "f64".to_string();
         }
         if self.is_string(text) {
-            return "String";
+            return "String".to_string();
         }
         if self.is_function_call(text) {
-            return "Function";
+            return "Function".to_string();
         }
         if self.is_lambda(text) {
-            return "FunctionDef";
+            return "FunctionDef".to_string();
         }
-        "Undefined"
+        "Undefined".to_string()
     }
 
-    fn is_integer(self: &Self, text: &str) -> bool {
+    fn is_integer(self: &Self, text: &String) -> bool {
         //println!("is_integer? {}", text);
         let mut is_valid = true;
         if !text.chars().into_iter().all(|c| c.is_numeric()) {
@@ -598,7 +636,7 @@ impl Config {
         is_valid
     }
 
-    fn is_float(self: &Self, text: &str) -> bool {
+    fn is_float(self: &Self, text: &String) -> bool {
         //println!("is_float? {}", text);
         let mut is_valid = true;
         let mut count_decimal_points = 0;
@@ -616,7 +654,7 @@ impl Config {
         is_valid && count_decimal_points == 1
     }
 
-    fn is_string(self: &Self, text: &str) -> bool {
+    fn is_string(self: &Self, text: &String) -> bool {
         //println!("is_string? {}", text);
         let mut is_valid = true;
         let char_vec: Vec<char> = text.chars().collect();
@@ -626,7 +664,7 @@ impl Config {
         is_valid
     }
 
-    fn is_lambda(self: &Self, text: &str) -> bool {
+    fn is_lambda(self: &Self, text: &String) -> bool {
         let mut is_valid = true;
         let char_vec: Vec<char> = text.chars().collect();
         if char_vec[0] != '\\' {
@@ -635,8 +673,31 @@ impl Config {
         is_valid
     }
 
-    fn is_function_call(self: &Self, text: &str) -> bool {
+    fn is_function_call(self: &Self, text: &String) -> bool {
         self.exists_function(&text)
+    }
+
+    fn get_function_def(self: &Self, text: &String) -> () {
+        let mut is_valid = true;
+        let (slash, remain1) = get_until_whitespace_or_eol_or_eof(text.clone());
+        let arrow_option = remain1.find("=>");
+        let mut args: Vec<String> = vec![];
+        match arrow_option {
+            Some(arrow) => {
+                let mut remain2 = strip_trailing_whitespace(strip_leading_whitespace(
+                    remain1[0..arrow].to_string(),
+                ));
+                while remain2.len() > 0 {
+                    let (arg, remainder) = get_until_whitespace_or_eol_or_eof(remain2.clone());
+                    //println!("#{}", remain2);
+                    remain2 = remainder.clone();
+                    args.push(arg);
+                }
+                //println!("fn'{}' '{}' '{:?}'", slash, remain2, args);
+            }
+            _ => (),
+        };
+        //let (slash, remain2) = get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain1));
     }
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
@@ -651,14 +712,53 @@ impl Config {
             error,
         )
     }
+
+    fn check_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
+        if self.remaining.len() < 3 {
+            return Err(ERRORS.no_valid_comment_single_line.to_string());
+        } else {
+            let temp_input = strip_leading_whitespace(self.remaining.clone());
+            let (comment, remainder) = get_comment(temp_input)?;
+
+            //println!("remainder {:?}", remainder);
+            self.remaining = strip_leading_whitespace(remainder);
+            //println!("remainder {:?}", self.remaining);
+
+            let insert = &format!("{}{}\r\n", " ".repeat(self.indent * 4), &comment);
+            self.output.insert_str(self.outputcursor, &insert);
+            self.outputcursor = self.outputcursor + insert.len();
+            let validation_error = None;
+            Ok(validation_error)
+        }
+    }
 }
 
-fn get_identifier(input: &str) -> Result<(&str, &str), &str> {
+struct Errors {
+    invalid_program_syntax: &'static str,
+    variable_assignment: &'static str,
+    function_definition: &'static str,
+    no_valid_identifier_found: &'static str,
+    no_valid_comment_single_line: &'static str,
+    no_valid_expression: &'static str,
+    constants_are_immutable: &'static str,
+}
+
+const ERRORS: Errors = Errors {
+    invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
+    variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
+    function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
+    no_valid_identifier_found:"No valid identifier found",
+    no_valid_comment_single_line: "No valid single line comment found",
+    no_valid_expression: "No valid expression was found",
+    constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
+};
+
+fn get_identifier(input: String) -> Result<(String, String), String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     let char_vec: Vec<char> = identifier.chars().collect();
-    if identifier == "" {
+    if identifier == "".to_string() {
         //println!("empty string?");
-        Err(ERRORS.no_valid_identifier_found)
+        Err(ERRORS.no_valid_identifier_found.to_string())
     } else {
         for i in 0..identifier.len() {
             let c = char_vec[i];
@@ -666,14 +766,14 @@ fn get_identifier(input: &str) -> Result<(&str, &str), &str> {
                 if !c.is_alphabetic() && !(c == '_') && !(c == '\\' && identifier.len() == 1) {
                     // must start with a letter or underscore (or '\' if function definition)
                     //println!("letter or underscore?");
-                    return Err(ERRORS.no_valid_identifier_found);
+                    return Err(ERRORS.no_valid_identifier_found.to_string());
                 }
             } else {
                 if !c.is_alphanumeric() && !(c == '_') {
                     {
                         // all other chars must be letter or number or underscore
                         //println!("alphanumeric?");
-                        return Err(ERRORS.no_valid_identifier_found);
+                        return Err(ERRORS.no_valid_identifier_found.to_string());
                     }
                 }
             }
@@ -682,36 +782,87 @@ fn get_identifier(input: &str) -> Result<(&str, &str), &str> {
     }
 }
 
-fn get_str(input: &'static str, matchstr: &str) -> Result<&'static str, &'static str> {
-    let (identifier, remainder) = &get_until_whitespace_or_eof(input);
-    if *identifier == "" || identifier != &matchstr {
-        //println!("get_str");
-        return Err(ERRORS.no_valid_identifier_found);
+fn get_comment(input: String) -> Result<(String, String), String> {
+    let temp_input = strip_leading_whitespace(input.clone());
+    let (comment, remainder) = get_until_eol_or_eof(temp_input);
+    //let char_vec: Vec<char> = comment.chars().collect();
+    if comment.len() < 3 || &comment[..2] != "//" {
+        Err(ERRORS.no_valid_comment_single_line.to_string())
+    } else {
+        Ok((comment, remainder))
     }
-    Ok(&remainder)
 }
 
-fn get_until_whitespace_or_eof(input: &str) -> (&str, &str) {
-    let mut output: String = "".to_string();
-    let mut remainder = "";
+fn get_str(input: String, matchstr: &str) -> Result<String, String> {
+    let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
+    if identifier == "".to_string() || &identifier != matchstr {
+        //println!("get_str");
+        return Err(ERRORS.no_valid_identifier_found.to_string());
+    }
+    Ok(remainder)
+}
+
+fn get_until_whitespace_or_eof(input: String) -> (String, String) {
+    let mut output = "".to_string();
+    let mut remainder = "".to_string();
     let char_vec: Vec<char> = input.chars().collect();
     for i in 0..input.len() {
         if i == input.len() {
-            remainder = "";
+            remainder = "".to_string();
         } else {
             if char_vec[i].is_whitespace() {
-                remainder = &input[i..];
+                remainder = input[i..].to_string();
                 break;
             } else {
-                remainder = &input[i + 1..];
+                remainder = input[i + 1..].to_string();
                 output.push(char_vec[i]);
             }
         }
     }
-    (output.as_str(), remainder)
+    (output, remainder)
 }
 
-fn strip_leading_whitespace(input: &str) -> &str {
+fn get_until_eol_or_eof(input: String) -> (String, String) {
+    let mut output = "".to_string();
+    let mut remainder = "".to_string();
+    let char_vec: Vec<char> = input.chars().collect();
+    for i in 0..input.len() {
+        if i == input.len() {
+            remainder = "".to_string();
+        } else {
+            if char_vec[i] == '\r' {
+                remainder = input[i..].to_string();
+                break;
+            } else {
+                remainder = input[i + 1..].to_string();
+                output.push(char_vec[i]);
+            }
+        }
+    }
+    (output, remainder)
+}
+
+fn get_until_whitespace_or_eol_or_eof(input: String) -> (String, String) {
+    let mut output = "".to_string();
+    let mut remainder = "".to_string();
+    let char_vec: Vec<char> = input.chars().collect();
+    for i in 0..input.len() {
+        if i == input.len() {
+            remainder = "".to_string();
+        } else {
+            if char_vec[i] == '\r' || char_vec[i].is_whitespace() {
+                remainder = input[i..].to_string();
+                break;
+            } else {
+                remainder = input[i + 1..].to_string();
+                output.push(char_vec[i]);
+            }
+        }
+    }
+    (output, remainder)
+}
+
+fn strip_leading_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
     let mut first_non_whitespace_index = 0;
@@ -725,12 +876,12 @@ fn strip_leading_whitespace(input: &str) -> &str {
     }
     if first_non_whitespace_index == 0 && checking_for_whitespace {
         //if you get to end of string and it's all whitespace return empty string
-        return "";
+        return "".to_string();
     }
-    &input[first_non_whitespace_index..]
+    input[first_non_whitespace_index..].to_string()
 }
 
-fn strip_trailing_whitespace(input: &str) -> &str {
+fn strip_trailing_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
     let mut first_non_whitespace_index = input.len();
@@ -744,8 +895,225 @@ fn strip_trailing_whitespace(input: &str) -> &str {
     }
     if first_non_whitespace_index == 0 && checking_for_whitespace {
         //if you get to end of string and it's all whitespace return empty string
-        return "";
+        return "".to_string();
     }
-    &input[..first_non_whitespace_index]
+    input[..first_non_whitespace_index].to_string()
 }
-*/
+
+// assign to variable
+// Toy                  Rust
+// x = Int 2;           let x: int64 = 2;
+// x = Float 3.14;      let x: f64 = 3.14;
+
+// add two integers, assign to variable
+// Toy          Rust
+// = x + 2 2;   let x = 2 + 2;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn mock_config(contents: &str) -> Config {
+        Config {
+            filename: "".to_string(),
+            filecontents: contents.to_string(),
+            remaining: contents.to_string(),
+            lines_of_chars: vec![],
+            lines_of_tokens: vec![],
+            output: "".to_string(),
+            outputcursor: 0,
+            pass: 0,
+            indent: 1,
+
+            functions: vec![],
+            error_stack: vec![],
+        }
+    }
+
+    #[test]
+    fn test_new() {
+        let args = ["toylang".to_string(), "filename_example".to_string()];
+        let config_result = Config::new(&args);
+        let filename = "filename_example".to_string();
+        match config_result {
+            Ok(config) => assert_eq!(config.filename, filename),
+            Err(_) => assert!(false, "error should not exist"),
+        }
+    }
+
+    /*
+    #[test]
+    fn test_tokenizer_assignment() {
+        let mut config = mock_config("RUN\r\n= x 2\r\nEND");
+        match config.tokenizer() {
+            Ok(_) => {
+                assert_eq!(config.output, "fn main() {\r\n    let x = 2;\r\n}");
+                assert_eq!(config.outputcursor, 29);
+            }
+            Err(_) => assert!(false, "error should not exist"),
+        }
+    }
+
+    #[test]
+    fn test_tokenizer_assignment_immutable_ok() {
+        let mut config = mock_config("RUN\r\n= x 2\r\n= y 3\r\nEND");
+        match config.tokenizer() {
+            Ok(_) => {
+                assert_eq!(
+                    config.output,
+                    "fn main() {\r\n    let x = 2;\r\n    let y = 3;\r\n}"
+                );
+                assert_eq!(config.outputcursor, 45);
+            }
+            Err(_) => assert!(false, "error should not exist"),
+        }
+    }
+    */
+
+    /*
+    #[test]
+    fn test_check_program_syntax() {
+        let err = Err(ERRORS.invalid_program_syntax);
+        assert_eq!(mock_config("").check_program_syntax(), err);
+        assert_eq!(mock_config("commands").check_program_syntax(), err);
+        assert_eq!(mock_config("RUN").check_program_syntax(), err);
+        assert_eq!(
+            mock_config("RUN\r\ncommands\r\n").check_program_syntax(),
+            err
+        );
+        assert_eq!(mock_config("END").check_program_syntax(), err);
+        assert_eq!(mock_config("commands\r\nEND").check_program_syntax(), err);
+        assert_eq!(mock_config("RUNEND").check_program_syntax(), err);
+        assert_eq!(mock_config("END\r\nRUN").check_program_syntax(), err);
+        assert_eq!(mock_config("RUN commands END").check_program_syntax(), err);
+        assert_eq!(
+            mock_config("RUN\r\n//comment\r\nEND").check_program_syntax(),
+            Ok(())
+        );
+        assert_eq!(
+            mock_config("RUN\r\ncommands\r\nEND").check_program_syntax(),
+            Ok(())
+        );
+        assert_eq!(
+            mock_config("RUN\r\ncommands\r\ncommands\r\ncommands\r\nEND").check_program_syntax(),
+            Ok(())
+        );
+    }
+    */
+
+    #[test]
+    fn test_check_variable_assignment() {
+        let err: Result<Option<String>, String> = Err(ERRORS.variable_assignment.to_string());
+        let err2: Result<Option<String>, String> =
+            Err(ERRORS.no_valid_identifier_found.to_string());
+        assert_eq!(mock_config("").check_variable_assignment(), err);
+        assert_eq!(mock_config("2 = x").check_variable_assignment(), err2);
+        assert_eq!(mock_config("let x = 2").check_variable_assignment(), err2);
+        //assert_eq!(check_variable_assignment("x = 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);
+        //assert_eq!(check_variable_assignment("x = Monkey 2".to_string()), err);
+
+        //OK
+        assert_eq!(mock_config("= x 2").check_variable_assignment(), Ok(None));
+        assert_eq!(mock_config("= x 2.2").check_variable_assignment(), Ok(None));
+        assert_eq!(
+            mock_config("= x 1\r\n= y x").check_variable_assignment(),
+            Ok(None)
+        );
+        assert_eq!(
+            mock_config("= x \"string\"").check_variable_assignment(),
+            Ok(None)
+        );
+    }
+
+    #[test]
+    fn test_get_until_whitespace_or_eof() {
+        assert_eq!(
+            get_until_whitespace_or_eof("".to_string()),
+            ("".to_string(), "".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc".to_string()),
+            ("abc".to_string(), "".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc def".to_string()),
+            ("abc".to_string(), " def".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof("abc\r\ndef".to_string()),
+            ("abc".to_string(), "\r\ndef".to_string())
+        );
+        assert_eq!(
+            get_until_whitespace_or_eof(" abc".to_string()),
+            ("".to_string(), " abc".to_string())
+        );
+    }
+    #[test]
+    fn test_strip_leading_whitespace() {
+        assert_eq!(strip_leading_whitespace("".to_string()), "".to_string());
+        assert_eq!(
+            strip_leading_whitespace("abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("abc   \r\n".to_string()),
+            "abc   \r\n".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace(" abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("    abc".to_string()),
+            "abc".to_string()
+        );
+        assert_eq!(
+            strip_leading_whitespace("\r\n    abc  \r\n".to_string()),
+            "abc  \r\n".to_string()
+        );
+    }
+    #[test]
+    fn test_get_identifier() {
+        let err = Err(ERRORS.no_valid_identifier_found.to_string());
+        assert_eq!(get_identifier("".to_string()), err);
+        assert_eq!(get_identifier("  abc".to_string()), err);
+        assert_eq!(get_identifier("1abc = 123".to_string()), err);
+        assert_eq!(get_identifier("-abc = 123".to_string()), err);
+        assert_eq!(
+            get_identifier("abc".to_string()),
+            Ok(("abc".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            get_identifier("_abc".to_string()),
+            Ok(("_abc".to_string(), "".to_string()))
+        );
+        assert_eq!(
+            get_identifier("abc = 123".to_string()),
+            Ok(("abc".to_string(), " = 123".to_string()))
+        );
+        assert_eq!(
+            get_identifier("abc_123def = 123".to_string()),
+            Ok(("abc_123def".to_string(), " = 123".to_string()))
+        );
+    }
+    #[test]
+    fn test_get_str() {
+        let err = Err(ERRORS.no_valid_identifier_found.to_string());
+        assert_eq!(get_str("".to_string(), ""), err);
+        assert_eq!(get_str("  abc".to_string(), "abc"), err);
+        assert_eq!(get_str("1abc = 123".to_string(), "abc"), err);
+        assert_eq!(get_str("-abc = 123".to_string(), "abc"), err);
+        assert_eq!(get_str("abc".to_string(), "abc"), Ok("".to_string()));
+        assert_eq!(get_str("_abc".to_string(), "_abc"), Ok("".to_string()));
+        assert_eq!(
+            get_str("abc = 123".to_string(), "abc"),
+            Ok(" = 123".to_string())
+        );
+        assert_eq!(
+            get_str("abc_123def = 123".to_string(), "abc_123def"),
+            Ok(" = 123".to_string())
+        );
+    }
+}
