@@ -146,7 +146,8 @@ impl Config {
                 } else {
                     inside_quotes
                 };
-                if (c.is_whitespace() && index_to != 0 && !inside_quotes) || eof {
+                let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
+                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment) || eof {
                     let token_chars = char_vec[index_from..index_to + (if eof { 1 } else { 0 })]
                         .iter()
                         .cloned()
@@ -202,9 +203,9 @@ impl Config {
             //println!("succeeded");
             return Ok(());
         }
-        //if self.check_one_succeeds("check_comment_single_line") {
-        //    return Ok(());
-        //}
+        if self.check_one_succeeds("check_comment_single_line") {
+            return Ok(());
+        }
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
         Err(self.error_stack.clone())
@@ -276,9 +277,9 @@ impl Config {
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = &self.lines_of_tokens[self.pass];
-        if tokens[1] == "c" {
-            //println!("tokens {:?}", &tokens);
-        }
+        //if tokens[1] == "c" {
+        //println!("tokens {:?}", &tokens);
+        //}
         if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
         } else {
@@ -291,13 +292,13 @@ impl Config {
 
             let expression_result =
                 self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
-            if tokens[1] == "c" {
-                //println!(
-                //    "expression_result {:?} {:?}",
-                //    expression_result,
-                //    tokens[2].to_string()
-                //);
-            }
+            //if tokens[1] == "c" {
+            //println!(
+            //    "expression_result {:?} {:?}",
+            //    expression_result,
+            //    tokens[2].to_string()
+            //);
+            //}
 
             match expression_result {
                 Ok((expression, exp_type)) => {
@@ -306,9 +307,9 @@ impl Config {
                     let mut final_type = exp_type.clone();
                     let mut validations = vec![];
 
-                    if tokens[1] == "c" {
-                        //println!("!!!!!!!!!!!!!!!");
-                    }
+                    //if tokens[1] == "c" {
+                    //println!("!!!!!!!!!!!!!!!");
+                    //}
                     if self.exists_function(&tokens[2]) {
                         //println!("!!!!!!!!!!!!!!! {:?}", tokens[2]);
                         final_type = "".to_string();
@@ -332,9 +333,9 @@ impl Config {
                         validations,
                         final_type,
                     );
-                    if tokens[1] == "c" {
-                        //println!("!!!!!!!!!!!!!!! {:?}", new_constant_function);
-                    }
+                    //if tokens[1] == "c" {
+                    //println!("!!!!!!!!!!!!!!! {:?}", new_constant_function);
+                    //}
                     self.functions.push(new_constant_function);
                     self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
@@ -717,16 +718,12 @@ impl Config {
     }
 
     fn check_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
-        if self.remaining.len() < 3 {
+        let tokens = &self.lines_of_tokens[self.pass];
+        let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
+        if first_token_chars[0] != '/' || first_token_chars[1] != '/' {
             return Err(ERRORS.no_valid_comment_single_line.to_string());
         } else {
-            let temp_input = strip_leading_whitespace(self.remaining.clone());
-            let (comment, remainder) = get_comment(temp_input)?;
-
-            //println!("remainder {:?}", remainder);
-            self.remaining = strip_leading_whitespace(remainder);
-            //println!("remainder {:?}", self.remaining);
-
+            let comment = concatenate_vec_strings(tokens);
             let insert = &format!("{}{}\r\n", " ".repeat(self.indent * 4), &comment);
             self.output.insert_str(self.outputcursor, &insert);
             self.outputcursor = self.outputcursor + insert.len();
@@ -736,6 +733,13 @@ impl Config {
     }
 }
 
+fn concatenate_vec_strings(tokens: &Vec<String>) -> String {
+    let mut output = "".to_string();
+    for i in 0..tokens.len() {
+        output = format!("{}{}", output, tokens[i]);
+    }
+    output
+}
 struct Errors {
     invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
@@ -782,17 +786,6 @@ fn get_identifier(input: String) -> Result<(String, String), String> {
             }
         }
         Ok((identifier, remainder))
-    }
-}
-
-fn get_comment(input: String) -> Result<(String, String), String> {
-    let temp_input = strip_leading_whitespace(input.clone());
-    let (comment, remainder) = get_until_eol_or_eof(temp_input);
-    //let char_vec: Vec<char> = comment.chars().collect();
-    if comment.len() < 3 || &comment[..2] != "//" {
-        Err(ERRORS.no_valid_comment_single_line.to_string())
-    } else {
-        Ok((comment, remainder))
     }
 }
 

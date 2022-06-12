@@ -94,7 +94,7 @@ RUN
 = subtraction - 5.4 3.2
 = multiplication * 3 4
 = division / 1.0 2.0
-= modulus % 42 3.14
+= modulus % 42.0 3.14
 END
 ```
 
@@ -103,17 +103,17 @@ END
 ```rust
 fn main() {
     // single line comments
-    let an_integer = 123;
-    let a_float = 123.45;
-    let a_reference = a;
-    let a_string = "string";
+    let an_integer: i64 = 123;
+    let a_float: f64 = 123.45;
+    let a_reference: i64 = an_integer;
+    let a_string: String = "string".to_string();
 
     // basic arithmetic
-    let addition = 1 + 2;
-    let subtraction = 5.4 - 3.2;
-    let multiplication = 3 * 4;
-    let division = 1.0 / 2.0;
-    let modulus = 42 % 3.14;
+    let addition: i64 = 1 + 2;
+    let subtraction: f64 = 5.4 - 3.2;
+    let multiplication: i64 = 3 * 4;
+    let division: f64 = 1.0 / 2.0;
+    let modulus: f64 = 42.0 % 3.14;
 }
 ```
 
