@@ -123,23 +123,22 @@ impl Config {
             }
             index_to = index_to + incr;
         }
-        //println!("@@ {:?}", self.lines_of_chars);
     }
 
     fn get_lines_of_tokens(self: &mut Self) {
         for line in 0..self.lines_of_chars.len() {
             let mut index_from = 0;
             let mut index_to = 0;
-            let char_vec: Vec<char> = self.lines_of_chars[line].clone();
-            //println!("line: {}", line);
+
+            let char_vec_initial: Vec<char> = self.lines_of_chars[line].clone();
+            let char_as_string = char_vec_initial.iter().cloned().collect::<String>();
+            let removed_leading_whitespace = strip_leading_whitespace(char_as_string);
+            let char_vec: Vec<char> = removed_leading_whitespace.chars().collect();
+
             let mut inside_quotes = false;
             let mut line_of_tokens: Vec<String> = vec![];
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
-                //println!(
-                //    "line: {}, index_from: {}, index_to: {} - '{}'",
-                //    line, index_from, index_to, c
-                //);
                 let eof = index_to == char_vec.len() - 1;
                 inside_quotes = if c == '"' {
                     !inside_quotes
@@ -147,20 +146,20 @@ impl Config {
                     inside_quotes
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
+
                 if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment) || eof {
                     let token_chars = char_vec[index_from..index_to + (if eof { 1 } else { 0 })]
                         .iter()
                         .cloned()
                         .collect::<String>();
-                    //println!("token_chars:{:}", token_chars);
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
                 }
                 index_to = index_to + 1;
             }
+
             self.lines_of_tokens.push(line_of_tokens);
         }
-        //println!("@@ {:?}", self.lines_of_tokens);
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
@@ -200,7 +199,6 @@ impl Config {
         //    return Ok(());
         //}
         if self.check_one_succeeds("check_variable_assignment") {
-            //println!("succeeded");
             return Ok(());
         }
         if self.check_one_succeeds("check_comment_single_line") {
@@ -223,20 +221,18 @@ impl Config {
                 return false;
             }
         };
-        //println!("check result {:?} {:?}", function_name, result);
         match result {
             Ok(validation_error) => {
                 self.clone_mut_ref(clone);
                 match validation_error {
                     Some(e) => {
-                        //println!("one_succeeds e{:?}", e);
                         self.error_stack.push(e);
                         succeeded = false;
                     }
                     None => succeeded = true,
                 }
             }
-            Err(_e) => println!("error"), //self.error_stack.push(e), // just testing - move to a temporary error_stack
+            Err(_e) => (), //println!("error {:?}", e), //self.error_stack.push(e), // just testing - move to a temporary error_stack
         }
         succeeded
     }
@@ -265,7 +261,6 @@ impl Config {
             self.error_stack
                 .push(ERRORS.invalid_program_syntax.to_string());
             return Err(self.error_stack.clone());
-            //return Err();
         } else {
             self.output = "fn main() {\r\n}".to_string();
             self.indent = 1;
@@ -277,9 +272,7 @@ impl Config {
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = &self.lines_of_tokens[self.pass];
-        //if tokens[1] == "c" {
-        //println!("tokens {:?}", &tokens);
-        //}
+
         if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
         } else {
@@ -292,14 +285,6 @@ impl Config {
 
             let expression_result =
                 self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
-            //if tokens[1] == "c" {
-            //println!(
-            //    "expression_result {:?} {:?}",
-            //    expression_result,
-            //    tokens[2].to_string()
-            //);
-            //}
-
             match expression_result {
                 Ok((expression, exp_type)) => {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
@@ -307,9 +292,6 @@ impl Config {
                     let mut final_type = exp_type.clone();
                     let mut validations = vec![];
 
-                    //if tokens[1] == "c" {
-                    //println!("!!!!!!!!!!!!!!!");
-                    //}
                     if self.exists_function(&tokens[2]) {
                         //println!("!!!!!!!!!!!!!!! {:?}", tokens[2]);
                         final_type = "".to_string();
@@ -333,15 +315,13 @@ impl Config {
                         validations,
                         final_type,
                     );
-                    //if tokens[1] == "c" {
-                    //println!("!!!!!!!!!!!!!!! {:?}", new_constant_function);
-                    //}
+
                     self.functions.push(new_constant_function);
                     self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
                 }
                 Err(e) => validation_error = Some(e),
-                _ => validation_error = Some("some other error".to_string()),
+                //_ => validation_error = Some("some other error".to_string()),
             }
 
             Ok(validation_error)
@@ -356,11 +336,10 @@ impl Config {
             remainder = get_str(remainder.clone(), "=")?;
             remainder = strip_leading_whitespace(remainder);
             let (identifier, mut remainder) = get_identifier(remainder)?;
-            //println!("##id{}", identifier);
+
             let mut validation_error = None;
             if identifier == "\\" {
-                //check for pre-existing same function_name
-
+                // check for pre-existing same function_name
                 remainder =
                     strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
                 let (text, remain) = get_until_eol_or_eof(remainder);
@@ -368,13 +347,7 @@ impl Config {
                 let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
                 let fun = self.get_function(&"\\");
                 match fun {
-                    Some((
-                        _,
-                        function_format,
-                        function_args,
-                        function_validation,
-                        function_return_type,
-                    )) => {
+                    Some((_, function_format, _, _, _)) => {
                         let insert = function_format
                             .replace("#0", &" ".repeat(self.indent * 4))
                             .replace("#1", &function_name)
@@ -394,10 +367,8 @@ impl Config {
                         self.output.insert_str(self.outputcursor, &insert);
                         self.outputcursor = self.outputcursor + insert.len();
                         self.remaining = strip_leading_whitespace(remain);
-                        //println!("DONE? {:?}", self);
                     }
                     _ => {
-                        //println!("NOPE - not a function definition");
                         validation_error = Some("NOPE - not a function definition".to_string());
                     }
                 }
@@ -452,9 +423,6 @@ impl Config {
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
-        if tokens[0] == "c" {
-            dbg!("check_expression", identifier, &tokens);
-        }
         if tokens.len() == 1 {
             if self.is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -475,9 +443,7 @@ impl Config {
         if tokens.len() > 0 && self.is_function_call(&tokens[0]) {
             let fn_option: Option<FunctionDefinition> =
                 self.get_function_definition(tokens[0].clone());
-            if (tokens[0] == "c") {
-                dbg!("ARGH {:?}", &fn_option);
-            };
+
             match fn_option {
                 Some((
                     function_name,
@@ -494,9 +460,7 @@ impl Config {
                         function_validation.contains(&"arg_types_must_match".to_string());
 
                     let mut final_return_type = &function_return_type;
-                    if tokens[0] == "c" {
-                        dbg!(&function_name);
-                    }
+
                     // check number of arguments
                     if function_args.len() != count_arguments {
                         return Err(self.get_error(
@@ -631,17 +595,14 @@ impl Config {
     }
 
     fn is_integer(self: &Self, text: &String) -> bool {
-        //println!("is_integer? {}", text);
         let mut is_valid = true;
         if !text.chars().into_iter().all(|c| c.is_numeric()) {
-            //println!("iter? {}", text);
             is_valid = false;
         }
         is_valid
     }
 
     fn is_float(self: &Self, text: &String) -> bool {
-        //println!("is_float? {}", text);
         let mut is_valid = true;
         let mut count_decimal_points = 0;
         let char_vec: Vec<char> = text.chars().collect();
@@ -659,7 +620,6 @@ impl Config {
     }
 
     fn is_string(self: &Self, text: &String) -> bool {
-        //println!("is_string? {}", text);
         let mut is_valid = true;
         let char_vec: Vec<char> = text.chars().collect();
         if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
@@ -681,6 +641,7 @@ impl Config {
         self.exists_function(&text)
     }
 
+    /*
     fn get_function_def(self: &Self, text: &String) -> () {
         let mut is_valid = true;
         let (slash, remain1) = get_until_whitespace_or_eol_or_eof(text.clone());
@@ -703,6 +664,7 @@ impl Config {
         };
         //let (slash, remain2) = get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain1));
     }
+    */
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
@@ -720,7 +682,8 @@ impl Config {
     fn check_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = &self.lines_of_tokens[self.pass];
         let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
-        if first_token_chars[0] != '/' || first_token_chars[1] != '/' {
+        if first_token_chars.len() < 2 || first_token_chars[0] != '/' || first_token_chars[1] != '/'
+        {
             return Err(ERRORS.no_valid_comment_single_line.to_string());
         } else {
             let comment = concatenate_vec_strings(tokens);
@@ -764,7 +727,6 @@ fn get_identifier(input: String) -> Result<(String, String), String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     let char_vec: Vec<char> = identifier.chars().collect();
     if identifier == "".to_string() {
-        //println!("empty string?");
         Err(ERRORS.no_valid_identifier_found.to_string())
     } else {
         for i in 0..identifier.len() {
@@ -792,7 +754,6 @@ fn get_identifier(input: String) -> Result<(String, String), String> {
 fn get_str(input: String, matchstr: &str) -> Result<String, String> {
     let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
     if identifier == "".to_string() || &identifier != matchstr {
-        //println!("get_str");
         return Err(ERRORS.no_valid_identifier_found.to_string());
     }
     Ok(remainder)
@@ -838,6 +799,7 @@ fn get_until_eol_or_eof(input: String) -> (String, String) {
     (output, remainder)
 }
 
+/*
 fn get_until_whitespace_or_eol_or_eof(input: String) -> (String, String) {
     let mut output = "".to_string();
     let mut remainder = "".to_string();
@@ -857,6 +819,7 @@ fn get_until_whitespace_or_eol_or_eof(input: String) -> (String, String) {
     }
     (output, remainder)
 }
+*/
 
 fn strip_leading_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
@@ -877,6 +840,7 @@ fn strip_leading_whitespace(input: String) -> String {
     input[first_non_whitespace_index..].to_string()
 }
 
+/*
 fn strip_trailing_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
@@ -895,15 +859,7 @@ fn strip_trailing_whitespace(input: String) -> String {
     }
     input[..first_non_whitespace_index].to_string()
 }
-
-// assign to variable
-// Toy                  Rust
-// x = Int 2;           let x: int64 = 2;
-// x = Float 3.14;      let x: f64 = 3.14;
-
-// add two integers, assign to variable
-// Toy          Rust
-// = x + 2 2;   let x = 2 + 2;
+*/
 
 #[cfg(test)]
 mod tests {

@@ -10,6 +10,6 @@ RUN
 = g * 1 2
 = h / 1 2
 = i % 1 2
-// comment which is quite long with spaces
+// single line comment which is quite long with spaces
 = j 1234
 END
