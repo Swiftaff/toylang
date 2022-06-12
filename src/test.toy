@@ -10,6 +10,32 @@ RUN
 = g * 1 2
 = h / 1 2
 = i % 1 2
-// single line comment which is quite long with spaces
-= j 1234
+
+// single line functions
+= j1 \ => 123
+= k1 \ arg1 => arg1
+= l1 \ arg1 arg2 => + arg1 arg2
+= m1 \ arg1 :i64 arg2 :i64 => :i64 + arg1 arg2
+
+// multi-line functions
+//= j2 \ =>
+//123
+
+//= k2 \ arg1 =>
+//arg1
+
+//= l2 \ arg1 arg2 =>
+//+ arg1 arg2
+
+//= m2 \ arg1 :i64 arg2 :i64 => :i64
+//+ arg1 arg2
+
+//= n2 \ arg1 :i64 arg2 :i64 => :i64
+//= x + 123 arg1
+//= y - 456 arg2
+// / x y
+
+// note: can you have just a lambda expression with assigning it?
+//\ => 123
+
 END

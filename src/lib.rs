@@ -195,9 +195,6 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        //if self.check_one_succeeds("check_function_definition") {
-        //    return Ok(());
-        //}
         if self.check_one_succeeds("check_variable_assignment") {
             return Ok(());
         }
@@ -213,11 +210,9 @@ impl Config {
         let mut succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
-            "check_function_definition" => clone.check_function_definition(),
             "check_variable_assignment" => clone.check_variable_assignment(),
             "check_comment_single_line" => clone.check_comment_single_line(),
             _ => {
-                //println!("check_one_succeeds: provided an unknown function_name");
                 return false;
             }
         };
@@ -293,7 +288,6 @@ impl Config {
                     let mut validations = vec![];
 
                     if self.exists_function(&tokens[2]) {
-                        //println!("!!!!!!!!!!!!!!! {:?}", tokens[2]);
                         final_type = "".to_string();
                         validations.push("get_type_from_referred_function".to_string());
                         value = tokens[2].to_string();
@@ -343,7 +337,6 @@ impl Config {
                 remainder =
                     strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
                 let (text, remain) = get_until_eol_or_eof(remainder);
-                //println!("### {} {} '{}'", identifier, text, remain);
                 let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
                 let fun = self.get_function(&"\\");
                 match fun {
@@ -440,48 +433,68 @@ impl Config {
             }
         }
 
-        if tokens.len() > 0 && self.is_function_call(&tokens[0]) {
-            let fn_option: Option<FunctionDefinition> =
-                self.get_function_definition(tokens[0].clone());
+        if tokens.len() > 0 {
+            if is_function_definition(&tokens) {
+                let test = format!("123; // function call: {:?}", &tokens);
+                let arrow = get_function_def_arrow(&tokens);
+                let args = get_function_def_args(&tokens, arrow);
 
-            match fn_option {
-                Some((
-                    function_name,
-                    function_format,
-                    function_args,
-                    function_validation,
-                    function_return_type,
-                )) => {
-                    let allow_for_fn_name = 1;
-                    let count_arguments = tokens.len() - allow_for_fn_name;
-                    let tokens_string_length = self.get_tokens_string_len(&tokens);
-                    let expression_indents = 3 + function_name.len();
-                    let validate_arg_types_must_match =
-                        function_validation.contains(&"arg_types_must_match".to_string());
+                // TODO
+                // check if all args have types
 
-                    let mut final_return_type = &function_return_type;
+                // optional check if any multiline variable assignments
+                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
+                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
+                // and add a self.currentScopedParentFunctionName = default to "main"
 
-                    // check number of arguments
-                    if function_args.len() != count_arguments {
-                        return Err(self.get_error(
-                            expression_indents,
-                            tokens_string_length,
-                            &format!(
-                                "wrong number of function arguments. Expected: {}. Found {}.",
-                                function_args.len(),
-                                count_arguments
-                            ),
-                        ));
-                    }
+                // get return expression/value, check it was provided with a type
 
-                    // check types of values
-                    let mut value_types: Vec<String> = vec![];
-                    for i in allow_for_fn_name..tokens.len() {
-                        value_types.push(self.get_type(&tokens[i]));
-                    }
-                    for i in 0..count_arguments {
-                        if !function_args[i].contains(&value_types[i]) {
+                // validate that expression type matches provided type
+
+                dbg!(tokens, arrow, args);
+                return Ok((test, "".to_string()));
+            } else if self.is_function_call(&tokens[0]) {
+                let fn_option: Option<FunctionDefinition> =
+                    self.get_function_definition(tokens[0].clone());
+
+                match fn_option {
+                    Some((
+                        function_name,
+                        function_format,
+                        function_args,
+                        function_validation,
+                        function_return_type,
+                    )) => {
+                        let allow_for_fn_name = 1;
+                        let count_arguments = tokens.len() - allow_for_fn_name;
+                        let tokens_string_length = self.get_tokens_string_len(&tokens);
+                        let expression_indents = 3 + function_name.len();
+                        let validate_arg_types_must_match =
+                            function_validation.contains(&"arg_types_must_match".to_string());
+
+                        let mut final_return_type = &function_return_type;
+
+                        // check number of arguments
+                        if function_args.len() != count_arguments {
                             return Err(self.get_error(
+                                expression_indents,
+                                tokens_string_length,
+                                &format!(
+                                    "wrong number of function arguments. Expected: {}. Found {}.",
+                                    function_args.len(),
+                                    count_arguments
+                                ),
+                            ));
+                        }
+
+                        // check types of values
+                        let mut value_types: Vec<String> = vec![];
+                        for i in allow_for_fn_name..tokens.len() {
+                            value_types.push(self.get_type(&tokens[i]));
+                        }
+                        for i in 0..count_arguments {
+                            if !function_args[i].contains(&value_types[i]) {
+                                return Err(self.get_error(
                                 expression_indents,
                                 tokens_string_length,
                                 &format!(
@@ -490,19 +503,18 @@ impl Config {
                                     value_types
                                 ),
                             ));
+                            }
                         }
-                    }
 
-                    // validation: check all types match
-                    if count_arguments > 0 && validate_arg_types_must_match {
-                        // need to check if at least one value otherwise can't determine 'first' below
-                        let first = &value_types[0];
-                        if final_return_type == "" {
-                            final_return_type = first;
-                        };
-                        //println!("###first {}", first);
-                        if value_types.clone().into_iter().any(|c| &c != first) {
-                            return Err(self.get_error(
+                        // validation: check all types match
+                        if count_arguments > 0 && validate_arg_types_must_match {
+                            // need to check if at least one value otherwise can't determine 'first' below
+                            let first = &value_types[0];
+                            if final_return_type == "" {
+                                final_return_type = first;
+                            };
+                            if value_types.clone().into_iter().any(|c| &c != first) {
+                                return Err(self.get_error(
                                     expression_indents,
                                 tokens_string_length,
                                 &format!(
@@ -510,42 +522,44 @@ impl Config {
                                     value_types
                                 ),
                             ));
+                            }
                         }
+
+                        let output = match function_args.len() {
+                            2 => {
+                                let out1 =
+                                    function_format.replace("#1", &tokens[allow_for_fn_name]);
+                                let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
+                                out2
+                            }
+                            1 => {
+                                let out1 =
+                                    function_format.replace("#1", &tokens[allow_for_fn_name]);
+                                out1
+                            }
+                            _ => function_format,
+                        };
+
+                        let get_type_from_referred_function = function_validation
+                            .contains(&"get_type_from_referred_function".to_string());
+                        if get_type_from_referred_function {
+                            // this is variable assignment is just a reference to another constant (i.e. a function) e.g. let x: ? = a;
+                            // So to determine the return type ? of x, we must get it from a
+                            let fn_name = function_name.clone();
+                            let final_return_type_from_parent_refs =
+                                &self.recurs_get_referred_function(fn_name);
+                            return Ok((output, final_return_type_from_parent_refs.clone()));
+                        }
+
+                        return Ok((output, final_return_type.clone()));
                     }
-
-                    let output = match function_args.len() {
-                        2 => {
-                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
-                            let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
-                            out2
-                        }
-                        1 => {
-                            let out1 = function_format.replace("#1", &tokens[allow_for_fn_name]);
-                            out1
-                        }
-                        _ => function_format,
-                    };
-
-                    let get_type_from_referred_function = function_validation
-                        .contains(&"get_type_from_referred_function".to_string());
-                    if get_type_from_referred_function {
-                        // this is variable assignment is just a reference to another constant (i.e. a function) e.g. let x: ? = a;
-                        // So to determine the return type ? of x, we must get it from a
-                        let fn_name = function_name.clone();
-                        let final_return_type_from_parent_refs =
-                            &self.recurs_get_referred_function(fn_name);
-                        return Ok((output, final_return_type_from_parent_refs.clone()));
+                    _ => {
+                        return Err(self.get_error(
+                            3 + identifier.len(),
+                            10, //text.len(),
+                            &format!("is not a valid call to function '{}'", tokens[0]),
+                        ));
                     }
-
-                    //println!("ARGH2 {:?}", output);
-                    return Ok((output, final_return_type.clone()));
-                }
-                _ => {
-                    return Err(self.get_error(
-                        3 + identifier.len(),
-                        10, //text.len(),
-                        &format!("is not a valid call to function '{}'", tokens[0]),
-                    ));
                 }
             }
         }
@@ -555,7 +569,7 @@ impl Config {
         Err(self.get_error(
             3 + identifier.len(),
             text.len(),
-            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function, e.g. + 1 2",
+            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function call, e.g. + 1 2, function definition, e.g. \\ arg1 => arg1",
         ))
     }
 
@@ -654,11 +668,9 @@ impl Config {
                 ));
                 while remain2.len() > 0 {
                     let (arg, remainder) = get_until_whitespace_or_eol_or_eof(remain2.clone());
-                    //println!("#{}", remain2);
                     remain2 = remainder.clone();
                     args.push(arg);
                 }
-                //println!("fn'{}' '{}' '{:?}'", slash, remain2, args);
             }
             _ => (),
         };
@@ -732,16 +744,16 @@ fn get_identifier(input: String) -> Result<(String, String), String> {
         for i in 0..identifier.len() {
             let c = char_vec[i];
             if i == 0 {
-                if !c.is_alphabetic() && !(c == '_') && !(c == '\\' && identifier.len() == 1) {
-                    // must start with a letter or underscore (or '\' if function definition)
-                    //println!("letter or underscore?");
+                if !c.is_alphabetic() && !(c == '_') {
+                    // must start with a letter or underscore
+
                     return Err(ERRORS.no_valid_identifier_found.to_string());
                 }
             } else {
                 if !c.is_alphanumeric() && !(c == '_') {
                     {
                         // all other chars must be letter or number or underscore
-                        //println!("alphanumeric?");
+
                         return Err(ERRORS.no_valid_identifier_found.to_string());
                     }
                 }
@@ -860,6 +872,33 @@ fn strip_trailing_whitespace(input: String) -> String {
     input[..first_non_whitespace_index].to_string()
 }
 */
+
+fn is_function_definition(tokens: &Vec<String>) -> bool {
+    tokens.len() > 1
+        && tokens[0] == "\\".to_string()
+        && tokens[1..].iter().any(|c| c == &"=>".to_string())
+}
+
+fn get_function_def_arrow(tokens: &Vec<String>) -> Option<usize> {
+    if tokens.len() > 1 {
+        return tokens[1..].iter().position(|c| c == &"=>".to_string());
+    } else {
+        return None;
+    }
+}
+
+fn get_function_def_args(tokens: &Vec<String>, arrow_option: Option<usize>) -> Vec<String> {
+    match arrow_option {
+        Some(arrow) => {
+            if arrow == 0 {
+                return vec![];
+            } else {
+                return tokens[1..arrow + 1].to_vec();
+            }
+        }
+        None => return vec![],
+    }
+}
 
 #[cfg(test)]
 mod tests {
