@@ -12,28 +12,30 @@ RUN
 = i % 1 2
 
 // single line functions
-= j1 \ => 123
-= k1 \ arg1 => arg1
-= l1 \ arg1 arg2 => + arg1 arg2
-= m1 \ arg1 :i64 arg2 :i64 => :i64 + arg1 arg2
+// no args, returns i64
+= j1 : => i64 \ 123
+
+// one i64 arg, returns i64
+= k1 : i64 => i64 \ arg1 => + arg1 123
+
+// one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
+= l1 : (i64 => i64) i64 => i64 \ fn1 arg2 => fn1 arg2
 
 // multi-line functions
-//= j2 \ =>
-//123
+// no args, returns i64
+//= j2 : => i64
+//  let x = 123
+//  let y = 456
+//  + x y
 
-//= k2 \ arg1 =>
-//arg1
+// one i64 arg, returns i64
+//= k2 : i64 => i64 \ arg1 =>
+//  arg1
 
-//= l2 \ arg1 arg2 =>
-//+ arg1 arg2
-
-//= m2 \ arg1 :i64 arg2 :i64 => :i64
-//+ arg1 arg2
-
-//= n2 \ arg1 :i64 arg2 :i64 => :i64
-//= x + 123 arg1
-//= y - 456 arg2
-// / x y
+// two i64 args, returns i64
+//= l2 : (i64 => i64) i64 => i64
+//  \ arg1 arg2 =>
+//  + arg1 arg2
 
 // note: can you have just a lambda expression with assigning it?
 //\ => 123

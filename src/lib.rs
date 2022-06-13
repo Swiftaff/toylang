@@ -445,7 +445,7 @@ impl Config {
                 // optional check if any multiline variable assignments
                 // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
                 // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
-                // and add a self.currentScopedParentFunctionName = default to "main"
+                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
 
                 // get return expression/value, check it was provided with a type
 
