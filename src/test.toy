@@ -5,39 +5,41 @@ RUN
 = cc c
 = ccc cc
 = d "a string"
-= e + 1 2
-= f - 1.1 2.1
-= g * 1 2
-= h / 1 2
-= i % 1 2
+
+//these now don't work either - fix i64|f64
+//= e + 1 2
+//= f - 1.1 2.1
+//= g * 1 2
+//= h / 1 2
+//= i % 1 2
+
+//= test g this doesn't work, need g expression saved
+
+
 
 // single line functions
-// no args, returns i64
-= j1 : => i64 \ 123
 
-// one i64 arg, returns i64
-= k1 : i64 => i64 \ arg1 => + arg1 123
+// no args, returns i64. Not needed this is just a constant
+//= j1 : => i64 \ 123
+
+// one i64 arg, returns i64 (can't capture environment)
+= k1 : i64 i64 \ arg1 => + a cc
+
+// one i64 arg, returns i64 - now get this working with arg1 "Undefined"
+//= l1 : i64 i64 \ arg1 => + a arg1
 
 // one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
-= l1 : (i64 => i64) i64 => i64 \ fn1 arg2 => fn1 arg2
+//= m1 : (i64 i64) i64 i64 \ fn1 arg2 => fn1 arg2
 
 // multi-line functions
-// no args, returns i64
-//= j2 : => i64
-//  let x = 123
-//  let y = 456
-//  + x y
 
 // one i64 arg, returns i64
-//= k2 : i64 => i64 \ arg1 =>
+//= k2 : i64 i64 \ arg1 =>
 //  arg1
 
 // two i64 args, returns i64
-//= l2 : (i64 => i64) i64 => i64
+//= m2 : (i64 i64) i64 i64
 //  \ arg1 arg2 =>
 //  + arg1 arg2
-
-// note: can you have just a lambda expression with assigning it?
-//\ => 123
 
 END

@@ -54,7 +54,7 @@ impl Config {
                     format!("#1 {} #2", prim).to_string(),
                     vec!["i64|f64".to_string(), "i64|f64".to_string()],
                     vec!["arg_types_must_match".to_string()],
-                    "".to_string(),
+                    "i64|f64".to_string(),
                 )
             })
             .collect();
@@ -293,7 +293,8 @@ impl Config {
                         value = tokens[2].to_string();
                     }
                     let new_expresion = expression.clone();
-                    let insert = &format!(
+                    dbg!(&identifier, &exp_type);
+                    let mut insert = format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
@@ -301,6 +302,15 @@ impl Config {
                         &exp_type,
                         &new_expresion
                     );
+                    
+                    if exp_type=="Function".to_string() {
+                        insert = format!(
+                        "{}fn {}{}\r\n",
+                        " ".repeat(self.indent * 4),
+                        &identifier,
+                        &new_expresion
+                    );
+                    }
 
                     let new_constant_function = (
                         identifier.to_string(),
@@ -435,24 +445,92 @@ impl Config {
 
         if tokens.len() > 0 {
             if is_function_definition(&tokens) {
-                let test = format!("123; // function call: {:?}", &tokens);
-                let arrow = get_function_def_arrow(&tokens);
-                let args = get_function_def_args(&tokens, arrow);
+                let slash_option = get_function_def_slash(&tokens);
+                let arrow_option = get_function_def_arrow(&tokens);
+                match (slash_option, arrow_option) {
+                    (Some(slash),Some(arrow)) =>{
+                        if arrow < slash || slash == 0 || arrow == 0 {
+                            return Err(self.get_error(
+                                3 + identifier.len(),
+                                10, //text.len(),
+                                &format!("is not a valid function definition. Missing slash or arrow. Should be in the form\r\n= func_name : i64 i64 \\ arg1 => + arg1 123\r\n{:?}", &tokens[0]),
+                            ))
+                        } else {
+                            let type_signature = get_function_def_type_signature(&tokens, slash);
+                            let args = get_function_def_args(&tokens, slash, arrow);
+                            
+                            // check if all args have types, plus a return type
+                            if type_signature.len() != args.len() + 1 {
+                                return Err(self.get_error(
+                                    3 + identifier.len(),
+                                    10, //text.len(),
+                                    &format!("is not a valid function definition. The count of argument types and arguments don't match. {:?} {:?} {:?}", type_signature, args, &tokens[0]),
+                                ))
+                            }
 
-                // TODO
-                // check if all args have types
+                            let body = get_function_def_body(&tokens, arrow);
+                            if body.len() == 0 {
+                                // TODO
+                                // use this to check for multiline function
+                                
+                                // optional check if any multiline variable assignments
+                                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
+                                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
+                                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
+        
+                                // for now just error
+                                return Err(self.get_error(
+                                    3 + identifier.len(),
+                                    10, //text.len(),
+                                    &format!("is not a valid function definition. There is no function body following the => {:?}", &tokens[0]),
+                                ))
+                            } else {
+                                // get return expression/value
+                                // recursive
+                                let expression_result =
+                                self.check_expression(&identifier, body.clone());
 
-                // optional check if any multiline variable assignments
-                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
-                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
-                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
+                                dbg!(&tokens, slash, arrow, &type_signature, &args, &body, &expression_result);
+                                //dbg!(&self);
+                                match expression_result {
+                                    Ok((expression, expression_type)) =>{
+                                        // validate that expression type matches provided type
+                                        if !type_signature[type_signature.len()-1].contains(&expression_type) && !expression_type.contains(&type_signature[type_signature.len()-1]) {
+                                            return Err(self.get_error(
+                                                3 + identifier.len(),
+                                                10, //text.len(),
+                                                &format!("The type of this function's return expression '{:?}' does not match it's signature's return type: {:?}", &expression_type, &type_signature[type_signature.len()-1]),
+                                            ));
+                                        }
 
-                // get return expression/value, check it was provided with a type
+                                // example
+                                // fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
+                                //      return_expression    
+                                //}
+                                
+                                let mut args_with_types="".to_string();
+                                for i in 0..args.len() {
+                                    let comma_not_first = if i==0 {"".to_string()} else {", ".to_string()};
+                                    args_with_types = format!("{}{}{}: {}", args_with_types, comma_not_first, args[i], type_signature[i]);
+                                }
+                                let expression_indent = " ".repeat((self.indent+1) * 4);
+                                let trailing_brace_indent = " ".repeat(self.indent * 4);
+                                let output = format!("({}) -> {} {{\r\n{}{}\r\n{}}}", args_with_types, type_signature[type_signature.len()-1], expression_indent,&expression, trailing_brace_indent);
+                                return Ok((output, "Function".to_string()));
+                                    },
+                                    Err(e) => return Err(e)
+                                }
 
-                // validate that expression type matches provided type
-
-                dbg!(tokens, arrow, args);
-                return Ok((test, "".to_string()));
+                                
+                            }                            
+                        }
+                    },
+                    _ => return Err(self.get_error(
+                        3 + identifier.len(),
+                        10, //text.len(),
+                        &format!("is not a valid function definition. Missing slash or arrow. Should be in the form\r\n= func_name : i64 i64 \\ arg1 => + arg1 123\r\n{:?}", &tokens[0]),
+                    ))
+                }
             } else if self.is_function_call(&tokens[0]) {
                 let fn_option: Option<FunctionDefinition> =
                     self.get_function_definition(tokens[0].clone());
@@ -513,7 +591,7 @@ impl Config {
                             if final_return_type == "" {
                                 final_return_type = first;
                             };
-                            if value_types.clone().into_iter().any(|c| &c != first) {
+                            if value_types.clone().into_iter().any(|c| &c != first && !&c.contains(first) && !&first.contains(&c)) {
                                 return Err(self.get_error(
                                     expression_indents,
                                 tokens_string_length,
@@ -577,8 +655,10 @@ impl Config {
         let referred_function_option = self.get_function_definition(function_name.clone());
         match referred_function_option {
             Some((_, ref_func_name, _, ref_validations, ref_func_return_type)) => {
+                
                 let get_type_from_referred_function =
                     ref_validations.contains(&"get_type_from_referred_function".to_string());
+                    //dbg!(&function_name, &ref_func_return_type, get_type_from_referred_function);
                 if get_type_from_referred_function {
                     return self.recurs_get_referred_function(ref_func_name);
                 } else {
@@ -600,7 +680,24 @@ impl Config {
             return "String".to_string();
         }
         if self.is_function_call(text) {
-            return "Function".to_string();
+            let def_option = self.get_function_definition(text.to_string());
+            match def_option {
+                Some((_,_,_,function_validation,mut return_type)) => {
+                    let get_type_from_referred_function = function_validation
+                            .contains(&"get_type_from_referred_function".to_string());
+                        
+                    if get_type_from_referred_function && return_type == "".to_string() {
+                        return_type = self.recurs_get_referred_function(text.to_string())
+                    }
+                        return return_type
+                    
+                    
+                },
+                _ =>{
+                    return "Function".to_string();
+                }
+            }
+            
         }
         if self.is_lambda(text) {
             return "FunctionDef".to_string();
@@ -874,9 +971,16 @@ fn strip_trailing_whitespace(input: String) -> String {
 */
 
 fn is_function_definition(tokens: &Vec<String>) -> bool {
-    tokens.len() > 1
-        && tokens[0] == "\\".to_string()
-        && tokens[1..].iter().any(|c| c == &"=>".to_string())
+    tokens.len() > 1 && tokens[0] == ":".to_string()
+    //&& tokens[1..].iter().any(|c| c == &"\\".to_string())
+}
+
+fn get_function_def_slash(tokens: &Vec<String>) -> Option<usize> {
+    if tokens.len() > 1 {
+        return tokens[1..].iter().position(|c| c == &"\\".to_string());
+    } else {
+        return None;
+    }
 }
 
 fn get_function_def_arrow(tokens: &Vec<String>) -> Option<usize> {
@@ -887,17 +991,16 @@ fn get_function_def_arrow(tokens: &Vec<String>) -> Option<usize> {
     }
 }
 
-fn get_function_def_args(tokens: &Vec<String>, arrow_option: Option<usize>) -> Vec<String> {
-    match arrow_option {
-        Some(arrow) => {
-            if arrow == 0 {
-                return vec![];
-            } else {
-                return tokens[1..arrow + 1].to_vec();
-            }
-        }
-        None => return vec![],
-    }
+fn get_function_def_type_signature(tokens: &Vec<String>, slash: usize) -> Vec<String> {
+    return tokens[1..slash + 1].to_vec();
+}
+
+fn get_function_def_args(tokens: &Vec<String>, slash: usize, arrow: usize) -> Vec<String> {
+    return tokens[slash+2..arrow+1].to_vec();
+}
+
+fn get_function_def_body(tokens: &Vec<String>, arrow: usize) -> Vec<String> {
+    return tokens[arrow+2..].to_vec();
 }
 
 #[cfg(test)]
