@@ -6,13 +6,15 @@ type FunctionFormat = String;
 type FunctionType = String;
 type FunctionValidation = String;
 type FunctionReturnType = String;
-type FunctionDefinition = (
-    FunctionName,
-    FunctionFormat,
-    Vec<FunctionType>,
-    Vec<FunctionValidation>,
-    FunctionReturnType,
-);
+
+#[derive(Clone, Debug)]
+pub struct FunctionDefinition {
+    pub name: FunctionName,
+    pub format: FunctionFormat,
+    pub types: Vec<FunctionType>,
+    pub validations: Vec<FunctionValidation>,
+    pub return_type: FunctionReturnType,
+}
 type Expression = String;
 type ExpressionType = String;
 
@@ -48,23 +50,22 @@ impl Config {
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
             .into_iter()
-            .map(|prim| {
-                (
-                    prim.to_string(),
-                    format!("#1 {} #2", prim).to_string(),
-                    vec!["i64|f64".to_string(), "i64|f64".to_string()],
-                    vec!["arg_types_must_match".to_string()],
-                    "i64|f64".to_string(),
-                )
+            .map(|prim| FunctionDefinition {
+                    name: prim.to_string(),
+                    format: format!("#1 {} #2", prim).to_string(),
+                    types: vec!["i64|f64".to_string(), "i64|f64".to_string()],
+                    validations: vec!["arg_types_must_match".to_string()],
+                    return_type: "i64|f64".to_string(),
+                
             })
             .collect();
-        let function_def: FunctionDefinition = (
-            "\\".to_string(),
-            "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
-            vec![],
-            vec!["lambda".to_string()],
-            "".to_string(),
-        );
+        let function_def = FunctionDefinition {
+            name: "\\".to_string(),
+            format: "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
+            types: vec![],
+            validations: vec![],
+            return_type: "".to_string(),
+        };
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
             .chain(&arithmetic_operators)
@@ -171,6 +172,7 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
+                //dbg!(self);
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -278,6 +280,7 @@ impl Config {
                 validation_error = Some(e);
             }
 
+            dbg!(tokens[2..tokens.len()].to_vec());
             let expression_result =
                 self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
             match expression_result {
@@ -285,21 +288,38 @@ impl Config {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
                     let mut value = expression.clone();
                     let mut final_type = exp_type.clone();
-                    let mut validations = vec![];
+                    let mut validations = vec!["is_constant".to_string()];
+                    let mut new_expresion = expression.clone();
 
                     if self.exists_function(&tokens[2]) {
-                        final_type = "".to_string();
-                        validations.push("get_type_from_referred_function".to_string());
+
+                        //disambiguate i64|f64 for the actual type based on the type of first arg
+                        let def_option = self.get_function_definition(tokens[2].to_string());
+                        //dbg!(&def_option);
+                        match def_option {
+                            Some(def) => {
+                                if def.validations.contains(&"arg_types_must_match".to_string()) && final_type.contains("|") {
+                                    let first_arg =  self.get_type(&tokens[3]);
+                                    //dbg!("yes", &first_arg);
+                                    final_type = first_arg.clone();
+                                }
+                                if def.validations.contains(&"is_constant".to_string()){
+                                    new_expresion = def.name;
+                                }
+                            },
+                            None =>()
+                        }
+
                         value = tokens[2].to_string();
                     }
-                    let new_expresion = expression.clone();
-                    dbg!(&identifier, &exp_type);
+                    
+                    dbg!(&identifier, &exp_type, &new_expresion);
                     let mut insert = format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
                         &identifier,
                         type_colon,
-                        &exp_type,
+                        &final_type,
                         &new_expresion
                     );
                     
@@ -312,13 +332,13 @@ impl Config {
                     );
                     }
 
-                    let new_constant_function = (
-                        identifier.to_string(),
-                        value,
-                        vec![],
+                    let new_constant_function = FunctionDefinition {
+                        name: identifier.to_string(),
+                        format: value,
+                        types: vec![],
                         validations,
-                        final_type,
-                    );
+                        return_type: final_type,
+                    };
 
                     self.functions.push(new_constant_function);
                     self.output.insert_str(self.outputcursor, &insert);
@@ -332,67 +352,15 @@ impl Config {
         }
     }
 
-    /*
-    fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
-        if self.remaining.len() < 3 {
-            return Err(ERRORS.function_definition.to_string());
-        } else {
-            let mut remainder = strip_leading_whitespace(self.remaining.clone());
-            remainder = get_str(remainder.clone(), "=")?;
-            remainder = strip_leading_whitespace(remainder);
-            let (identifier, mut remainder) = get_identifier(remainder)?;
-
-            let mut validation_error = None;
-            if identifier == "\\" {
-                // check for pre-existing same function_name
-                remainder =
-                    strip_leading_whitespace(remainder[(&identifier.len() + 0)..].to_string());
-                let (text, remain) = get_until_eol_or_eof(remainder);
-                let function_name = text.clone(); // TODO need to fix this, assumes no args currently just for testing
-                let fun = self.get_function(&"\\");
-                match fun {
-                    Some((_, function_format, _, _, _)) => {
-                        let insert = function_format
-                            .replace("#0", &" ".repeat(self.indent * 4))
-                            .replace("#1", &function_name)
-                            .replace("#2", &"function_arg: &str")
-                            .replace(
-                                "#3",
-                                &format!(
-                                    "{}{}",
-                                    " ".repeat((self.indent + 1) * 4),
-                                    "let x = function_arg;"
-                                ),
-                            );
-
-                        // create and push function
-                        //self.functions.push(identifier);
-
-                        self.output.insert_str(self.outputcursor, &insert);
-                        self.outputcursor = self.outputcursor + insert.len();
-                        self.remaining = strip_leading_whitespace(remain);
-                    }
-                    _ => {
-                        validation_error = Some("NOPE - not a function definition".to_string());
-                    }
-                }
-            } else {
-                return Err(ERRORS.function_definition.to_string());
-            }
-            Ok(validation_error)
-        }
-    }
-    */
-
     fn exists_function(self: &Self, function_name: &str) -> bool {
-        self.functions.iter().any(|c| c.0 == *function_name)
+        self.functions.iter().any(|def| def.name == *function_name)
     }
 
     fn get_function_definition(self: &Self, function_name: String) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
-            .filter(|c| c.0 == *function_name)
+            .filter(|def| def.name == *function_name)
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
             return Some(funcs[0].clone());
@@ -516,30 +484,24 @@ impl Config {
                     self.get_function_definition(tokens[0].clone());
 
                 match fn_option {
-                    Some((
-                        function_name,
-                        function_format,
-                        function_args,
-                        function_validation,
-                        function_return_type,
-                    )) => {
+                    Some(def ) => {
                         let allow_for_fn_name = 1;
                         let count_arguments = tokens.len() - allow_for_fn_name;
                         let tokens_string_length = get_tokens_string_len(&tokens);
-                        let expression_indents = 3 + function_name.len();
+                        let expression_indents = 3 + def.name.len();
                         let validate_arg_types_must_match =
-                            function_validation.contains(&"arg_types_must_match".to_string());
+                        def.validations.contains(&"arg_types_must_match".to_string());
 
-                        let mut final_return_type = &function_return_type;
+                        let mut final_return_type = &def.return_type;
 
                         // check number of arguments
-                        if function_args.len() != count_arguments {
+                        if def.types.len() != count_arguments {
                             return Err(self.get_error(
                                 expression_indents,
                                 tokens_string_length,
                                 &format!(
                                     "wrong number of function arguments. Expected: {}. Found {}.",
-                                    function_args.len(),
+                                    def.types.len(),
                                     count_arguments
                                 ),
                             ));
@@ -551,13 +513,13 @@ impl Config {
                             value_types.push(self.get_type(&tokens[i]));
                         }
                         for i in 0..count_arguments {
-                            if !function_args[i].contains(&value_types[i]) {
+                            if !def.types[i].contains(&value_types[i]) {
                                 return Err(self.get_error(
                                 expression_indents,
                                 tokens_string_length,
                                 &format!(
                                     "function arguments are not the correct types. Expected: {:?}. Found {:?}",
-                                    function_args,
+                                    def.types,
                                     value_types
                                 ),
                             ));
@@ -583,31 +545,20 @@ impl Config {
                             }
                         }
 
-                        let output = match function_args.len() {
+                        let output = match def.types.len() {
                             2 => {
                                 let out1 =
-                                    function_format.replace("#1", &tokens[allow_for_fn_name]);
+                                def.format.replace("#1", &tokens[allow_for_fn_name]);
                                 let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
                                 out2
                             }
                             1 => {
                                 let out1 =
-                                    function_format.replace("#1", &tokens[allow_for_fn_name]);
+                                def.format.replace("#1", &tokens[allow_for_fn_name]);
                                 out1
                             }
-                            _ => function_format,
+                            _ => def.format,
                         };
-
-                        let get_type_from_referred_function = function_validation
-                            .contains(&"get_type_from_referred_function".to_string());
-                        if get_type_from_referred_function {
-                            // this is variable assignment is just a reference to another constant (i.e. a function) e.g. let x: ? = a;
-                            // So to determine the return type ? of x, we must get it from a
-                            let fn_name = function_name.clone();
-                            let final_return_type_from_parent_refs =
-                                &self.recurs_get_referred_function(fn_name);
-                            return Ok((output, final_return_type_from_parent_refs.clone()));
-                        }
 
                         return Ok((output, final_return_type.clone()));
                     }
@@ -631,24 +582,6 @@ impl Config {
         ))
     }
 
-    fn recurs_get_referred_function(self: &Self, function_name: String) -> String {
-        let referred_function_option = self.get_function_definition(function_name.clone());
-        match referred_function_option {
-            Some((_, ref_func_name, _, ref_validations, ref_func_return_type)) => {
-                
-                let get_type_from_referred_function =
-                    ref_validations.contains(&"get_type_from_referred_function".to_string());
-                    //dbg!(&function_name, &ref_func_return_type, get_type_from_referred_function);
-                if get_type_from_referred_function {
-                    return self.recurs_get_referred_function(ref_func_name);
-                } else {
-                    return ref_func_return_type;
-                };
-            }
-            None => return "".to_string(),
-        };
-    }
-
     fn get_type(self: &Self, text: &String) -> String {
         if is_integer(text) {
             return "i64".to_string();
@@ -662,16 +595,8 @@ impl Config {
         if self.is_function_call(text) {
             let def_option = self.get_function_definition(text.to_string());
             match def_option {
-                Some((_,_,_,function_validation,mut return_type)) => {
-                    let get_type_from_referred_function = function_validation
-                            .contains(&"get_type_from_referred_function".to_string());
-                        
-                    if get_type_from_referred_function && return_type == "".to_string() {
-                        return_type = self.recurs_get_referred_function(text.to_string())
-                    }
-                        return return_type
-                    
-                    
+                Some(def) => {
+                    return def.return_type.clone();
                 },
                 _ =>{
                     return "Function".to_string();
@@ -686,29 +611,6 @@ impl Config {
     fn is_function_call(self: &Self, text: &String) -> bool {
         self.exists_function(&text)
     }
-
-    /*
-    fn get_function_def(self: &Self, text: &String) -> () {
-        let mut is_valid = true;
-        let (slash, remain1) = get_until_whitespace_or_eol_or_eof(text.clone());
-        let arrow_option = remain1.find("=>");
-        let mut args: Vec<String> = vec![];
-        match arrow_option {
-            Some(arrow) => {
-                let mut remain2 = strip_trailing_whitespace(strip_leading_whitespace(
-                    remain1[0..arrow].to_string(),
-                ));
-                while remain2.len() > 0 {
-                    let (arg, remainder) = get_until_whitespace_or_eol_or_eof(remain2.clone());
-                    remain2 = remainder.clone();
-                    args.push(arg);
-                }
-            }
-            _ => (),
-        };
-        //let (slash, remain2) = get_until_whitespace_or_eol_or_eof(strip_leading_whitespace(remain1));
-    }
-    */
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(

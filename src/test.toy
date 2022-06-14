@@ -5,17 +5,12 @@ RUN
 = cc c
 = ccc cc
 = d "a string"
-
-//these now don't work either - fix i64|f64
-//= e + 1 2
-//= f - 1.1 2.1
-//= g * 1 2
-//= h / 1 2
-//= i % 1 2
-
-//= test g this doesn't work, need g expression saved
-
-
+= e + 1 2
+= f - 1.1 2.1
+= g * 1 2
+= h / 1 2
+= i % 1 2
+= test g
 
 // single line functions
 
