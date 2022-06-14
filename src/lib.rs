@@ -25,7 +25,7 @@ pub struct Config {
     pub lines_of_tokens: Vec<Vec<String>>,
     pub output: String,
     pub outputcursor: usize,
-    pub pass: usize,
+    pub current_line: usize,
     pub indent: usize,
     pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
@@ -43,7 +43,7 @@ impl Config {
         let lines_of_tokens = vec![];
         let output = "".to_string();
         let outputcursor = 0;
-        let pass = 0;
+        let current_line = 0;
         let indent = 0;
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
@@ -80,7 +80,7 @@ impl Config {
             lines_of_tokens,
             output,
             outputcursor,
-            pass,
+            current_line,
             indent,
 
             functions,
@@ -187,7 +187,7 @@ impl Config {
         self.check_program_syntax()?;
         for line in 1..self.lines_of_tokens.len() - 1 {
             if self.lines_of_tokens[line].len() > 0 {
-                self.pass = line;
+                self.current_line = line;
                 self.check_one_or_more_succeeds()?;
             }
         }
@@ -241,7 +241,7 @@ impl Config {
         self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
         self.outputcursor = to_clone.outputcursor;
-        self.pass = to_clone.pass;
+        self.current_line = to_clone.current_line;
         self.indent = to_clone.indent;
 
         self.functions = to_clone.functions;
@@ -266,7 +266,7 @@ impl Config {
     }
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.pass];
+        let tokens = &self.lines_of_tokens[self.current_line];
 
         if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
@@ -713,7 +713,7 @@ impl Config {
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
             "----------\r\n{}\r\n{}{} {}",
-            self.lines_of_chars[self.pass]
+            self.lines_of_chars[self.current_line]
                 .iter()
                 .cloned()
                 .collect::<String>(),
@@ -724,7 +724,7 @@ impl Config {
     }
 
     fn check_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.pass];
+        let tokens = &self.lines_of_tokens[self.current_line];
         let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
         if first_token_chars.len() < 2 || first_token_chars[0] != '/' || first_token_chars[1] != '/'
         {
@@ -874,7 +874,7 @@ mod tests {
             lines_of_tokens: vec![],
             output: "".to_string(),
             outputcursor: 0,
-            pass: 0,
+            current_line: 0,
             indent: 1,
 
             functions: vec![],
