@@ -6,6 +6,7 @@ type FunctionFormat = String;
 type FunctionType = String;
 type FunctionValidation = String;
 type FunctionReturnType = String;
+type FunctionScope = String;
 
 #[derive(Clone, Debug)]
 pub struct FunctionDefinition {
@@ -14,6 +15,7 @@ pub struct FunctionDefinition {
     pub types: Vec<FunctionType>,
     pub validations: Vec<FunctionValidation>,
     pub return_type: FunctionReturnType,
+    pub scope: FunctionScope
 }
 type Expression = String;
 type ExpressionType = String;
@@ -28,6 +30,7 @@ pub struct Config {
     pub output: String,
     pub outputcursor: usize,
     pub current_line: usize,
+    pub current_scope: FunctionScope,
     pub indent: usize,
     pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
@@ -47,6 +50,7 @@ impl Config {
         let outputcursor = 0;
         let current_line = 0;
         let indent = 0;
+        let current_scope = "main".to_string();
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
             .into_iter()
@@ -56,6 +60,7 @@ impl Config {
                     types: vec!["i64|f64".to_string(), "i64|f64".to_string()],
                     validations: vec!["arg_types_must_match".to_string()],
                     return_type: "i64|f64".to_string(),
+                    scope: "global".to_string()
                 
             })
             .collect();
@@ -65,6 +70,7 @@ impl Config {
             types: vec![],
             validations: vec![],
             return_type: "".to_string(),
+            scope: "".to_string(),
         };
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
@@ -82,8 +88,8 @@ impl Config {
             output,
             outputcursor,
             current_line,
+            current_scope,
             indent,
-
             functions,
             error_stack,
         })
@@ -268,7 +274,7 @@ impl Config {
     }
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+        let tokens = self.lines_of_tokens[self.current_line].clone();
 
         if tokens.len() < 2 || tokens[0] != "=" {
             return Err(ERRORS.variable_assignment.to_string());
@@ -282,13 +288,13 @@ impl Config {
 
             dbg!(tokens[2..tokens.len()].to_vec());
             let expression_result =
-                self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
+                &self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
             match expression_result {
                 Ok((expression, exp_type)) => {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
                     let mut value = expression.clone();
                     let mut final_type = exp_type.clone();
-                    let mut validations = vec!["is_constant".to_string()];
+                    let validations = vec!["is_constant".to_string()];
                     let mut new_expresion = expression.clone();
 
                     if self.exists_function(&tokens[2]) {
@@ -323,7 +329,7 @@ impl Config {
                         &new_expresion
                     );
                     
-                    if exp_type=="Function".to_string() {
+                    if *exp_type=="Function".to_string() {
                         insert = format!(
                         "{}fn {}{}\r\n",
                         " ".repeat(self.indent * 4),
@@ -338,13 +344,14 @@ impl Config {
                         types: vec![],
                         validations,
                         return_type: final_type,
+                        scope: self.current_scope.clone()
                     };
 
                     self.functions.push(new_constant_function);
                     self.output.insert_str(self.outputcursor, &insert);
                     self.outputcursor = self.outputcursor + insert.len();
                 }
-                Err(e) => validation_error = Some(e),
+                Err(e) => validation_error = Some(e.clone()),
                 //_ => validation_error = Some("some other error".to_string()),
             }
 
@@ -370,7 +377,7 @@ impl Config {
     }  
 
     fn check_expression(
-        self: &Self,
+        self: &mut Self,
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
@@ -434,12 +441,27 @@ impl Config {
                                 ))
                             } else {
                                 // get return expression/value
-                                // recursive
+                                
+                                // temporarily define the arguments so check_expression doesn't return "Undefined" for their types
+                                
+                                for a in 0..args.len() {
+                                    let new_arg = FunctionDefinition {
+                                        name: args[a].to_string(),
+                                        format: args[a].clone(),
+                                        types: vec![],
+                                        validations: vec![],
+                                        return_type: type_signature[a].clone(),
+                                        scope: identifier.clone()
+                                    };
+                                    self.functions.push(new_arg);
+                                }
+                                dbg!(&self.functions);
+
                                 let expression_result =
                                 self.check_expression(&identifier, body.clone());
 
                                 dbg!(&tokens, slash, arrow, &type_signature, &args, &body, &expression_result);
-                                //dbg!(&self);
+                                
                                 match expression_result {
                                     Ok((expression, expression_type)) =>{
                                         // validate that expression type matches provided type
@@ -777,8 +799,8 @@ mod tests {
             output: "".to_string(),
             outputcursor: 0,
             current_line: 0,
+            current_scope: "".to_string(),
             indent: 1,
-
             functions: vec![],
             error_stack: vec![],
         }
