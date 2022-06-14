@@ -332,6 +332,7 @@ impl Config {
         }
     }
 
+    /*
     fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
         if self.remaining.len() < 3 {
             return Err(ERRORS.function_definition.to_string());
@@ -381,6 +382,7 @@ impl Config {
             Ok(validation_error)
         }
     }
+    */
 
     fn exists_function(self: &Self, function_name: &str) -> bool {
         self.functions.iter().any(|c| c.0 == *function_name)
@@ -397,29 +399,7 @@ impl Config {
         } else {
             return None;
         }
-    }
-
-    fn get_function(self: &Self, function_name: &str) -> Option<FunctionDefinition> {
-        let function_vec = self
-            .functions
-            .iter()
-            .filter(|c| c.0 == *function_name)
-            .collect::<Vec<_>>();
-        if function_vec.len() == 0 {
-            None
-        } else {
-            Some(function_vec[0].clone())
-        }
-    }
-
-    fn get_tokens_string_len(self: &Self, tokens: &Vec<String>) -> usize {
-        let mut total = 0;
-        for i in 0..tokens.len() {
-            total += tokens[i].len();
-        }
-        let num_spaces_inbetween = total - 1;
-        total + num_spaces_inbetween
-    }
+    }  
 
     fn check_expression(
         self: &Self,
@@ -427,10 +407,10 @@ impl Config {
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
         if tokens.len() == 1 {
-            if self.is_integer(&tokens[0]) {
+            if is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
             }
-            if self.is_float(&tokens[0]) {
+            if is_float(&tokens[0]) {
                 return Ok((tokens[0].clone(), "f64".to_string()));
             }
 
@@ -545,7 +525,7 @@ impl Config {
                     )) => {
                         let allow_for_fn_name = 1;
                         let count_arguments = tokens.len() - allow_for_fn_name;
-                        let tokens_string_length = self.get_tokens_string_len(&tokens);
+                        let tokens_string_length = get_tokens_string_len(&tokens);
                         let expression_indents = 3 + function_name.len();
                         let validate_arg_types_must_match =
                             function_validation.contains(&"arg_types_must_match".to_string());
@@ -670,13 +650,13 @@ impl Config {
     }
 
     fn get_type(self: &Self, text: &String) -> String {
-        if self.is_integer(text) {
+        if is_integer(text) {
             return "i64".to_string();
         }
-        if self.is_float(text) {
+        if is_float(text) {
             return "f64".to_string();
         }
-        if self.is_string(text) {
+        if is_string(text) {
             return "String".to_string();
         }
         if self.is_function_call(text) {
@@ -699,53 +679,8 @@ impl Config {
             }
             
         }
-        if self.is_lambda(text) {
-            return "FunctionDef".to_string();
-        }
+  
         "Undefined".to_string()
-    }
-
-    fn is_integer(self: &Self, text: &String) -> bool {
-        let mut is_valid = true;
-        if !text.chars().into_iter().all(|c| c.is_numeric()) {
-            is_valid = false;
-        }
-        is_valid
-    }
-
-    fn is_float(self: &Self, text: &String) -> bool {
-        let mut is_valid = true;
-        let mut count_decimal_points = 0;
-        let char_vec: Vec<char> = text.chars().collect();
-        for i in 0..text.len() {
-            let c = char_vec[i];
-            if c == '.' {
-                count_decimal_points = count_decimal_points + 1;
-            } else {
-                if !c.is_numeric() {
-                    is_valid = false;
-                }
-            }
-        }
-        is_valid && count_decimal_points == 1
-    }
-
-    fn is_string(self: &Self, text: &String) -> bool {
-        let mut is_valid = true;
-        let char_vec: Vec<char> = text.chars().collect();
-        if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
-            is_valid = false;
-        }
-        is_valid
-    }
-
-    fn is_lambda(self: &Self, text: &String) -> bool {
-        let mut is_valid = true;
-        let char_vec: Vec<char> = text.chars().collect();
-        if char_vec[0] != '\\' {
-            is_valid = false;
-        }
-        is_valid
     }
 
     fn is_function_call(self: &Self, text: &String) -> bool {
@@ -805,6 +740,49 @@ impl Config {
     }
 }
 
+fn get_tokens_string_len(tokens: &Vec<String>) -> usize {
+    let mut total = 0;
+    for i in 0..tokens.len() {
+        total += tokens[i].len();
+    }
+    let num_spaces_inbetween = total - 1;
+    total + num_spaces_inbetween
+}
+
+fn is_integer(text: &String) -> bool {
+    let mut is_valid = true;
+    if !text.chars().into_iter().all(|c| c.is_numeric()) {
+        is_valid = false;
+    }
+    is_valid
+}
+
+fn is_float(text: &String) -> bool {
+    let mut is_valid = true;
+    let mut count_decimal_points = 0;
+    let char_vec: Vec<char> = text.chars().collect();
+    for i in 0..text.len() {
+        let c = char_vec[i];
+        if c == '.' {
+            count_decimal_points = count_decimal_points + 1;
+        } else {
+            if !c.is_numeric() {
+                is_valid = false;
+            }
+        }
+    }
+    is_valid && count_decimal_points == 1
+}
+
+fn is_string(text: &String) -> bool {
+    let mut is_valid = true;
+    let char_vec: Vec<char> = text.chars().collect();
+    if text.len() < 2 || char_vec[0] != '"' || char_vec[text.len() - 1] != '"' {
+        is_valid = false;
+    }
+    is_valid
+}
+
 fn concatenate_vec_strings(tokens: &Vec<String>) -> String {
     let mut output = "".to_string();
     for i in 0..tokens.len() {
@@ -832,104 +810,6 @@ const ERRORS: Errors = Errors {
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
-fn get_identifier(input: String) -> Result<(String, String), String> {
-    let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
-    let char_vec: Vec<char> = identifier.chars().collect();
-    if identifier == "".to_string() {
-        Err(ERRORS.no_valid_identifier_found.to_string())
-    } else {
-        for i in 0..identifier.len() {
-            let c = char_vec[i];
-            if i == 0 {
-                if !c.is_alphabetic() && !(c == '_') {
-                    // must start with a letter or underscore
-
-                    return Err(ERRORS.no_valid_identifier_found.to_string());
-                }
-            } else {
-                if !c.is_alphanumeric() && !(c == '_') {
-                    {
-                        // all other chars must be letter or number or underscore
-
-                        return Err(ERRORS.no_valid_identifier_found.to_string());
-                    }
-                }
-            }
-        }
-        Ok((identifier, remainder))
-    }
-}
-
-fn get_str(input: String, matchstr: &str) -> Result<String, String> {
-    let (identifier, remainder) = get_until_whitespace_or_eof(input.clone());
-    if identifier == "".to_string() || &identifier != matchstr {
-        return Err(ERRORS.no_valid_identifier_found.to_string());
-    }
-    Ok(remainder)
-}
-
-fn get_until_whitespace_or_eof(input: String) -> (String, String) {
-    let mut output = "".to_string();
-    let mut remainder = "".to_string();
-    let char_vec: Vec<char> = input.chars().collect();
-    for i in 0..input.len() {
-        if i == input.len() {
-            remainder = "".to_string();
-        } else {
-            if char_vec[i].is_whitespace() {
-                remainder = input[i..].to_string();
-                break;
-            } else {
-                remainder = input[i + 1..].to_string();
-                output.push(char_vec[i]);
-            }
-        }
-    }
-    (output, remainder)
-}
-
-fn get_until_eol_or_eof(input: String) -> (String, String) {
-    let mut output = "".to_string();
-    let mut remainder = "".to_string();
-    let char_vec: Vec<char> = input.chars().collect();
-    for i in 0..input.len() {
-        if i == input.len() {
-            remainder = "".to_string();
-        } else {
-            if char_vec[i] == '\r' {
-                remainder = input[i..].to_string();
-                break;
-            } else {
-                remainder = input[i + 1..].to_string();
-                output.push(char_vec[i]);
-            }
-        }
-    }
-    (output, remainder)
-}
-
-/*
-fn get_until_whitespace_or_eol_or_eof(input: String) -> (String, String) {
-    let mut output = "".to_string();
-    let mut remainder = "".to_string();
-    let char_vec: Vec<char> = input.chars().collect();
-    for i in 0..input.len() {
-        if i == input.len() {
-            remainder = "".to_string();
-        } else {
-            if char_vec[i] == '\r' || char_vec[i].is_whitespace() {
-                remainder = input[i..].to_string();
-                break;
-            } else {
-                remainder = input[i + 1..].to_string();
-                output.push(char_vec[i]);
-            }
-        }
-    }
-    (output, remainder)
-}
-*/
-
 fn strip_leading_whitespace(input: String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
@@ -949,30 +829,8 @@ fn strip_leading_whitespace(input: String) -> String {
     input[first_non_whitespace_index..].to_string()
 }
 
-/*
-fn strip_trailing_whitespace(input: String) -> String {
-    let char_vec: Vec<char> = input.chars().collect();
-    let mut checking_for_whitespace = true;
-    let mut first_non_whitespace_index = input.len();
-    for i in (0..input.len()).rev() {
-        if checking_for_whitespace {
-            if !char_vec[i].is_whitespace() {
-                first_non_whitespace_index = i + 1;
-                checking_for_whitespace = false;
-            }
-        }
-    }
-    if first_non_whitespace_index == 0 && checking_for_whitespace {
-        //if you get to end of string and it's all whitespace return empty string
-        return "".to_string();
-    }
-    input[..first_non_whitespace_index].to_string()
-}
-*/
-
 fn is_function_definition(tokens: &Vec<String>) -> bool {
     tokens.len() > 1 && tokens[0] == ":".to_string()
-    //&& tokens[1..].iter().any(|c| c == &"\\".to_string())
 }
 
 fn get_function_def_slash(tokens: &Vec<String>) -> Option<usize> {
@@ -1122,29 +980,6 @@ mod tests {
     }
 
     #[test]
-    fn test_get_until_whitespace_or_eof() {
-        assert_eq!(
-            get_until_whitespace_or_eof("".to_string()),
-            ("".to_string(), "".to_string())
-        );
-        assert_eq!(
-            get_until_whitespace_or_eof("abc".to_string()),
-            ("abc".to_string(), "".to_string())
-        );
-        assert_eq!(
-            get_until_whitespace_or_eof("abc def".to_string()),
-            ("abc".to_string(), " def".to_string())
-        );
-        assert_eq!(
-            get_until_whitespace_or_eof("abc\r\ndef".to_string()),
-            ("abc".to_string(), "\r\ndef".to_string())
-        );
-        assert_eq!(
-            get_until_whitespace_or_eof(" abc".to_string()),
-            ("".to_string(), " abc".to_string())
-        );
-    }
-    #[test]
     fn test_strip_leading_whitespace() {
         assert_eq!(strip_leading_whitespace("".to_string()), "".to_string());
         assert_eq!(
@@ -1166,48 +1001,6 @@ mod tests {
         assert_eq!(
             strip_leading_whitespace("\r\n    abc  \r\n".to_string()),
             "abc  \r\n".to_string()
-        );
-    }
-    #[test]
-    fn test_get_identifier() {
-        let err = Err(ERRORS.no_valid_identifier_found.to_string());
-        assert_eq!(get_identifier("".to_string()), err);
-        assert_eq!(get_identifier("  abc".to_string()), err);
-        assert_eq!(get_identifier("1abc = 123".to_string()), err);
-        assert_eq!(get_identifier("-abc = 123".to_string()), err);
-        assert_eq!(
-            get_identifier("abc".to_string()),
-            Ok(("abc".to_string(), "".to_string()))
-        );
-        assert_eq!(
-            get_identifier("_abc".to_string()),
-            Ok(("_abc".to_string(), "".to_string()))
-        );
-        assert_eq!(
-            get_identifier("abc = 123".to_string()),
-            Ok(("abc".to_string(), " = 123".to_string()))
-        );
-        assert_eq!(
-            get_identifier("abc_123def = 123".to_string()),
-            Ok(("abc_123def".to_string(), " = 123".to_string()))
-        );
-    }
-    #[test]
-    fn test_get_str() {
-        let err = Err(ERRORS.no_valid_identifier_found.to_string());
-        assert_eq!(get_str("".to_string(), ""), err);
-        assert_eq!(get_str("  abc".to_string(), "abc"), err);
-        assert_eq!(get_str("1abc = 123".to_string(), "abc"), err);
-        assert_eq!(get_str("-abc = 123".to_string(), "abc"), err);
-        assert_eq!(get_str("abc".to_string(), "abc"), Ok("".to_string()));
-        assert_eq!(get_str("_abc".to_string(), "_abc"), Ok("".to_string()));
-        assert_eq!(
-            get_str("abc = 123".to_string(), "abc"),
-            Ok(" = 123".to_string())
-        );
-        assert_eq!(
-            get_str("abc_123def = 123".to_string(), "abc_123def"),
-            Ok(" = 123".to_string())
         );
     }
 }
