@@ -95,6 +95,12 @@ RUN
 = multiplication * 3 4
 = division / 1.0 2.0
 = modulus % 42.0 3.14
+
+// single line functions
+= function_name : i64 i64 \ arg1 => + 123 arg1
+//                ^         ^       ^_return expression
+//                 \         \_ argument names
+//                  \_argument types, last one is return type
 END
 ```
 
@@ -114,6 +120,11 @@ fn main() {
     let multiplication: i64 = 3 * 4;
     let division: f64 = 1.0 / 2.0;
     let modulus: f64 = 42.0 % 3.14;
+
+    // single line functions
+    fn function_name(arg1: i64) -> i64 {
+        123 + arg1
+    }
 }
 ```
 
