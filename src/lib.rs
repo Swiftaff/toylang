@@ -178,7 +178,7 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
-                //dbg!(self);
+               
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -281,14 +281,16 @@ impl Config {
         } else {
             let identifier = tokens[1].clone();
             let mut validation_error = None;
+            
             if self.exists_function(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
-                validation_error = Some(e);
+                validation_error = Some(e.clone());
+              
             }
 
-            dbg!(tokens[2..tokens.len()].to_vec());
             let expression_result =
                 &self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
+
             match expression_result {
                 Ok((expression, exp_type)) => {
                     let type_colon = if exp_type.len() == 0 { "" } else { ": " };
@@ -301,12 +303,10 @@ impl Config {
 
                         //disambiguate i64|f64 for the actual type based on the type of first arg
                         let def_option = self.get_function_definition(tokens[2].to_string());
-                        //dbg!(&def_option);
                         match def_option {
                             Some(def) => {
                                 if def.validations.contains(&"arg_types_must_match".to_string()) && final_type.contains("|") {
                                     let first_arg =  self.get_type(&tokens[3]);
-                                    //dbg!("yes", &first_arg);
                                     final_type = first_arg.clone();
                                 }
                                 if def.validations.contains(&"is_constant".to_string()){
@@ -319,7 +319,6 @@ impl Config {
                         value = tokens[2].to_string();
                     }
                     
-                    dbg!(&identifier, &exp_type, &new_expresion);
                     let mut insert = format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
@@ -360,27 +359,30 @@ impl Config {
     }
 
     fn exists_function(self: &Self, function_name: &str) -> bool {
-        self.functions.iter().any(|def| def.name == *function_name)
+        self.functions.iter().any(|def| def.name == *function_name && (def.scope == self.current_scope || def.scope == "global".to_string()))
     }
 
     fn get_function_definition(self: &Self, function_name: String) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
-            .filter(|def| def.name == *function_name)
+            .filter(|def|def.name == *function_name &&  (def.scope == self.current_scope || def.scope == "global".to_string()))
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
             return Some(funcs[0].clone());
         } else {
             return None;
         }
-    }  
+    }
 
     fn check_expression(
         self: &mut Self,
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
+        //if identifier == &("l1".to_string()) {
+        //    dbg!(&self.functions,&self.current_scope);
+        //}
         if tokens.len() == 1 {
             if is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -443,7 +445,6 @@ impl Config {
                                 // get return expression/value
                                 
                                 // temporarily define the arguments so check_expression doesn't return "Undefined" for their types
-                                
                                 for a in 0..args.len() {
                                     let new_arg = FunctionDefinition {
                                         name: args[a].to_string(),
@@ -455,12 +456,13 @@ impl Config {
                                     };
                                     self.functions.push(new_arg);
                                 }
-                                dbg!(&self.functions);
-
+                                
+                                // switch scope
+                                let temp_scope = self.current_scope.clone();
+                                self.current_scope = identifier.clone();
                                 let expression_result =
                                 self.check_expression(&identifier, body.clone());
-
-                                dbg!(&tokens, slash, arrow, &type_signature, &args, &body, &expression_result);
+                                self.current_scope = temp_scope;
                                 
                                 match expression_result {
                                     Ok((expression, expression_type)) =>{
@@ -472,11 +474,6 @@ impl Config {
                                                 &format!("The type of this function's return expression '{:?}' does not match it's signature's return type: {:?}", &expression_type, &type_signature[type_signature.len()-1]),
                                             ));
                                         }
-
-                                // example
-                                // fn check_function_definition(self: &mut Self) -> Result<Option<String>, String> {
-                                //      return_expression    
-                                //}
                                 
                                 let mut args_with_types="".to_string();
                                 for i in 0..args.len() {
@@ -489,9 +486,7 @@ impl Config {
                                 return Ok((output, "Function".to_string()));
                                     },
                                     Err(e) => return Err(e)
-                                }
-
-                                
+                                } 
                             }                            
                         }
                     },
@@ -501,7 +496,7 @@ impl Config {
                         &format!("is not a valid function definition. Missing slash or arrow. Should be in the form\r\n= func_name : i64 i64 \\ arg1 => + arg1 123\r\n{:?}", &tokens[0]),
                     ))
                 }
-            } else if self.is_function_call(&tokens[0]) {
+            } else if self.exists_function(&tokens[0]) {
                 let fn_option: Option<FunctionDefinition> =
                     self.get_function_definition(tokens[0].clone());
 
@@ -527,14 +522,19 @@ impl Config {
                                     count_arguments
                                 ),
                             ));
-                        }
-
+                        }                       
+                        
                         // check types of values
+                        // switch scope because of get_type
+                        let temp_scope = self.current_scope.clone();
+                        self.current_scope = identifier.clone();
                         let mut value_types: Vec<String> = vec![];
                         for i in allow_for_fn_name..tokens.len() {
                             value_types.push(self.get_type(&tokens[i]));
                         }
-                        for i in 0..count_arguments {
+                        self.current_scope = temp_scope;
+                        
+                        for i in allow_for_fn_name..count_arguments {
                             if !def.types[i].contains(&value_types[i]) {
                                 return Err(self.get_error(
                                 expression_indents,
@@ -605,6 +605,7 @@ impl Config {
     }
 
     fn get_type(self: &Self, text: &String) -> String {
+         //monkey
         if is_integer(text) {
             return "i64".to_string();
         }
@@ -614,14 +615,14 @@ impl Config {
         if is_string(text) {
             return "String".to_string();
         }
-        if self.is_function_call(text) {
+        if self.exists_function(text) {
             let def_option = self.get_function_definition(text.to_string());
             match def_option {
                 Some(def) => {
                     return def.return_type.clone();
                 },
                 _ =>{
-                    return "Function".to_string();
+                    return "Undefined".to_string(); //changed from Function to Undefined
                 }
             }
             
@@ -630,11 +631,7 @@ impl Config {
         "Undefined".to_string()
     }
 
-    fn is_function_call(self: &Self, text: &String) -> bool {
-        self.exists_function(&text)
-    }
-
-    fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
+      fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
             "----------\r\n{}\r\n{}{} {}",
             self.lines_of_chars[self.current_line]
@@ -717,8 +714,8 @@ fn concatenate_vec_strings(tokens: &Vec<String>) -> String {
 struct Errors {
     invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
-    function_definition: &'static str,
-    no_valid_identifier_found: &'static str,
+    //function_definition: &'static str,
+    //no_valid_identifier_found: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_expression: &'static str,
     constants_are_immutable: &'static str,
@@ -727,8 +724,8 @@ struct Errors {
 const ERRORS: Errors = Errors {
     invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
-    function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
-    no_valid_identifier_found:"No valid identifier found",
+    //function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
+    //no_valid_identifier_found:"No valid identifier found",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
@@ -880,11 +877,11 @@ mod tests {
     #[test]
     fn test_check_variable_assignment() {
         let err: Result<Option<String>, String> = Err(ERRORS.variable_assignment.to_string());
-        let err2: Result<Option<String>, String> =
-            Err(ERRORS.no_valid_identifier_found.to_string());
+        //let err2: Result<Option<String>, String> =
+        //    Err(ERRORS.no_valid_identifier_found.to_string());
         assert_eq!(mock_config("").check_variable_assignment(), err);
-        assert_eq!(mock_config("2 = x").check_variable_assignment(), err2);
-        assert_eq!(mock_config("let x = 2").check_variable_assignment(), err2);
+        //assert_eq!(mock_config("2 = x").check_variable_assignment(), err2);
+        //assert_eq!(mock_config("let x = 2").check_variable_assignment(), err2);
         //assert_eq!(check_variable_assignment("x = 2".to_string()), err);
         //assert_eq!(check_variable_assignment("x = Abc 2".to_string()), err);
         //assert_eq!(check_variable_assignment("x = Boats 2".to_string()), err);

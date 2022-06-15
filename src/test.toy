@@ -20,12 +20,11 @@ RUN
 // one i64 arg, returns i64
 = k1 : i64 i64 \ arg1 => + 123 arg1
 
-// current issue = Expected: [\"i64|f64\", \"i64|f64\"]. Found [\"Function\", \"i64\"]"
 // two i64 args, returns i64
 = l1 : i64 i64 i64 \ arg1 arg2 => + arg1 arg2
 
 // one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
-//= m1 : (i64 i64) i64 i64 \ fn1 arg2 => fn1 arg2
+//= m1 : (i64 i64) i64 \ fn1 arg2 => fn1 arg2
 
 // multi-line functions
 
@@ -33,9 +32,9 @@ RUN
 //= k2 : i64 i64 \ arg1 =>
 //  arg1
 
-// two i64 args, returns i64
-//= m2 : (i64 i64) i64 i64
-//  \ arg1 arg2 =>
-//  + arg1 arg2
+// one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
+//= m2 : (i64 i64) i64
+//  \ fn1 arg2 =>
+//  fn1 arg2
 
 END
