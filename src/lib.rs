@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fs;
+use std::path::Path;
 
 type FunctionName = String;
 type FunctionFormat = String;
@@ -15,13 +16,14 @@ pub struct FunctionDefinition {
     pub types: Vec<FunctionType>,
     pub validations: Vec<FunctionValidation>,
     pub return_type: FunctionReturnType,
-    pub scope: FunctionScope
+    pub scope: FunctionScope,
 }
 type Expression = String;
 type ExpressionType = String;
 
 #[derive(Clone, Debug)]
 pub struct Config {
+    pub filepath: String,
     pub filename: String,
     pub filecontents: String,
     pub remaining: String,
@@ -39,9 +41,15 @@ pub struct Config {
 impl Config {
     pub fn new(args: &[String]) -> Result<Config, String> {
         if args.len() < 2 {
-            return Err("missing filename argument".to_string());
+            return Err("missing filepath argument".to_string());
         }
-        let filename = args[1].clone();
+        let filepath = args[1].clone();
+        let filename = Path::new(&filepath.clone())
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_string();
         let filecontents = "".to_string();
         let remaining = "".to_string();
         let lines_of_chars = vec![];
@@ -55,13 +63,12 @@ impl Config {
         let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
             .into_iter()
             .map(|prim| FunctionDefinition {
-                    name: prim.to_string(),
-                    format: format!("#1 {} #2", prim).to_string(),
-                    types: vec!["i64|f64".to_string(), "i64|f64".to_string()],
-                    validations: vec!["arg_types_must_match".to_string()],
-                    return_type: "i64|f64".to_string(),
-                    scope: "global".to_string()
-                
+                name: prim.to_string(),
+                format: format!("#1 {} #2", prim).to_string(),
+                types: vec!["i64|f64".to_string(), "i64|f64".to_string()],
+                validations: vec!["arg_types_must_match".to_string()],
+                return_type: "i64|f64".to_string(),
+                scope: "global".to_string(),
             })
             .collect();
         let function_def = FunctionDefinition {
@@ -80,6 +87,7 @@ impl Config {
             .collect();
         let error_stack = vec![];
         Ok(Config {
+            filepath,
             filename,
             filecontents,
             remaining,
@@ -96,15 +104,16 @@ impl Config {
     }
 
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
-        self.filecontents = fs::read_to_string(&self.filename)?;
-        println!("\r\nINPUT contents of filename: {:?}", &self.filename); //, &self.filecontents
+        self.filecontents = fs::read_to_string(&self.filepath)?;
+        println!("\r\nINPUT contents of filepath: {:?}", &self.filepath); //, &self.filecontents
         self.get_lines_of_chars();
         self.get_lines_of_tokens();
         self.run_main_loop()?;
         if self.error_stack.len() == 0 {
             fs::write("../../src/bin/output.rs", &self.output)?;
         } else {
-            println!("DIDN'T SAVE - error stack: {:?}", self.error_stack);
+            println!("DIDN'T SAVE");
+            //println!("Error stack: {:?}", self.error_stack);
         }
         Ok(())
     }
@@ -178,7 +187,6 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
-               
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -242,7 +250,7 @@ impl Config {
 
     fn clone_mut_ref(self: &mut Self, to_clone: Config) -> () {
         // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
-        self.filename = to_clone.filename;
+        self.filepath = to_clone.filepath;
         self.filecontents = to_clone.filecontents;
         self.remaining = to_clone.remaining;
         self.lines_of_chars = to_clone.lines_of_chars;
@@ -281,11 +289,10 @@ impl Config {
         } else {
             let identifier = tokens[1].clone();
             let mut validation_error = None;
-            
+
             if self.exists_function(&identifier) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
                 validation_error = Some(e.clone());
-              
             }
 
             let expression_result =
@@ -300,25 +307,28 @@ impl Config {
                     let mut new_expresion = expression.clone();
 
                     if self.exists_function(&tokens[2]) {
-
                         //disambiguate i64|f64 for the actual type based on the type of first arg
                         let def_option = self.get_function_definition(tokens[2].to_string());
                         match def_option {
                             Some(def) => {
-                                if def.validations.contains(&"arg_types_must_match".to_string()) && final_type.contains("|") {
-                                    let first_arg =  self.get_type(&tokens[3]);
+                                if def
+                                    .validations
+                                    .contains(&"arg_types_must_match".to_string())
+                                    && final_type.contains("|")
+                                {
+                                    let first_arg = self.get_type(&tokens[3]);
                                     final_type = first_arg.clone();
                                 }
-                                if def.validations.contains(&"is_constant".to_string()){
+                                if def.validations.contains(&"is_constant".to_string()) {
                                     new_expresion = def.name;
                                 }
-                            },
-                            None =>()
+                            }
+                            None => (),
                         }
 
                         value = tokens[2].to_string();
                     }
-                    
+
                     let mut insert = format!(
                         "{}let {}{}{} = {};\r\n",
                         " ".repeat(self.indent * 4),
@@ -327,14 +337,14 @@ impl Config {
                         &final_type,
                         &new_expresion
                     );
-                    
-                    if *exp_type=="Function".to_string() {
+
+                    if *exp_type == "Function".to_string() {
                         insert = format!(
-                        "{}fn {}{}\r\n",
-                        " ".repeat(self.indent * 4),
-                        &identifier,
-                        &new_expresion
-                    );
+                            "{}fn {}{}\r\n",
+                            " ".repeat(self.indent * 4),
+                            &identifier,
+                            &new_expresion
+                        );
                     }
 
                     let new_constant_function = FunctionDefinition {
@@ -343,7 +353,7 @@ impl Config {
                         types: vec![],
                         validations,
                         return_type: final_type,
-                        scope: self.current_scope.clone()
+                        scope: self.current_scope.clone(),
                     };
 
                     self.functions.push(new_constant_function);
@@ -359,14 +369,20 @@ impl Config {
     }
 
     fn exists_function(self: &Self, function_name: &str) -> bool {
-        self.functions.iter().any(|def| def.name == *function_name && (def.scope == self.current_scope || def.scope == "global".to_string()))
+        self.functions.iter().any(|def| {
+            def.name == *function_name
+                && (def.scope == self.current_scope || def.scope == "global".to_string())
+        })
     }
 
     fn get_function_definition(self: &Self, function_name: String) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
-            .filter(|def|def.name == *function_name &&  (def.scope == self.current_scope || def.scope == "global".to_string()))
+            .filter(|def| {
+                def.name == *function_name
+                    && (def.scope == self.current_scope || def.scope == "global".to_string())
+            })
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
             return Some(funcs[0].clone());
@@ -400,50 +416,62 @@ impl Config {
             }
         }
 
+        dbg!(&tokens);
+        let arrow_indent = 3 + identifier.len();
+        let arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len() - 1;
+        let not_valid = "is not a valid function definition.";
+        let example_syntax = "Example syntax:\r\n'= func_name : i64 i64 \\ arg1 => + arg1 123'\r\n               ^         ^       ^_after arrow return expression\r\n                \\         \\_after slash argument names\r\n                 \\_after colon argument types, last one is return type";
+
         if tokens.len() > 0 {
             if is_function_definition(&tokens) {
                 let slash_option = get_function_def_slash(&tokens);
                 let arrow_option = get_function_def_arrow(&tokens);
                 match (slash_option, arrow_option) {
-                    (Some(slash),Some(arrow)) =>{
+                    (Some(slash), Some(arrow)) => {
                         if arrow < slash || slash == 0 || arrow == 0 {
                             return Err(self.get_error(
-                                3 + identifier.len(),
-                                10, //text.len(),
-                                &format!("is not a valid function definition. Missing slash or arrow. Should be in the form\r\n= func_name : i64 i64 \\ arg1 => + arg1 123\r\n{:?}", &tokens[0]),
-                            ))
+                                arrow_indent,
+                                arrow_len,
+                                &format!(
+                                    "{} Missing slash or arrow.\r\n{}",
+                                    not_valid, example_syntax
+                                ),
+                            ));
                         } else {
                             let type_signature = get_function_def_type_signature(&tokens, slash);
                             let args = get_function_def_args(&tokens, slash, arrow);
-                            
+
                             // check if all args have types, plus a return type
                             if type_signature.len() != args.len() + 1 {
                                 return Err(self.get_error(
-                                    3 + identifier.len(),
-                                    10, //text.len(),
-                                    &format!("is not a valid function definition. The count of argument types and arguments don't match. {:?} {:?} {:?}", type_signature, args, &tokens[0]),
-                                ))
+                                    arrow_indent,
+                                    arrow_len,
+                                    &format!("{} The count of argument types and arguments don't match. {:?} {:?}\r\n{}", not_valid, type_signature, args,example_syntax),
+                                ));
                             }
 
                             let body = get_function_def_body(&tokens, arrow);
                             if body.len() == 0 {
                                 // TODO
                                 // use this to check for multiline function
-                                
+
                                 // optional check if any multiline variable assignments
                                 // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
                                 // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
                                 // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
-        
+
                                 // for now just error
                                 return Err(self.get_error(
-                                    3 + identifier.len(),
-                                    10, //text.len(),
-                                    &format!("is not a valid function definition. There is no function body following the => {:?}", &tokens[0]),
-                                ))
+                                    arrow_indent,
+                                    arrow_len,
+                                    &format!(
+                                        "{} There is no function body following the => {:?}",
+                                        not_valid, &tokens[0]
+                                    ),
+                                ));
                             } else {
                                 // get return expression/value
-                                
+
                                 // temporarily define the arguments so check_expression doesn't return "Undefined" for their types
                                 for a in 0..args.len() {
                                     let new_arg = FunctionDefinition {
@@ -452,62 +480,103 @@ impl Config {
                                         types: vec![],
                                         validations: vec![],
                                         return_type: type_signature[a].clone(),
-                                        scope: identifier.clone()
+                                        scope: identifier.clone(),
                                     };
                                     self.functions.push(new_arg);
                                 }
-                                
+
                                 // switch scope
                                 let temp_scope = self.current_scope.clone();
                                 self.current_scope = identifier.clone();
-                                let expression_result =
-                                self.check_expression(&identifier, body.clone());
+                                let body2 = body.clone();
+                                let expression_result = self.check_expression(&identifier, body2);
                                 self.current_scope = temp_scope;
-                                
+
                                 match expression_result {
-                                    Ok((expression, expression_type)) =>{
+                                    Ok((expression, expression_type)) => {
                                         // validate that expression type matches provided type
-                                        if !type_signature[type_signature.len()-1].contains(&expression_type) && !expression_type.contains(&type_signature[type_signature.len()-1]) {
+
+                                        let return_type_signature =
+                                            &type_signature[type_signature.len() - 1];
+                                        let temp_scope = self.current_scope.clone();
+                                        self.current_scope = identifier.clone();
+                                        let first_arg_of_return_expression =
+                                            if expression_type.contains("|") {
+                                                self.get_type(&body.clone()[1])
+                                            } else {
+                                                expression_type.clone()
+                                            };
+                                        self.current_scope = temp_scope;
+                                        let expression_type_without_pipe =
+                                            if expression_type.contains("|") {
+                                                first_arg_of_return_expression
+                                            } else {
+                                                expression_type
+                                            };
+                                        if !return_type_signature
+                                            .contains(&expression_type_without_pipe.clone())
+                                        {
                                             return Err(self.get_error(
-                                                3 + identifier.len(),
-                                                10, //text.len(),
-                                                &format!("The type of this function's return expression '{:?}' does not match it's signature's return type: {:?}", &expression_type, &type_signature[type_signature.len()-1]),
+                                                arrow_indent,
+                                                arrow_len,
+                                                &format!("{}\r\n{:?} - the type of this function's return expression\r\n{:?} - does not match it's signature's return type\r\n{}", not_valid, &expression_type_without_pipe, &type_signature[type_signature.len()-1], example_syntax),
                                             ));
                                         }
-                                
-                                let mut args_with_types="".to_string();
-                                for i in 0..args.len() {
-                                    let comma_not_first = if i==0 {"".to_string()} else {", ".to_string()};
-                                    args_with_types = format!("{}{}{}: {}", args_with_types, comma_not_first, args[i], type_signature[i]);
+
+                                        let mut args_with_types = "".to_string();
+                                        for i in 0..args.len() {
+                                            let comma_not_first = if i == 0 {
+                                                "".to_string()
+                                            } else {
+                                                ", ".to_string()
+                                            };
+                                            args_with_types = format!(
+                                                "{}{}{}: {}",
+                                                args_with_types,
+                                                comma_not_first,
+                                                args[i],
+                                                type_signature[i]
+                                            );
+                                        }
+                                        let expression_indent = " ".repeat((self.indent + 1) * 4);
+                                        let trailing_brace_indent = " ".repeat(self.indent * 4);
+                                        let output = format!(
+                                            "({}) -> {} {{\r\n{}{}\r\n{}}}",
+                                            args_with_types,
+                                            type_signature[type_signature.len() - 1],
+                                            expression_indent,
+                                            &expression,
+                                            trailing_brace_indent
+                                        );
+                                        //TODO check this - should it return the function return_type??
+                                        return Ok((output, "Function".to_string()));
+                                    }
+                                    Err(e) => return Err(e),
                                 }
-                                let expression_indent = " ".repeat((self.indent+1) * 4);
-                                let trailing_brace_indent = " ".repeat(self.indent * 4);
-                                let output = format!("({}) -> {} {{\r\n{}{}\r\n{}}}", args_with_types, type_signature[type_signature.len()-1], expression_indent,&expression, trailing_brace_indent);
-                                return Ok((output, "Function".to_string()));
-                                    },
-                                    Err(e) => return Err(e)
-                                } 
-                            }                            
+                            }
                         }
-                    },
-                    _ => return Err(self.get_error(
-                        3 + identifier.len(),
-                        10, //text.len(),
-                        &format!("is not a valid function definition. Missing slash or arrow. Should be in the form\r\n= func_name : i64 i64 \\ arg1 => + arg1 123\r\n{:?}", &tokens[0]),
-                    ))
+                    }
+                    _ => {
+                        return Err(self.get_error(
+                            arrow_indent,
+                            arrow_len,
+                            &format!("{} {}", not_valid, example_syntax),
+                        ))
+                    }
                 }
             } else if self.exists_function(&tokens[0]) {
                 let fn_option: Option<FunctionDefinition> =
                     self.get_function_definition(tokens[0].clone());
 
                 match fn_option {
-                    Some(def ) => {
+                    Some(def) => {
                         let allow_for_fn_name = 1;
                         let count_arguments = tokens.len() - allow_for_fn_name;
                         let tokens_string_length = get_tokens_string_len(&tokens);
                         let expression_indents = 3 + def.name.len();
-                        let validate_arg_types_must_match =
-                        def.validations.contains(&"arg_types_must_match".to_string());
+                        let validate_arg_types_must_match = def
+                            .validations
+                            .contains(&"arg_types_must_match".to_string());
 
                         let mut final_return_type = &def.return_type;
 
@@ -522,8 +591,8 @@ impl Config {
                                     count_arguments
                                 ),
                             ));
-                        }                       
-                        
+                        }
+
                         // check types of values
                         // switch scope because of get_type
                         let temp_scope = self.current_scope.clone();
@@ -533,7 +602,7 @@ impl Config {
                             value_types.push(self.get_type(&tokens[i]));
                         }
                         self.current_scope = temp_scope;
-                        
+
                         for i in allow_for_fn_name..count_arguments {
                             if !def.types[i].contains(&value_types[i]) {
                                 return Err(self.get_error(
@@ -555,7 +624,11 @@ impl Config {
                             if final_return_type == "" {
                                 final_return_type = first;
                             };
-                            if value_types.clone().into_iter().any(|c| &c != first && !&c.contains(first) && !&first.contains(&c)) {
+                            if value_types
+                                .clone()
+                                .into_iter()
+                                .any(|c| &c != first && !&c.contains(first) && !&first.contains(&c))
+                            {
                                 return Err(self.get_error(
                                     expression_indents,
                                 tokens_string_length,
@@ -569,14 +642,12 @@ impl Config {
 
                         let output = match def.types.len() {
                             2 => {
-                                let out1 =
-                                def.format.replace("#1", &tokens[allow_for_fn_name]);
+                                let out1 = def.format.replace("#1", &tokens[allow_for_fn_name]);
                                 let out2 = out1.replace("#2", &tokens[allow_for_fn_name + 1]);
                                 out2
                             }
                             1 => {
-                                let out1 =
-                                def.format.replace("#1", &tokens[allow_for_fn_name]);
+                                let out1 = def.format.replace("#1", &tokens[allow_for_fn_name]);
                                 out1
                             }
                             _ => def.format,
@@ -605,7 +676,7 @@ impl Config {
     }
 
     fn get_type(self: &Self, text: &String) -> String {
-         //monkey
+        //monkey
         if is_integer(text) {
             return "i64".to_string();
         }
@@ -620,20 +691,21 @@ impl Config {
             match def_option {
                 Some(def) => {
                     return def.return_type.clone();
-                },
-                _ =>{
+                }
+                _ => {
                     return "Undefined".to_string(); //changed from Function to Undefined
                 }
             }
-            
         }
-  
+
         "Undefined".to_string()
     }
 
-      fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
+    fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
-            "----------\r\n{}\r\n{}{} {}",
+            "----------\r\n{}:{}:0\r\n{}\r\n{}{} {}",
+            self.filename, // TODO try to fix path so it becomes a link in VS Code
+            self.current_line + 1,
             self.lines_of_chars[self.current_line]
                 .iter()
                 .cloned()
@@ -775,11 +847,11 @@ fn get_function_def_type_signature(tokens: &Vec<String>, slash: usize) -> Vec<St
 }
 
 fn get_function_def_args(tokens: &Vec<String>, slash: usize, arrow: usize) -> Vec<String> {
-    return tokens[slash+2..arrow+1].to_vec();
+    return tokens[slash + 2..arrow + 1].to_vec();
 }
 
 fn get_function_def_body(tokens: &Vec<String>, arrow: usize) -> Vec<String> {
-    return tokens[arrow+2..].to_vec();
+    return tokens[arrow + 2..].to_vec();
 }
 
 #[cfg(test)]
@@ -788,6 +860,7 @@ mod tests {
 
     fn mock_config(contents: &str) -> Config {
         Config {
+            filepath: "".to_string(),
             filename: "".to_string(),
             filecontents: contents.to_string(),
             remaining: contents.to_string(),
@@ -805,11 +878,11 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let args = ["toylang".to_string(), "filename_example".to_string()];
+        let args = ["toylang".to_string(), "filepath_example".to_string()];
         let config_result = Config::new(&args);
-        let filename = "filename_example".to_string();
+        let filepath = "filepath_example".to_string();
         match config_result {
-            Ok(config) => assert_eq!(config.filename, filename),
+            Ok(config) => assert_eq!(config.filepath, filepath),
             Err(_) => assert!(false, "error should not exist"),
         }
     }
