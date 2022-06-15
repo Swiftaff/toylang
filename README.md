@@ -69,20 +69,11 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 
 ## Toy language Syntax Examples
 
-### Basic syntax
-
-First line must be RUN
-
-Anything in between as per examples below
-
-Last line must be END
-
 ### Variable assignment
 
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
 
 ```
-RUN
 // single line comments
 = integer 123
 = float 123.45
@@ -96,12 +87,7 @@ RUN
 = division / 1.0 2.0
 = modulus % 42.0 3.14
 
-// single line functions
-= function_name : i64 i64 \ arg1 => + 123 arg1
-//                ^         ^       ^_return expression
-//                 \         \_ argument names
-//                  \_argument types, last one is return type
-END
+
 ```
 
 </td><td>
@@ -120,7 +106,28 @@ fn main() {
     let multiplication: i64 = 3 * 4;
     let division: f64 = 1.0 / 2.0;
     let modulus: f64 = 42.0 % 3.14;
+}
+```
 
+</td></tr></table>
+
+### Function definition
+
+<table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
+
+```
+// single line functions
+= function_name : i64 i64 \ arg1 => + 123 arg1
+//                ^         ^       ^_return expression
+//                 \         \_ argument names
+//                  \_argument types, return type last
+
+```
+
+</td><td>
+
+```rust
+fn main() {
     // single line functions
     fn function_name(arg1: i64) -> i64 {
         123 + arg1

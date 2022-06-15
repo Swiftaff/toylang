@@ -200,8 +200,8 @@ impl Config {
     }
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
-        self.check_program_syntax()?;
-        for line in 1..self.lines_of_tokens.len() - 1 {
+        //self.check_program_syntax()?;
+        for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
                 self.current_line = line;
                 self.check_one_or_more_succeeds()?;
@@ -265,7 +265,7 @@ impl Config {
     }
 
     fn check_program_syntax(self: &mut Self) -> Result<(), Vec<String>> {
-        if self.lines_of_tokens.len() < 2
+        if self.lines_of_tokens.len() == 0
             || self.lines_of_tokens[0][0] != "RUN".to_string()
             || self.lines_of_tokens[self.lines_of_tokens.len() - 1][0] != "END".to_string()
         {
