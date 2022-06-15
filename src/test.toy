@@ -14,8 +14,10 @@ RUN
 
 // single line functions
 
-// no args, returns i64. Not needed this is just a constant
-//= j1 : 164 => \ 123
+// no args, returns i64.
+// This is just a constant, so could be simplified to..
+// = j1 123
+= j1 : i64 \ => 123
 
 // one i64 arg, returns i64
 = k1 : i64 i64 \ arg1 => + 123 arg1
