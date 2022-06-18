@@ -1,3 +1,4 @@
+//TODO make most function arguments refs
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -200,7 +201,7 @@ impl Config {
     }
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
-        //self.check_program_syntax()?;
+        self.check_program_syntax();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
                 self.current_line = line;
@@ -211,12 +212,16 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        if self.check_one_succeeds("check_variable_assignment") {
-            return Ok(());
-        }
         if self.check_one_succeeds("check_comment_single_line") {
             return Ok(());
         }
+        if self.check_one_succeeds("check_variable_assignment") {
+            return Ok(());
+        }
+        if self.check_one_succeeds("check_expression") {
+            return Ok(());
+        }
+
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
         Err(self.error_stack.clone())
@@ -227,6 +232,7 @@ impl Config {
         let mut clone = self.clone();
         let result = match function_name {
             "check_variable_assignment" => clone.check_variable_assignment(),
+            "check_expression" => clone.check_expression(),
             "check_comment_single_line" => clone.check_comment_single_line(),
             _ => {
                 return false;
@@ -251,6 +257,7 @@ impl Config {
     fn clone_mut_ref(self: &mut Self, to_clone: Config) -> () {
         // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
         self.filepath = to_clone.filepath;
+        self.filename = to_clone.filename;
         self.filecontents = to_clone.filecontents;
         self.remaining = to_clone.remaining;
         self.lines_of_chars = to_clone.lines_of_chars;
@@ -258,13 +265,14 @@ impl Config {
         self.output = to_clone.output;
         self.outputcursor = to_clone.outputcursor;
         self.current_line = to_clone.current_line;
+        self.current_scope = to_clone.current_scope;
         self.indent = to_clone.indent;
-
         self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
     }
 
-    fn check_program_syntax(self: &mut Self) -> Result<(), Vec<String>> {
+    fn check_program_syntax(self: &mut Self) {
+        /*
         if self.lines_of_tokens.len() == 0
             || self.lines_of_tokens[0][0] != "RUN".to_string()
             || self.lines_of_tokens[self.lines_of_tokens.len() - 1][0] != "END".to_string()
@@ -273,12 +281,57 @@ impl Config {
                 .push(ERRORS.invalid_program_syntax.to_string());
             return Err(self.error_stack.clone());
         } else {
-            self.output = "fn main() {\r\n}".to_string();
-            self.indent = 1;
-            self.outputcursor = 13; // anything new will be inserted before end bracket
-        }
+            */
+        self.output = "fn main() {\r\n}".to_string();
+        self.indent = 1;
+        self.outputcursor = 13; // anything new will be inserted before end bracket
+                                //}
+                                //Ok(())
+    }
 
-        Ok(())
+    //penguin
+    fn check_expression(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = self.lines_of_tokens[self.current_line].clone();
+        let identifier = self.current_scope.clone();
+        let mut validation_error = None;
+        let expression_result = &self.get_expression_result(&identifier, tokens.clone());
+        match expression_result {
+            Ok((expression, exp_type)) => {
+                dbg!(
+                    &self.current_line,
+                    &self.current_scope,
+                    expression,
+                    exp_type
+                );
+                let mut trailing_brace = "".to_string();
+
+                // if we found an expression while inside a function, then it must be the returning expression
+                // so we should close this function brace and move scope back up a level
+                if self.current_scope != "main".to_string() {
+                    self.indent = self.indent - 1;
+                    trailing_brace = format!("{}}}\r\n", " ".repeat(self.indent * 4));
+                    let option_parent_scope =
+                        self.get_function_definition(self.current_scope.clone());
+                    match option_parent_scope {
+                        Some(parent_scope) => self.current_scope = parent_scope.scope,
+                        None => (), // couldn't find function called self.current_scope - so um, leave as is, or maybe default to main??
+                    }
+                }
+                let insert = format!(
+                    "{}{}\r\n{}",
+                    " ".repeat((self.indent + 1) * 4),
+                    concatenate_vec_strings(&tokens),
+                    trailing_brace
+                );
+
+                self.output.insert_str(self.outputcursor, &insert);
+                self.outputcursor = self.outputcursor + insert.len();
+            }
+            Err(e) => {
+                validation_error = Some(e.clone());
+            }
+        }
+        Ok(validation_error)
     }
 
     fn check_variable_assignment(self: &mut Self) -> Result<Option<String>, String> {
@@ -296,7 +349,7 @@ impl Config {
             }
 
             let expression_result =
-                &self.check_expression(&identifier, tokens[2..tokens.len()].to_vec());
+                &self.get_expression_result(&identifier, tokens[2..tokens.len()].to_vec());
 
             match expression_result {
                 Ok((expression, exp_type)) => {
@@ -305,10 +358,11 @@ impl Config {
                     let mut final_type = exp_type.clone();
                     let validations = vec!["is_constant".to_string()];
                     let mut new_expresion = expression.clone();
-
+                    dbg!("penguin", &expression_result, &tokens, &self.functions);
                     if self.exists_function(&tokens[2]) {
                         //disambiguate i64|f64 for the actual type based on the type of first arg
                         let def_option = self.get_function_definition(tokens[2].to_string());
+
                         match def_option {
                             Some(def) => {
                                 if def
@@ -340,8 +394,8 @@ impl Config {
 
                     if *exp_type == "Function".to_string() {
                         insert = format!(
-                            "{}fn {}{}\r\n",
-                            " ".repeat(self.indent * 4),
+                            "{}fn {}{}",
+                            " ".repeat((self.indent - 1) * 4),
                             &identifier,
                             &new_expresion
                         );
@@ -391,7 +445,7 @@ impl Config {
         }
     }
 
-    fn check_expression(
+    fn get_expression_result(
         self: &mut Self,
         identifier: &String,
         tokens: Vec<String>,
@@ -416,9 +470,12 @@ impl Config {
             }
         }
 
-        dbg!(&tokens);
+        //dbg!(&tokens);
         let arrow_indent = 3 + identifier.len();
-        let arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len() - 1;
+        let mut arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len();
+        if arrow_len > 0 {
+            arrow_len = arrow_len - 1;
+        }
         let not_valid = "is not a valid function definition.";
         let example_syntax = "Example syntax:\r\n'= func_name : i64 i64 \\ arg1 => + arg1 123'\r\n               ^         ^       ^_after arrow return expression\r\n                \\         \\_after slash argument names\r\n                 \\_after colon argument types, last one is return type";
 
@@ -451,28 +508,28 @@ impl Config {
                             }
 
                             let body = get_function_def_body(&tokens, arrow);
+                            dbg!(body.len());
                             if body.len() == 0 {
                                 // TODO
                                 // use this to check for multiline function
+                                self.current_scope = identifier.clone();
 
-                                // optional check if any multiline variable assignments
-                                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
-                                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
-                                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
+                                self.indent = self.indent + 1;
+                                self.current_scope = identifier.clone();
+                                dbg!(&self.current_line, &self.current_scope);
+                                let args_with_types = get_function_args_with_types(
+                                    args.clone(),
+                                    type_signature.clone(),
+                                );
 
-                                // for now just error
-                                return Err(self.get_error(
-                                    arrow_indent,
-                                    arrow_len,
-                                    &format!(
-                                        "{} There is no function body following the => {:?}",
-                                        not_valid, &tokens[0]
-                                    ),
-                                ));
-                            } else {
-                                // get return expression/value
+                                let output = format!(
+                                    "({}) -> {} {{\r\n", //no end function brace
+                                    args_with_types,
+                                    &type_signature[type_signature.len() - 1]
+                                );
 
-                                // temporarily define the arguments so check_expression doesn't return "Undefined" for their types
+                                // Duplicated penguin
+                                // temporarily define the arguments so get_expression_result doesn't return "Undefined" for their types
                                 for a in 0..args.len() {
                                     let new_arg = FunctionDefinition {
                                         name: args[a].to_string(),
@@ -489,7 +546,51 @@ impl Config {
                                 let temp_scope = self.current_scope.clone();
                                 self.current_scope = identifier.clone();
                                 let body2 = body.clone();
-                                let expression_result = self.check_expression(&identifier, body2);
+                                let expression_result =
+                                    self.get_expression_result(&identifier, body2);
+                                self.current_scope = temp_scope;
+
+                                //TODO check this - should it return the function return_type??
+                                return Ok((output, "Function".to_string()));
+
+                                // optional check if any multiline variable assignments
+                                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
+                                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
+                                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
+
+                                // for now just error
+                                /*
+                                return Err(self.get_error(
+                                    arrow_indent,
+                                    arrow_len,
+                                    &format!(
+                                        "{} There is no function body following the '=>'",
+                                        not_valid
+                                    ),
+                                ));
+                                */
+                            } else {
+                                // get return expression/value
+
+                                // temporarily define the arguments so get_expression_result doesn't return "Undefined" for their types
+                                for a in 0..args.len() {
+                                    let new_arg = FunctionDefinition {
+                                        name: args[a].to_string(),
+                                        format: args[a].clone(),
+                                        types: vec![],
+                                        validations: vec![],
+                                        return_type: type_signature[a].clone(),
+                                        scope: identifier.clone(),
+                                    };
+                                    self.functions.push(new_arg);
+                                }
+
+                                // switch scope
+                                let temp_scope = self.current_scope.clone();
+                                self.current_scope = identifier.clone();
+                                let body2 = body.clone();
+                                let expression_result =
+                                    self.get_expression_result(&identifier, body2);
                                 self.current_scope = temp_scope;
 
                                 match expression_result {
@@ -523,23 +624,13 @@ impl Config {
                                             ));
                                         }
 
-                                        let mut args_with_types = "".to_string();
-                                        for i in 0..args.len() {
-                                            let comma_not_first = if i == 0 {
-                                                "".to_string()
-                                            } else {
-                                                ", ".to_string()
-                                            };
-                                            args_with_types = format!(
-                                                "{}{}{}: {}",
-                                                args_with_types,
-                                                comma_not_first,
-                                                args[i],
-                                                type_signature[i]
-                                            );
-                                        }
+                                        let args_with_types = get_function_args_with_types(
+                                            args,
+                                            type_signature.clone(),
+                                        );
                                         let expression_indent = " ".repeat((self.indent + 1) * 4);
                                         let trailing_brace_indent = " ".repeat(self.indent * 4);
+
                                         let output = format!(
                                             "({}) -> {} {{\r\n{}{}\r\n{}}}",
                                             args_with_types,
@@ -676,7 +767,6 @@ impl Config {
     }
 
     fn get_type(self: &Self, text: &String) -> String {
-        //monkey
         if is_integer(text) {
             return "i64".to_string();
         }
@@ -852,6 +942,22 @@ fn get_function_def_args(tokens: &Vec<String>, slash: usize, arrow: usize) -> Ve
 
 fn get_function_def_body(tokens: &Vec<String>, arrow: usize) -> Vec<String> {
     return tokens[arrow + 2..].to_vec();
+}
+
+fn get_function_args_with_types(args: Vec<String>, type_signature: Vec<String>) -> String {
+    let mut args_with_types = "".to_string();
+    for i in 0..args.len() {
+        let comma_not_first = if i == 0 {
+            "".to_string()
+        } else {
+            ", ".to_string()
+        };
+        args_with_types = format!(
+            "{}{}{}: {}",
+            args_with_types, comma_not_first, args[i], type_signature[i]
+        );
+    }
+    args_with_types
 }
 
 #[cfg(test)]
