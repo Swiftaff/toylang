@@ -106,7 +106,7 @@ impl Config {
 
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.filecontents = fs::read_to_string(&self.filepath)?;
-        println!("\r\nINPUT contents of filepath: {:?}", &self.filepath); //, &self.filecontents
+        println!("\r\nINPUT contents of filepath: {:?}", &self.filepath);
         self.get_lines_of_chars();
         self.get_lines_of_tokens();
         self.run_main_loop()?;
@@ -118,7 +118,6 @@ impl Config {
             fs::write("../../src/bin/output.rs", &self.output)?;
         } else {
             println!("DIDN'T SAVE");
-            //println!("Error stack: {:?}", self.error_stack);
         }
         Ok(())
     }
@@ -281,7 +280,6 @@ impl Config {
         self.outputcursor = 13;
     }
 
-    //penguin
     fn check_expression(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = self.lines_of_tokens[self.current_line].clone();
         let identifier = self.current_scope.clone();
@@ -289,14 +287,6 @@ impl Config {
         let expression_result = &self.get_expression_result(&identifier, tokens.clone());
         match expression_result {
             Ok((expression, exp_type)) => {
-                /*
-                dbg!(
-                    &self.current_line,
-                    &self.current_scope,
-                    expression,
-                    exp_type
-                );
-                */
                 if self.current_scope != "main".to_string() {
                     self.output_return_expression(&tokens);
                 } else {
@@ -315,7 +305,8 @@ impl Config {
         // so we should close this function brace and move scope back up a level
         self.indent = self.indent - 1;
         let trailing_brace = format!("{}}}\r\n", " ".repeat(self.indent * 4));
-        let option_parent_scope = self.get_function_definition(self.current_scope.clone());
+        let option_parent_scope =
+            self.get_function_definition(self.current_scope.clone(), self.current_scope.clone());
         match option_parent_scope {
             Some(parent_scope) => self.current_scope = parent_scope.scope,
             None => (), // couldn't find function called self.current_scope - so um, leave as is, or maybe default to main??
@@ -345,7 +336,6 @@ impl Config {
         single_line_expression: &String,
         final_type: &String,
     ) {
-        //dbg!(identifier, single_line_expression, final_type);
         let type_colon = if final_type.len() == 0 { "" } else { ": " };
         let insert = format!(
             "{}let {}{}{} = {};\r\n",
@@ -380,9 +370,9 @@ impl Config {
             return Err(ERRORS.variable_assignment.to_string());
         } else {
             let identifier = tokens[1].clone();
-            let mut validation_error = None;
 
-            if self.exists_function(&identifier) {
+            let mut validation_error = None;
+            if self.exists_function(&identifier, self.current_scope.clone()) {
                 let e = self.get_error(2, identifier.len(), ERRORS.constants_are_immutable);
                 validation_error = Some(e.clone());
             }
@@ -392,11 +382,8 @@ impl Config {
 
             match expression_result {
                 Ok((exp, exp_type)) => {
-                    //dbg!("penguin", &expression_result, &tokens, &self.functions);
-
                     let possible_referenced_constant_result =
                         self.get_referenced_constant(&tokens, exp, exp_type);
-
                     match possible_referenced_constant_result {
                         Ok((expression, expression_type)) => {
                             if *expression_type == "Function".to_string() {
@@ -419,7 +406,6 @@ impl Config {
                     }
                 }
                 Err(e) => validation_error = Some(e.clone()),
-                //_ => validation_error = Some("some other error".to_string()),
             }
 
             Ok(validation_error)
@@ -430,7 +416,6 @@ impl Config {
         self: &mut Self,
         identifier: String,
         value: String,
-
         final_type: String,
     ) {
         let new_constant_function = FunctionDefinition {
@@ -444,20 +429,25 @@ impl Config {
         self.functions.push(new_constant_function);
     }
 
-    fn exists_function(self: &Self, function_name: &str) -> bool {
+    //watch out - duplicated below in closure
+    fn exists_function(self: &Self, function_name: &str, scope_name: String) -> bool {
         self.functions.iter().any(|def| {
             def.name == *function_name
-                && (def.scope == self.current_scope || def.scope == "global".to_string())
+                && (def.scope == scope_name || def.scope == "global".to_string())
         })
     }
 
-    fn get_function_definition(self: &Self, function_name: String) -> Option<FunctionDefinition> {
+    fn get_function_definition(
+        self: &Self,
+        function_name: String,
+        scope_name: String,
+    ) -> Option<FunctionDefinition> {
         let funcs: Vec<&FunctionDefinition> = self
             .functions
             .iter()
             .filter(|def| {
                 def.name == *function_name
-                    && (def.scope == self.current_scope || def.scope == "global".to_string())
+                    && (def.scope == scope_name || def.scope == "global".to_string())
             })
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
@@ -472,9 +462,6 @@ impl Config {
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
-        //if identifier == &("l1".to_string()) {
-        //    dbg!(&self.functions,&self.current_scope);
-        //}
         if tokens.len() == 1 {
             if is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -482,7 +469,6 @@ impl Config {
             if is_float(&tokens[0]) {
                 return Ok((tokens[0].clone(), "f64".to_string()));
             }
-
             let possible_string: Vec<char> = tokens[0].chars().collect();
             if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
                 return Ok((
@@ -490,9 +476,9 @@ impl Config {
                     "String".to_string(),
                 ));
             }
+            //else is a function call - see below
         }
 
-        //dbg!(&tokens);
         let arrow_indent = 3 + identifier.len();
         let mut arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len();
         if arrow_len > 0 {
@@ -530,15 +516,13 @@ impl Config {
                             }
 
                             let body = get_function_def_body(&tokens, arrow);
-                            //dbg!(body.len());
                             if body.len() == 0 {
-                                // TODO
-                                // use this to check for multiline function
+                                // i.e. there is nothing after the "=>" then assume it is a multiline function
                                 self.current_scope = identifier.clone();
 
+                                // <- TODO fix below - indents the fn def line as well as contents
                                 self.indent = self.indent + 1;
                                 self.current_scope = identifier.clone();
-                                //dbg!(&self.current_line, &self.current_scope);
                                 let args_with_types = get_function_args_with_types(
                                     args.clone(),
                                     type_signature.clone(),
@@ -550,86 +534,44 @@ impl Config {
                                     &type_signature[type_signature.len() - 1]
                                 );
 
-                                // Duplicated penguin
-                                // temporarily define the arguments so get_expression_result doesn't return "Undefined" for their types
-                                for a in 0..args.len() {
-                                    let new_arg = FunctionDefinition {
-                                        name: args[a].to_string(),
-                                        format: args[a].clone(),
-                                        types: vec![],
-                                        validations: vec![],
-                                        return_type: type_signature[a].clone(),
-                                        scope: identifier.clone(),
-                                    };
-                                    self.functions.push(new_arg);
-                                }
+                                // define the arguments so get_expression_result doesn't return "Undefined" for their types
 
-                                // switch scope
-                                let temp_scope = self.current_scope.clone();
-                                self.current_scope = identifier.clone();
-                                let body2 = body.clone();
-                                let expression_result =
-                                    self.get_expression_result(&identifier, body2);
-                                self.current_scope = temp_scope;
+                                let _expression_result = self.save_function_arguments(
+                                    &identifier,
+                                    &args,
+                                    &type_signature,
+                                    &body,
+                                );
 
                                 //TODO check this - should it return the function return_type??
                                 return Ok((output, "Function".to_string()));
-
-                                // optional check if any multiline variable assignments
-                                // (or just let main parser deal with those regardless of whitespace - in which case need to scope any variable checks to just within this function)
-                                // e.g. change self.functions from Vec<FunctionName> Vec(FunctionName, ScopedParentFunctionName)
-                                // and add a self.currentScopedParentFunctionName = default to "global" (assuming we will make users start code with = "main \ =>" like rust)
-
-                                // for now just error
-                                /*
-                                return Err(self.get_error(
-                                    arrow_indent,
-                                    arrow_len,
-                                    &format!(
-                                        "{} There is no function body following the '=>'",
-                                        not_valid
-                                    ),
-                                ));
-                                */
                             } else {
-                                // get return expression/value
+                                // get return expression/value for single line function
 
-                                // temporarily define the arguments so get_expression_result doesn't return "Undefined" for their types
-                                for a in 0..args.len() {
-                                    let new_arg = FunctionDefinition {
-                                        name: args[a].to_string(),
-                                        format: args[a].clone(),
-                                        types: vec![],
-                                        validations: vec![],
-                                        return_type: type_signature[a].clone(),
-                                        scope: identifier.clone(),
-                                    };
-                                    self.functions.push(new_arg);
-                                }
-
-                                // switch scope
-                                let temp_scope = self.current_scope.clone();
-                                self.current_scope = identifier.clone();
-                                let body2 = body.clone();
-                                let expression_result =
-                                    self.get_expression_result(&identifier, body2);
-                                self.current_scope = temp_scope;
+                                // define the arguments so get_expression_result doesn't return "Undefined" for their types
+                                let expression_result = self.save_function_arguments(
+                                    &identifier,
+                                    &args,
+                                    &type_signature,
+                                    &body,
+                                );
 
                                 match expression_result {
                                     Ok((expression, expression_type)) => {
                                         // validate that expression type matches provided type
-
                                         let return_type_signature =
                                             &type_signature[type_signature.len() - 1];
-                                        let temp_scope = self.current_scope.clone();
-                                        self.current_scope = identifier.clone();
+                                        //let temp_scope = self.current_scope.clone();
+                                        //self.current_scope = identifier.clone();
                                         let first_arg_of_return_expression =
                                             if expression_type.contains("|") {
-                                                self.get_type(&body.clone()[1])
+                                                let test = self
+                                                    .get_type(&body.clone()[1], identifier.clone());
+                                                test
                                             } else {
                                                 expression_type.clone()
                                             };
-                                        self.current_scope = temp_scope;
+                                        //self.current_scope = temp_scope;
                                         let expression_type_without_pipe =
                                             if expression_type.contains("|") {
                                                 first_arg_of_return_expression
@@ -654,7 +596,7 @@ impl Config {
                                         let trailing_brace_indent = " ".repeat(self.indent * 4);
 
                                         let output = format!(
-                                            "({}) -> {} {{\r\n{}{}\r\n{}}}",
+                                            "({}) -> {} {{\r\n{}{}\r\n{}}}\r\n",
                                             args_with_types,
                                             type_signature[type_signature.len() - 1],
                                             expression_indent,
@@ -677,9 +619,9 @@ impl Config {
                         ))
                     }
                 }
-            } else if self.exists_function(&tokens[0]) {
+            } else if self.exists_function(&tokens[0], self.current_scope.clone()) {
                 let fn_option: Option<FunctionDefinition> =
-                    self.get_function_definition(tokens[0].clone());
+                    self.get_function_definition(tokens[0].clone(), self.current_scope.clone());
 
                 match fn_option {
                     Some(def) => {
@@ -692,7 +634,6 @@ impl Config {
                             .contains(&"arg_types_must_match".to_string());
 
                         let mut final_return_type = &def.return_type;
-
                         // check number of arguments
                         if def.types.len() != count_arguments {
                             return Err(self.get_error(
@@ -707,15 +648,10 @@ impl Config {
                         }
 
                         // check types of values
-                        // switch scope because of get_type
-                        let temp_scope = self.current_scope.clone();
-                        self.current_scope = identifier.clone();
                         let mut value_types: Vec<String> = vec![];
                         for i in allow_for_fn_name..tokens.len() {
-                            value_types.push(self.get_type(&tokens[i]));
+                            value_types.push(self.get_type(&tokens[i], identifier.clone()));
                         }
-                        self.current_scope = temp_scope;
-
                         for i in allow_for_fn_name..count_arguments {
                             if !def.types[i].contains(&value_types[i]) {
                                 return Err(self.get_error(
@@ -788,7 +724,34 @@ impl Config {
         ))
     }
 
-    //penguin
+    fn save_function_arguments(
+        self: &mut Self,
+        identifier: &String,
+        args: &Vec<String>,
+        type_signature: &Vec<String>,
+        func_body: &Vec<String>,
+    ) -> Result<(Expression, ExpressionType), String> {
+        for a in 0..args.len() {
+            let new_arg = FunctionDefinition {
+                name: args[a].to_string(),
+                format: args[a].clone(),
+                types: vec![],
+                validations: vec![],
+                return_type: type_signature[a].clone(),
+                scope: identifier.clone(),
+            };
+            self.functions.push(new_arg);
+        }
+
+        // switch scope
+        let temp_scope = self.current_scope.clone();
+        self.current_scope = identifier.clone();
+        let body2 = func_body.clone();
+        let expression_result = self.get_expression_result(&identifier, body2);
+        self.current_scope = temp_scope;
+        expression_result
+    }
+
     fn get_referenced_constant(
         self: &mut Self,
         tokens: &Vec<String>,
@@ -798,10 +761,14 @@ impl Config {
         let mut final_type = expression_type.clone();
         let mut final_expression = expression.clone();
         let referenced_function_name = tokens[2].clone();
-        let function_exists = self.exists_function(&referenced_function_name);
+        let function_exists =
+            self.exists_function(&referenced_function_name, self.current_scope.clone());
         if function_exists {
             //disambiguate i64|f64 for the actual type based on the type of first arg
-            let def_option = self.get_function_definition(referenced_function_name.to_string());
+            let def_option = self.get_function_definition(
+                referenced_function_name.to_string(),
+                self.current_scope.clone(),
+            );
             match def_option {
                 Some(def) => {
                     if def
@@ -810,8 +777,8 @@ impl Config {
                         && final_type.contains("|")
                     {
                         let first_arg = tokens[3].clone();
-                        let first_arg_type = self.get_type(&first_arg);
-                        final_type = first_arg_type; //.clone();
+                        let first_arg_type = self.get_type(&first_arg, self.current_scope.clone());
+                        final_type = first_arg_type;
                     }
                     if def.validations.contains(&"is_constant".to_string()) {
                         final_expression = def.name;
@@ -823,7 +790,7 @@ impl Config {
         Ok((final_expression, final_type))
     }
 
-    fn get_type(self: &Self, text: &String) -> String {
+    fn get_type(self: &Self, text: &String, scope_name: String) -> String {
         if is_integer(text) {
             return "i64".to_string();
         }
@@ -833,19 +800,19 @@ impl Config {
         if is_string(text) {
             return "String".to_string();
         }
-        if self.exists_function(text) {
-            let def_option = self.get_function_definition(text.to_string());
+        if self.exists_function(text, scope_name.clone()) {
+            let def_option = self.get_function_definition(text.to_string(), scope_name);
             match def_option {
                 Some(def) => {
                     return def.return_type.clone();
                 }
                 _ => {
-                    return "Undefined".to_string(); //changed from Function to Undefined
+                    return "Undefined".to_string();
                 }
             }
+        } else {
+            return "Undefined".to_string();
         }
-
-        "Undefined".to_string()
     }
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
@@ -933,8 +900,6 @@ fn concatenate_vec_strings(tokens: &Vec<String>) -> String {
 struct Errors {
     invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
-    //function_definition: &'static str,
-    //no_valid_identifier_found: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_expression: &'static str,
     constants_are_immutable: &'static str,
@@ -943,8 +908,6 @@ struct Errors {
 const ERRORS: Errors = Errors {
     invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
-    //function_definition: "Invalid function definition. e.g. = \\ function_name arg1 arg2 => stuff",
-    //no_valid_identifier_found:"No valid identifier found",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
