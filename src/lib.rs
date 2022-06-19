@@ -39,7 +39,7 @@ pub struct Config {
 }
 
 struct Errors {
-    invalid_program_syntax: &'static str,
+    //invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_expression: &'static str,
@@ -47,7 +47,7 @@ struct Errors {
 }
 
 const ERRORS: Errors = Errors {
-    invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
+    //invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_expression: "No valid expression was found",
@@ -469,7 +469,7 @@ impl Config {
         let mut validation_error = None;
         let expression_result = &self.get_expression_result(&identifier, tokens.clone());
         match expression_result {
-            Ok((expression, exp_type)) => {
+            Ok((_expression, _exp_type)) => {
                 if self.current_scope != "main".to_string() {
                     self.set_output_for_return_expression(&tokens);
                 } else {
@@ -846,29 +846,14 @@ impl Config {
         return Ok((output, "FunctionDefFirstOfMulti".to_string()));
     }
 
-    /*
-    FYI wanted a generic closure for both below - but they seem to have slightly different types for each
-    &FunctionDefinition
-    &&FunctionDefinition
-
-    fn create_closure(
-        self: &Self,
-        function_name: String,
-        scope_name: String,
-    ) -> impl Fn(&FunctionDefinition) -> bool {
-        move |def| {
-            def.name == *function_name
-                && (def.scope == scope_name || def.scope == "global".to_string())
-        }
-    }
-    */
-
-    //watch out - duplicated closures below
     fn get_exists_function(self: &Self, function_name: &str, scope_name: String) -> bool {
-        //let closure = self.create_closure(function_name.to_string(), scope_name);
         self.functions.iter().any(|def| {
-            def.name == *function_name
-                && (def.scope == scope_name || def.scope == "global".to_string())
+            get_names_and_scope_match(
+                def.name.clone(),
+                function_name.to_string(),
+                def.scope.clone(),
+                scope_name.clone(),
+            )
         })
     }
 
@@ -881,8 +866,12 @@ impl Config {
             .functions
             .iter()
             .filter(|def| {
-                def.name == *function_name
-                    && (def.scope == scope_name || def.scope == "global".to_string())
+                get_names_and_scope_match(
+                    def.name.clone(),
+                    function_name.to_string(),
+                    def.scope.clone(),
+                    scope_name.clone(),
+                )
             })
             .collect::<Vec<_>>();
         if funcs.len() == 1 {
@@ -930,6 +919,15 @@ impl Config {
             error,
         )
     }
+}
+
+fn get_names_and_scope_match(
+    defname: String,
+    name2: String,
+    defscope: String,
+    scope2: String,
+) -> bool {
+    defname == *name2 && (defscope == scope2 || defscope == "global".to_string())
 }
 
 fn get_len_tokens_string(tokens: &Vec<String>) -> usize {
