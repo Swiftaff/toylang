@@ -69,7 +69,7 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 
 ## Toy language Syntax Examples
 
-### Variable assignment
+### Constant assignment
 
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
 
@@ -80,7 +80,7 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 = reference a
 = string "string"
 
-// basic arithmetic
+// basic arithmetic built in functions
 = addition + 1 2
 = subtraction - 5.4 3.2
 = multiplication * 3 4
@@ -100,7 +100,7 @@ fn main() {
     let a_reference: i64 = an_integer;
     let a_string: String = "string".to_string();
 
-    // basic arithmetic
+    // basic arithmetic built in functions
     let addition: i64 = 1 + 2;
     let subtraction: f64 = 5.4 - 3.2;
     let multiplication: i64 = 3 * 4;
@@ -117,10 +117,23 @@ fn main() {
 
 ```
 // single line functions
+// one i64 argument, returns i64
 = function_name : i64 i64 \ arg1 => + 123 arg1
 //                ^         ^       ^_return expression
 //                 \         \_ argument names
 //                  \_argument types, return type last
+
+// multi line functions
+// two i64 arguments, returns i64
+= multiline_fn_name : i64 i64 i64 \ arg1 arg2 =>
+= x + arg1 123
+= y - x arg2
+= z * y 10
+
+// z is the first expression
+// (not an assignment) so it is
+// the return value of the function
+z
 
 ```
 
@@ -131,6 +144,19 @@ fn main() {
     // single line functions
     fn function_name(arg1: i64) -> i64 {
         123 + arg1
+    }
+
+    // multi line functions
+    // one i64 arg, returns i64
+    fn multiline_fn_name(arg1: i64) -> i64 {
+        let x: i64 = arg1 + 123;
+        let y: i64 = x - 12;
+        let z: i64 = y * 10;
+
+        // z is the first expression
+        // (not an assignment) so it is
+        // the return value of the function
+        z
     }
 }
 ```
