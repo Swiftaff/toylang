@@ -693,50 +693,18 @@ impl Config {
 
                                 match expression_result {
                                     Ok((expression, expression_type)) => {
-                                        // validate that expression type matches provided type
-                                        let return_type_signature =
-                                            &type_signature[type_signature.len() - 1];
-                                        let first_arg_of_return_expression =
-                                            if expression_type.contains("|") {
-                                                let test = self
-                                                    .get_type(&body.clone()[1], identifier.clone());
-                                                test
-                                            } else {
-                                                expression_type.clone()
-                                            };
-                                        let expression_type_without_pipe =
-                                            if expression_type.contains("|") {
-                                                first_arg_of_return_expression
-                                            } else {
-                                                expression_type
-                                            };
-                                        if !return_type_signature
-                                            .contains(&expression_type_without_pipe.clone())
-                                        {
-                                            return Err(self.get_error(
-                                                arrow_indent,
-                                                arrow_len,
-                                                &format!("{}\r\n{:?} - the type of this function's return expression\r\n{:?} - does not match it's signature's return type\r\n{}", not_valid, &expression_type_without_pipe, &type_signature[type_signature.len()-1], example_syntax),
-                                            ));
-                                        }
-
-                                        let args_with_types = get_function_args_with_types(
-                                            args,
-                                            type_signature.clone(),
-                                        );
-                                        let expression_indent = " ".repeat((self.indent + 1) * 4);
-                                        let trailing_brace_indent = " ".repeat(self.indent * 4);
-
-                                        let output = format!(
-                                            "({}) -> {} {{\r\n{}{}\r\n{}}}\r\n",
-                                            args_with_types,
-                                            type_signature[type_signature.len() - 1],
-                                            expression_indent,
+                                        return self.get_expression_result_for_valid_return_type(
+                                            &body,
+                                            &args,
+                                            &type_signature,
+                                            &identifier,
                                             &expression,
-                                            trailing_brace_indent
-                                        );
-                                        //TODO check this - should it return the function return_type??
-                                        return Ok((output, "Function".to_string()));
+                                            &expression_type,
+                                            arrow_indent,
+                                            arrow_len,
+                                            not_valid,
+                                            example_syntax,
+                                        )
                                     }
                                     Err(e) => return Err(e),
                                 }
@@ -801,6 +769,57 @@ impl Config {
             }
         }
         Ok((final_expression, final_type))
+    }
+
+    //penguin
+    fn get_expression_result_for_valid_return_type(
+        self: &mut Self,
+        body_of_expression: &Vec<String>,
+        args: &Vec<String>,
+        type_signature: &Vec<String>,
+        identifier: &String,
+        expression: &String,
+        expression_type: &ExpressionType,
+        arrow_indent: usize,
+        arrow_len: usize,
+        not_valid: &str,
+        example_syntax: &str,
+    ) -> Result<(Expression, ExpressionType), String> {
+        // validate that expression type matches provided type
+        let return_type_signature = &type_signature[type_signature.len() - 1];
+        let first_arg_of_return_expression = if expression_type.contains("|") {
+            let test = self.get_type(&body_of_expression.clone()[1], identifier.clone());
+            test
+        } else {
+            expression_type.clone()
+        };
+        let expression_type_without_pipe = if expression_type.contains("|") {
+            first_arg_of_return_expression
+        } else {
+            expression_type.clone()
+        };
+        if !return_type_signature.contains(&expression_type_without_pipe.clone()) {
+            return Err(self.get_error(
+            arrow_indent,
+            arrow_len,
+            &format!("{}\r\n{:?} - the type of this function's return expression\r\n{:?} - does not match it's signature's return type\r\n{}", not_valid, &expression_type_without_pipe, &type_signature[type_signature.len()-1], example_syntax),
+        ));
+        }
+
+        let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
+        let expression_indent = " ".repeat((self.indent + 1) * 4);
+        let trailing_brace_indent = " ".repeat(self.indent * 4);
+
+        let output = format!(
+            "({}) -> {} {{\r\n{}{}\r\n{}}}\r\n",
+            args_with_types,
+            type_signature[type_signature.len() - 1],
+            expression_indent,
+            expression,
+            trailing_brace_indent
+        );
+        //TODO check this - should it return the function return_type??
+        return Ok((output, "Function".to_string()));
     }
 
     /*
