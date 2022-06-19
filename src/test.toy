@@ -18,7 +18,7 @@
 // This is just a constant, so could be simplified to..
 // = j1 123
 = j1 : i64 \ => 123
-//= j2 : i64 \ => 123
+= j2 : i64 \ => 123
 
 // one i64 arg, returns i64
 = k1 : i64 i64 \ arg1 => + 123 arg1
@@ -33,9 +33,10 @@
 
 // one i64 arg, returns i64
 = k2 : i64 i64 \ arg1 =>
-//= x + arg1 123
-= x 123
-x
+= x + arg1 123
+= y - x 12.1
+= z * y 10
+z
 // TODO fix arg1 Undefined for multiline functions
 //  = x + arg1 123
 //  x

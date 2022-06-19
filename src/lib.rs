@@ -129,6 +129,7 @@ impl Config {
     fn writefile_or_error(self: &Self) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
         if self.error_stack.len() == 0 {
             fs::write("../../src/bin/output.rs", &self.output)?;
+            println!("SAVED to '../../src/bin/output.rs'");
         } else {
             println!("DIDN'T SAVE");
         }
@@ -447,10 +448,17 @@ impl Config {
             }
         }
         // or error if none of above
-        let text: String = tokens.iter().map(String::as_str).collect();
+        //let text: String = tokens.iter().map(String::as_str).collect();
+        let arrow_indent = 3 + identifier.len();
+        let len = get_len_tokens_string(&tokens);
+        let arrow_len = if arrow_indent > len {
+            len
+        } else {
+            len - arrow_indent
+        };
         Err(self.get_error(
-            3 + identifier.len(),
-            text.len(),
+            0,
+            arrow_len,
             "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function call, e.g. + 1 2, function definition, e.g. \\ arg1 => arg1",
         ))
     }
@@ -482,12 +490,12 @@ impl Config {
     ) -> Result<(Expression, ExpressionType), String> {
         let fn_option: Option<FunctionDefinition> =
             self.get_option_function_definition(tokens[0].clone(), self.current_scope.clone());
-
+        let tokens_string_length = get_len_tokens_string(&tokens);
         match fn_option {
             Some(def) => {
                 let allow_for_fn_name = 1;
                 let count_arguments = tokens.len() - allow_for_fn_name;
-                let tokens_string_length = get_len_tokens_string(&tokens);
+
                 let expression_indents = 3 + def.name.len();
                 let validate_arg_types_must_match = def
                     .validations
@@ -511,7 +519,7 @@ impl Config {
                 // check types of values
                 let mut value_types: Vec<String> = vec![];
                 for i in allow_for_fn_name..tokens.len() {
-                    value_types.push(self.get_type(&tokens[i], identifier.clone()));
+                    value_types.push(self.get_type(&tokens[i], self.current_scope.clone()));
                 }
                 for i in allow_for_fn_name..count_arguments {
                     if !def.types[i].contains(&value_types[i]) {
@@ -541,7 +549,7 @@ impl Config {
                     {
                         return Err(self.get_error(
                                     expression_indents,
-                                tokens_string_length,
+                                tokens_string_length - expression_indents - 1,
                                 &format!(
                                     "This function's arguments must all be of the same type. Some values have types that appear to differ: {:?}",
                                     value_types
@@ -568,7 +576,7 @@ impl Config {
             _ => {
                 return Err(self.get_error(
                     3 + identifier.len(),
-                    10, //text.len(),
+                    tokens_string_length,
                     &format!("is not a valid call to function '{}'", tokens[0]),
                 ));
             }
@@ -604,13 +612,12 @@ impl Config {
                                     &identifier,
                                     &expression,
                                 );
-                                //penguin
                             } else if *expression_type == "FunctionDefFirstOfMulti".to_string() {
                                 self.set_output_for_function_definition_singleline_or_firstline_of_multi(
                                     &identifier,
                                     &expression,
                                 );
-                                //penguin
+
                                 self.indent = self.indent + 1;
                             } else {
                                 self.set_output_for_variable_assignment(
@@ -808,7 +815,6 @@ impl Config {
             expression,
             trailing_brace_indent
         );
-        //TODO check this - should it return the function return_type??
         return Ok((output, "Function".to_string()));
     }
 
@@ -821,8 +827,6 @@ impl Config {
     ) -> Result<(Expression, ExpressionType), String> {
         self.current_scope = identifier.clone();
 
-        // <- TODO fix below - indents the fn def line as well as contents
-        //penguin
         self.current_scope = identifier.clone();
         let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
 
@@ -839,8 +843,6 @@ impl Config {
             args_with_types,
             &type_signature[type_signature.len() - 1]
         );
-
-        //TODO check this - should it return the function return_type??
         return Ok((output, "FunctionDefFirstOfMulti".to_string()));
     }
 
@@ -891,28 +893,27 @@ impl Config {
     }
 
     fn get_type(self: &Self, text: &String, scope_name: String) -> String {
+        let mut return_type = "Undefined".to_string();
         if is_integer(text) {
-            return "i64".to_string();
+            return_type = "i64".to_string();
         }
         if is_float(text) {
-            return "f64".to_string();
+            return_type = "f64".to_string();
         }
         if is_string(text) {
-            return "String".to_string();
+            return_type = "String".to_string();
         }
-        if self.get_exists_function(text, scope_name.clone()) {
-            let def_option = self.get_option_function_definition(text.to_string(), scope_name);
+        let s = scope_name.clone();
+        if self.get_exists_function(text, s.clone()) {
+            let def_option = self.get_option_function_definition(text.to_string(), s.clone());
             match def_option {
                 Some(def) => {
-                    return def.return_type.clone();
+                    return_type = def.return_type.clone();
                 }
-                _ => {
-                    return "Undefined".to_string();
-                }
+                _ => (),
             }
-        } else {
-            return "Undefined".to_string();
         }
+        return return_type;
     }
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
@@ -936,7 +937,7 @@ fn get_len_tokens_string(tokens: &Vec<String>) -> usize {
     for i in 0..tokens.len() {
         total += tokens[i].len();
     }
-    let num_spaces_inbetween = total - 1;
+    let num_spaces_inbetween = if total > 0 { total - 1 } else { 0 };
     total + num_spaces_inbetween
 }
 
