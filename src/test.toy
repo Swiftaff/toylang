@@ -32,9 +32,10 @@
 // multi-line functions
 
 // one i64 arg, returns i64
-//= k2 : i64 i64 \ arg1 =>
+= k2 : i64 i64 \ arg1 =>
 //= x + arg1 123
-//x
+= x 123
+x
 // TODO fix arg1 Undefined for multiline functions
 //  = x + arg1 123
 //  x

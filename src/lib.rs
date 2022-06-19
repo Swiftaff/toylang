@@ -419,6 +419,42 @@ impl Config {
         self.functions.push(new_constant_function);
     }
 
+    fn get_expression_result(
+        self: &mut Self,
+        identifier: &String,
+        tokens: Vec<String>,
+    ) -> Result<(Expression, ExpressionType), String> {
+        if tokens.len() == 1 {
+            if is_integer(&tokens[0]) {
+                return Ok((tokens[0].clone(), "i64".to_string()));
+            }
+            if is_float(&tokens[0]) {
+                return Ok((tokens[0].clone(), "f64".to_string()));
+            }
+            let possible_string: Vec<char> = tokens[0].chars().collect();
+            if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
+                return Ok((
+                    format!("{}{}", tokens[0], ".to_string()",).to_string(),
+                    "String".to_string(),
+                ));
+            }
+        }
+        if tokens.len() > 0 {
+            if is_function_definition(&tokens) {
+                return self.get_expression_result_for_funcdef(&tokens, &identifier);
+            } else if self.get_exists_function(&tokens[0], self.current_scope.clone()) {
+                return self.get_expression_result_for_function_call(&identifier, &tokens);
+            }
+        }
+        // or error if none of above
+        let text: String = tokens.iter().map(String::as_str).collect();
+        Err(self.get_error(
+            3 + identifier.len(),
+            text.len(),
+            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function call, e.g. + 1 2, function definition, e.g. \\ arg1 => arg1",
+        ))
+    }
+
     fn get_expression_result_for_expression(self: &mut Self) -> Result<Option<String>, String> {
         let tokens = self.lines_of_tokens[self.current_line].clone();
         let identifier = self.current_scope.clone();
@@ -564,11 +600,18 @@ impl Config {
                     match possible_referenced_constant_result {
                         Ok((expression, expression_type)) => {
                             if *expression_type == "Function".to_string() {
-                                // single line, or first line of multiline
                                 self.set_output_for_function_definition_singleline_or_firstline_of_multi(
                                     &identifier,
                                     &expression,
                                 );
+                                //penguin
+                            } else if *expression_type == "FunctionDefFirstOfMulti".to_string() {
+                                self.set_output_for_function_definition_singleline_or_firstline_of_multi(
+                                    &identifier,
+                                    &expression,
+                                );
+                                //penguin
+                                self.indent = self.indent + 1;
                             } else {
                                 self.set_output_for_variable_assignment(
                                     &identifier,
@@ -590,60 +633,6 @@ impl Config {
 
             Ok(validation_error)
         }
-    }
-
-    fn get_expression_result(
-        self: &mut Self,
-        identifier: &String,
-        tokens: Vec<String>,
-    ) -> Result<(Expression, ExpressionType), String> {
-        if tokens.len() == 1 {
-            if is_integer(&tokens[0]) {
-                return Ok((tokens[0].clone(), "i64".to_string()));
-            }
-            if is_float(&tokens[0]) {
-                return Ok((tokens[0].clone(), "f64".to_string()));
-            }
-            let possible_string: Vec<char> = tokens[0].chars().collect();
-            if possible_string[0] == '\"' && possible_string[possible_string.len() - 1] == '\"' {
-                return Ok((
-                    format!("{}{}", tokens[0], ".to_string()",).to_string(),
-                    "String".to_string(),
-                ));
-            }
-            //else is a function call - see below
-        }
-
-        let arrow_indent = 3 + identifier.len();
-        let mut arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len();
-        if arrow_len > 0 {
-            arrow_len = arrow_len - 1;
-        }
-        let not_valid = "is not a valid function definition.";
-        let example_syntax = "Example syntax:\r\n'= func_name : i64 i64 \\ arg1 => + arg1 123'\r\n               ^         ^       ^_after arrow return expression\r\n                \\         \\_after slash argument names\r\n                 \\_after colon argument types, last one is return type";
-
-        if tokens.len() > 0 {
-            if is_function_definition(&tokens) {
-                return self.get_expression_result_for_funcdef(
-                    &tokens,
-                    arrow_indent,
-                    arrow_len,
-                    not_valid,
-                    example_syntax,
-                    &identifier,
-                );
-            } else if self.get_exists_function(&tokens[0], self.current_scope.clone()) {
-                return self.get_expression_result_for_function_call(&identifier, &tokens);
-            }
-        }
-
-        // or error if none of above
-        let text: String = tokens.iter().map(String::as_str).collect();
-        Err(self.get_error(
-            3 + identifier.len(),
-            text.len(),
-            "is not a valid expression: must be either an: integer, e.g. 12345, float, e.g. 123.45, existing constant, e.g. x, string, e.g. \"string\", function call, e.g. + 1 2, function definition, e.g. \\ arg1 => arg1",
-        ))
     }
 
     fn get_expression_result_for_referenced_constant(
@@ -687,14 +676,17 @@ impl Config {
     fn get_expression_result_for_funcdef(
         self: &mut Self,
         tokens: &Vec<String>,
-        arrow_indent: usize,
-        arrow_len: usize,
-        not_valid: &str,
-        example_syntax: &str,
         identifier: &String,
     ) -> Result<(Expression, ExpressionType), String> {
         let slash_option = get_function_def_slash(tokens);
         let arrow_option = get_function_def_arrow(tokens);
+        let arrow_indent = 3 + identifier.len();
+        let mut arrow_len = concatenate_vec_strings(&tokens).len() + &tokens.len();
+        if arrow_len > 0 {
+            arrow_len = arrow_len - 1;
+        }
+        let not_valid = "is not a valid function definition.";
+        let example_syntax = "Example syntax:\r\n'= func_name : i64 i64 \\ arg1 => + arg1 123'\r\n               ^         ^       ^_after arrow return expression\r\n                \\         \\_after slash argument names\r\n                 \\_after colon argument types, last one is return type";
         match (slash_option, arrow_option) {
             (Some(slash), Some(arrow)) => {
                 if arrow < slash || slash == 0 || arrow == 0 {
@@ -830,7 +822,7 @@ impl Config {
         self.current_scope = identifier.clone();
 
         // <- TODO fix below - indents the fn def line as well as contents
-        self.indent = self.indent + 1;
+        //penguin
         self.current_scope = identifier.clone();
         let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
 
@@ -849,7 +841,7 @@ impl Config {
         );
 
         //TODO check this - should it return the function return_type??
-        return Ok((output, "Function".to_string()));
+        return Ok((output, "FunctionDefFirstOfMulti".to_string()));
     }
 
     /*
