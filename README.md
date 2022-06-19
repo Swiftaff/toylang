@@ -147,10 +147,10 @@ fn main() {
     }
 
     // multi line functions
-    // one i64 arg, returns i64
-    fn multiline_fn_name(arg1: i64) -> i64 {
+    // two i64 arguments, returns i64
+    fn multiline_fn_name(arg1: i64, arg2: i64) -> i64 {
         let x: i64 = arg1 + 123;
-        let y: i64 = x - 12;
+        let y: i64 = x - arg2;
         let z: i64 = y * 10;
 
         // z is the first expression
