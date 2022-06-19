@@ -907,7 +907,7 @@ impl Config {
 
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
-            "----------\r\n{}:{}:0\r\n{}\r\n{}{} {}",
+            "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
             self.filename, // TODO try to fix path so it becomes a link in VS Code
             self.current_line + 1,
             self.lines_of_chars[self.current_line]

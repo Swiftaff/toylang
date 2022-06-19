@@ -20,7 +20,7 @@
 = j1 : i64 \ => 123
 
 // uncomment to test immutable constants, same name as above
-//= j1 : i64 \ => 123
+= j1 : i64 \ => 123
 
 // one i64 arg, returns i64
 = k1 : i64 i64 \ arg1 => + 123 arg1
