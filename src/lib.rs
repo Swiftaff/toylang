@@ -624,101 +624,14 @@ impl Config {
 
         if tokens.len() > 0 {
             if is_function_definition(&tokens) {
-                let slash_option = get_function_def_slash(&tokens);
-                let arrow_option = get_function_def_arrow(&tokens);
-                match (slash_option, arrow_option) {
-                    (Some(slash), Some(arrow)) => {
-                        if arrow < slash || slash == 0 || arrow == 0 {
-                            return Err(self.get_error(
-                                arrow_indent,
-                                arrow_len,
-                                &format!(
-                                    "{} Missing slash or arrow.\r\n{}",
-                                    not_valid, example_syntax
-                                ),
-                            ));
-                        } else {
-                            let type_signature = get_function_def_type_signature(&tokens, slash);
-                            let args = get_function_def_args(&tokens, slash, arrow);
-
-                            // check if all args have types, plus a return type
-                            if type_signature.len() != args.len() + 1 {
-                                return Err(self.get_error(
-                                    arrow_indent,
-                                    arrow_len,
-                                    &format!("{} The count of argument types and arguments don't match. {:?} {:?}\r\n{}", not_valid, type_signature, args,example_syntax),
-                                ));
-                            }
-
-                            let body = get_function_def_body(&tokens, arrow);
-                            if body.len() == 0 {
-                                // i.e. there is nothing after the "=>" then assume it is a multiline function
-                                self.current_scope = identifier.clone();
-
-                                // <- TODO fix below - indents the fn def line as well as contents
-                                self.indent = self.indent + 1;
-                                self.current_scope = identifier.clone();
-                                let args_with_types = get_function_args_with_types(
-                                    args.clone(),
-                                    type_signature.clone(),
-                                );
-
-                                let output = format!(
-                                    "({}) -> {} {{\r\n", //no end function brace
-                                    args_with_types,
-                                    &type_signature[type_signature.len() - 1]
-                                );
-
-                                // define the arguments so get_expression_result doesn't return "Undefined" for their types
-
-                                let _expression_result = self.set_functions_for_func_args(
-                                    &identifier,
-                                    &args,
-                                    &type_signature,
-                                    &body,
-                                );
-
-                                //TODO check this - should it return the function return_type??
-                                return Ok((output, "Function".to_string()));
-                            } else {
-                                // get return expression/value for single line function
-
-                                // define the arguments so get_expression_result doesn't return "Undefined" for their types
-                                let expression_result = self.set_functions_for_func_args(
-                                    &identifier,
-                                    &args,
-                                    &type_signature,
-                                    &body,
-                                );
-
-                                match expression_result {
-                                    Ok((expression, expression_type)) => {
-                                        return self.get_expression_result_for_valid_return_type(
-                                            &body,
-                                            &args,
-                                            &type_signature,
-                                            &identifier,
-                                            &expression,
-                                            &expression_type,
-                                            arrow_indent,
-                                            arrow_len,
-                                            not_valid,
-                                            example_syntax,
-                                        )
-                                    }
-                                    Err(e) => return Err(e),
-                                }
-                            }
-                        }
-                    }
-                    _ => {
-                        return Err(self.get_error(
-                            arrow_indent,
-                            arrow_len,
-                            &format!("{} {}", not_valid, example_syntax),
-                        ))
-                    }
-                }
+                return self.get_expression_result_for_funcdef(
+                    &tokens,
+                    arrow_indent,
+                    arrow_len,
+                    not_valid,
+                    example_syntax,
+                    &identifier,
+                );
             } else if self.get_exists_function(&tokens[0], self.current_scope.clone()) {
                 return self.get_expression_result_for_function_call(&identifier, &tokens);
             }
@@ -771,8 +684,93 @@ impl Config {
         Ok((final_expression, final_type))
     }
 
-    //penguin
-    fn get_expression_result_for_valid_return_type(
+    fn get_expression_result_for_funcdef(
+        self: &mut Self,
+        tokens: &Vec<String>,
+        arrow_indent: usize,
+        arrow_len: usize,
+        not_valid: &str,
+        example_syntax: &str,
+        identifier: &String,
+    ) -> Result<(Expression, ExpressionType), String> {
+        let slash_option = get_function_def_slash(tokens);
+        let arrow_option = get_function_def_arrow(tokens);
+        match (slash_option, arrow_option) {
+            (Some(slash), Some(arrow)) => {
+                if arrow < slash || slash == 0 || arrow == 0 {
+                    return Err(self.get_error(
+                        arrow_indent,
+                        arrow_len,
+                        &format!(
+                            "{} Missing slash or arrow.\r\n{}",
+                            not_valid, example_syntax
+                        ),
+                    ));
+                } else {
+                    let type_signature = get_function_def_type_signature(&tokens, slash);
+                    let args = get_function_def_args(&tokens, slash, arrow);
+
+                    // check if all args have types, plus a return type
+                    if type_signature.len() != args.len() + 1 {
+                        return Err(self.get_error(
+                                    arrow_indent,
+                                    arrow_len,
+                                    &format!("{} The count of argument types and arguments don't match. {:?} {:?}\r\n{}", not_valid, type_signature, args,example_syntax),
+                                ));
+                    }
+
+                    let body = get_function_def_body(&tokens, arrow);
+                    if body.len() == 0 {
+                        // i.e. there is nothing after the "=>" then assume it is a multiline function
+                        return self.get_expression_result_for_funcdef_of_multiline_function(
+                            &body,
+                            &args,
+                            &type_signature,
+                            &identifier,
+                        );
+                    } else {
+                        // get return expression/value for single line function
+
+                        // define the arguments so get_expression_result doesn't return "Undefined" for their types
+                        let expression_result = self.set_functions_for_func_args(
+                            &identifier,
+                            &args,
+                            &type_signature,
+                            &body,
+                        );
+
+                        match expression_result {
+                            Ok((expression, expression_type)) => {
+                                return self
+                                    .get_expression_result_for_funcdef_of_singleline_function(
+                                        &body,
+                                        &args,
+                                        &type_signature,
+                                        &identifier,
+                                        &expression,
+                                        &expression_type,
+                                        arrow_indent,
+                                        arrow_len,
+                                        not_valid,
+                                        example_syntax,
+                                    )
+                            }
+                            Err(e) => return Err(e),
+                        }
+                    }
+                }
+            }
+            _ => {
+                return Err(self.get_error(
+                    arrow_indent,
+                    arrow_len,
+                    &format!("{} {}", not_valid, example_syntax),
+                ))
+            }
+        }
+    }
+
+    fn get_expression_result_for_funcdef_of_singleline_function(
         self: &mut Self,
         body_of_expression: &Vec<String>,
         args: &Vec<String>,
@@ -818,6 +816,38 @@ impl Config {
             expression,
             trailing_brace_indent
         );
+        //TODO check this - should it return the function return_type??
+        return Ok((output, "Function".to_string()));
+    }
+
+    fn get_expression_result_for_funcdef_of_multiline_function(
+        self: &mut Self,
+        body_of_expression: &Vec<String>,
+        args: &Vec<String>,
+        type_signature: &Vec<String>,
+        identifier: &String,
+    ) -> Result<(Expression, ExpressionType), String> {
+        self.current_scope = identifier.clone();
+
+        // <- TODO fix below - indents the fn def line as well as contents
+        self.indent = self.indent + 1;
+        self.current_scope = identifier.clone();
+        let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
+
+        // define the arguments so get_expression_result doesn't return "Undefined" for their types
+        let _expression_result = self.set_functions_for_func_args(
+            &identifier,
+            &args,
+            &type_signature,
+            &body_of_expression,
+        );
+
+        let output = format!(
+            "({}) -> {} {{\r\n", //no end function brace
+            args_with_types,
+            &type_signature[type_signature.len() - 1]
+        );
+
         //TODO check this - should it return the function return_type??
         return Ok((output, "Function".to_string()));
     }
