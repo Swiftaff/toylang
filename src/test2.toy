@@ -1,0 +1,56 @@
+
+//= a 123
+//= b 123.45
+//= c a
+//= cc c
+//= ccc cc
+//= d "a string"
+= e + 1 2
+//= f - 1.1 2.1
+//= g * 1 2
+//= h / 1 2
+//= i % 1 2
+//= test g
+
+// single line functions
+
+// no args, returns i64.
+// This is just a constant, so could be simplified to..
+// = j1 123
+//= j1 : i64 \ => 123
+
+// uncomment to test immutable constants, same name as above
+//= j1 : i64 \ => 123
+
+// one i64 arg, returns i64
+//= k1 : i64 i64 \ arg1 => + 123 arg1
+
+// two i64 args, returns i64
+//= l1 : i64 i64 i64 \ arg1 arg2 => + arg1 arg2
+
+// one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
+//= m1 : (i64 i64) i64 \ fn1 arg2 => fn1 arg2
+
+// multi-line functions
+
+// one i64 arg, returns i64
+= k2 : i64 i64 i64 \ arg1 arg2 =>
+= x + arg1 123
+= y - x arg2
+= z * y 10
+
+// z is the first expression
+// (not an assignment) so it is
+// the return value of the function
+z
+
+// one arg is a function that takes i64 returns i64, arg2 is an i64, both passed to this function which returns i64
+//= m2 : (i64 i64) i64
+//  \ fn1 arg2 =>
+//  fn1 arg2
+
+// println!
+//@ "Hello, world!"
+//@ 123
+//@ 123.12
+//@ + 1 2

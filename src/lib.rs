@@ -22,6 +22,15 @@ pub struct FunctionDefinition {
 type Expression = String;
 type ExpressionType = String;
 
+type Ast = Vec<Element>;
+type Element = (ElementInfo, ElementChildren);
+#[derive(Clone, Debug)]
+pub enum ElementInfo {
+    Comment(String),
+}
+type ElementChildren = Vec<AstIndex>;
+type AstIndex = usize;
+
 #[derive(Clone, Debug)]
 pub struct Config {
     pub filepath: String,
@@ -36,6 +45,8 @@ pub struct Config {
     pub indent: usize,
     pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
+    pub ast: Ast,
+    pub ast_output: String,
 }
 
 struct Errors {
@@ -109,6 +120,8 @@ impl Config {
             .map(|x| x.clone())
             .collect();
         let error_stack = vec![];
+        let ast = vec![];
+        let ast_output = "".to_string();
         Ok(Config {
             filepath,
             filename,
@@ -122,6 +135,8 @@ impl Config {
             indent,
             functions,
             error_stack,
+            ast,
+            ast_output,
         })
     }
 
@@ -156,6 +171,7 @@ impl Config {
 
         match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
+                dbg!(&self.ast);
                 println!(
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
@@ -301,6 +317,8 @@ impl Config {
         self.indent = to_clone.indent;
         self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
+        self.ast = to_clone.ast;
+        self.ast_output = to_clone.ast_output;
     }
 
     fn set_output_for_main_fn(self: &mut Self) {
@@ -391,6 +409,8 @@ impl Config {
         } else {
             let comment = concatenate_vec_strings(tokens);
             let insert = &format!("{}{}\r\n", " ".repeat(self.indent * 4), &comment);
+            let el: Element = (ElementInfo::Comment(comment.to_string()), vec![]);
+            self.ast.push(el);
             self.output.insert_str(self.outputcursor, &insert);
             self.outputcursor = self.outputcursor + insert.len();
             let validation_error = None;
@@ -1109,6 +1129,8 @@ mod tests {
             indent: 1,
             functions: vec![],
             error_stack: vec![],
+            ast: vec![],
+            ast_output: "".to_string(),
         }
     }
 
