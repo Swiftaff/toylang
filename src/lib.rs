@@ -1,4 +1,4 @@
-//TODO make most function arguments refs
+// TODO make most function arguments refs
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -39,7 +39,6 @@ pub struct Config {
 }
 
 struct Errors {
-    //invalid_program_syntax: &'static str,
     variable_assignment: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_expression: &'static str,
@@ -47,7 +46,6 @@ struct Errors {
 }
 
 const ERRORS: Errors = Errors {
-    //invalid_program_syntax: "Invalid program syntax. Must start with RUN, followed by linebreak, optional commands and linebreak, and end with END",
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_expression: "No valid expression was found",
@@ -94,10 +92,20 @@ impl Config {
             return_type: "".to_string(),
             scope: "".to_string(),
         };
+        //penguin
+        let print = FunctionDefinition {
+            name: "@".to_string(),
+            format: "println!(\"{}\",#1.to_string())".to_string(),
+            types: vec!["String".to_string()],
+            validations: vec![],
+            return_type: "".to_string(),
+            scope: "global".to_string(),
+        };
         let functions: Vec<FunctionDefinition> = vec![]
             .iter()
             .chain(&arithmetic_operators)
             .chain(&vec![function_def])
+            .chain(&vec![print])
             .map(|x| x.clone())
             .collect();
         let error_stack = vec![];
@@ -120,10 +128,17 @@ impl Config {
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.filecontents = fs::read_to_string(&self.filepath)?;
         println!("\r\nINPUT contents of filepath: {:?}", &self.filepath);
+        match self.run_main_tasks() {
+            Ok(_) => (),
+            Err(_e) => (),
+        }
+        self.writefile_or_error()
+    }
+
+    pub fn run_main_tasks(self: &mut Self) -> Result<(), String> {
         self.set_lines_of_chars();
         self.set_lines_of_tokens();
-        self.run_main_loop()?;
-        self.writefile_or_error()
+        self.run_main_loop()
     }
 
     fn writefile_or_error(self: &Self) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
@@ -137,7 +152,7 @@ impl Config {
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
-        //ref: https://doc.rust-lang.org/reference/tokens.html
+        // ref: https://doc.rust-lang.org/reference/tokens.html
 
         match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
@@ -208,7 +223,7 @@ impl Config {
                     None => succeeded = true,
                 }
             }
-            Err(_e) => (), //println!("error {:?}", e), //self.error_stack.push(e), // just testing - move to a temporary error_stack
+            Err(_e) => (), // println!("error {:?}", e), // self.error_stack.push(e), // just testing - move to a temporary error_stack
         }
         succeeded
     }
@@ -297,14 +312,19 @@ impl Config {
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
         // if we found an expression while inside a function, then it must be the returning expression
         // so we should close this function brace and move scope back up a level
+        dbg!("close }", &self.current_scope);
+        //if self.indent > 0 {
         self.indent = self.indent - 1;
+        //}
         let trailing_brace = format!("{}}}\r\n", " ".repeat(self.indent * 4));
         let option_parent_scope = self
             .get_option_function_definition(self.current_scope.clone(), self.current_scope.clone());
-        match option_parent_scope {
+        match option_parent_scope.clone() {
             Some(parent_scope) => self.current_scope = parent_scope.scope,
             None => (), // couldn't find function called self.current_scope - so um, leave as is, or maybe default to main??
         }
+        dbg!("close }", &self.current_scope, option_parent_scope);
+        //self.current_scope = self.parent_scope.clone(); // TODO hm will only work for 1 level
         let insert = format!(
             "{}{}\r\n{}",
             " ".repeat((self.indent + 1) * 4),
@@ -316,9 +336,12 @@ impl Config {
     }
 
     fn set_output_for_plain_expression(self: &mut Self, tokens: &Vec<String>) {
+        //}, expression: &String) {
+        //dbg!("plain_expression", &expression, &tokens);
         let insert = format!(
             "{}{};\r\n",
             " ".repeat(self.indent * 4),
+            //expression
             concatenate_vec_strings(&tokens)
         );
         self.output.insert_str(self.outputcursor, &insert);
@@ -410,7 +433,7 @@ impl Config {
         final_type: String,
     ) {
         let new_constant_function = FunctionDefinition {
-            name: identifier,
+            name: identifier.clone(),
             format: value,
             types: vec![],
             validations: vec!["is_constant".to_string()],
@@ -418,6 +441,9 @@ impl Config {
             scope: self.current_scope.clone(),
         };
         self.functions.push(new_constant_function);
+        if &identifier == &"k2".to_string() {
+            dbg!(&self.functions, &self.current_scope);
+        }
     }
 
     fn get_expression_result(
@@ -425,6 +451,7 @@ impl Config {
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
+        dbg!(&tokens);
         if tokens.len() == 1 {
             if is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -441,6 +468,10 @@ impl Config {
             }
         }
         if tokens.len() > 0 {
+            //dbg!(
+            //    &tokens,
+            //    self.get_exists_function(&tokens[0], self.current_scope.clone())
+            //);
             if is_function_definition(&tokens) {
                 return self.get_expression_result_for_funcdef(&tokens, &identifier);
             } else if self.get_exists_function(&tokens[0], self.current_scope.clone()) {
@@ -448,7 +479,6 @@ impl Config {
             }
         }
         // or error if none of above
-        //let text: String = tokens.iter().map(String::as_str).collect();
         let arrow_indent = 3 + identifier.len();
         let len = get_len_tokens_string(&tokens);
         let arrow_len = if arrow_indent > len {
@@ -464,16 +494,20 @@ impl Config {
     }
 
     fn get_expression_result_for_expression(self: &mut Self) -> Result<Option<String>, String> {
+        //dbg!("get_expression_result_for_expression");
         let tokens = self.lines_of_tokens[self.current_line].clone();
         let identifier = self.current_scope.clone();
         let mut validation_error = None;
         let expression_result = &self.get_expression_result(&identifier, tokens.clone());
         match expression_result {
-            Ok((_expression, _exp_type)) => {
+            Ok((expression, exp_type)) => {
+                dbg!(&expression, &exp_type, &self.current_scope);
                 if self.current_scope != "main".to_string() {
+                    //penguin
                     self.set_output_for_return_expression(&tokens);
                 } else {
-                    self.set_output_for_plain_expression(&tokens);
+                    //dbg!(expression);
+                    self.set_output_for_plain_expression(&tokens); //, expression);
                 }
             }
             Err(e) => {
@@ -491,6 +525,7 @@ impl Config {
         let fn_option: Option<FunctionDefinition> =
             self.get_option_function_definition(tokens[0].clone(), self.current_scope.clone());
         let tokens_string_length = get_len_tokens_string(&tokens);
+        //dbg!(&fn_option);
         match fn_option {
             Some(def) => {
                 let allow_for_fn_name = 1;
@@ -557,7 +592,7 @@ impl Config {
                             ));
                     }
                 }
-
+                //penguin
                 let output = match def.types.len() {
                     2 => {
                         let out1 = def.format.replace("#1", &tokens[allow_for_fn_name]);
@@ -570,6 +605,7 @@ impl Config {
                     }
                     _ => def.format,
                 };
+                //dbg!(&output);
 
                 return Ok((output, final_return_type.clone()));
             }
@@ -608,6 +644,7 @@ impl Config {
                     match possible_referenced_constant_result {
                         Ok((expression, expression_type)) => {
                             if *expression_type == "Function".to_string() {
+                                //if *expression_type == "FunctionDefSingle".to_string() {
                                 self.set_output_for_function_definition_singleline_or_firstline_of_multi(
                                     &identifier,
                                     &expression,
@@ -617,7 +654,7 @@ impl Config {
                                     &identifier,
                                     &expression,
                                 );
-
+                                //self.current_scope = identifier.clone();
                                 self.indent = self.indent + 1;
                             } else {
                                 self.set_output_for_variable_assignment(
@@ -626,6 +663,7 @@ impl Config {
                                     &expression_type,
                                 );
                             }
+                            dbg!("here?", &self.current_scope, &identifier);
                             self.set_functions_for_constant(
                                 identifier,
                                 expression,
@@ -654,7 +692,7 @@ impl Config {
         let function_exists =
             self.get_exists_function(&referenced_function_name, self.current_scope.clone());
         if function_exists {
-            //disambiguate i64|f64 for the actual type based on the type of first arg
+            // disambiguate i64|f64 for the actual type based on the type of first arg
             let def_option = self.get_option_function_definition(
                 referenced_function_name.to_string(),
                 self.current_scope.clone(),
@@ -816,6 +854,7 @@ impl Config {
             trailing_brace_indent
         );
         return Ok((output, "Function".to_string()));
+        //return Ok((output, "FunctionDefSingle".to_string()));
     }
 
     fn get_expression_result_for_funcdef_of_multiline_function(
@@ -828,6 +867,9 @@ impl Config {
         self.current_scope = identifier.clone();
 
         self.current_scope = identifier.clone();
+        //let temp_scope = self.current_scope.clone();
+        //penguin
+        //dbg!("testy", &identifier, &self.current_scope);
         let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
 
         // define the arguments so get_expression_result doesn't return "Undefined" for their types
@@ -837,9 +879,10 @@ impl Config {
             &type_signature,
             &body_of_expression,
         );
+        //self.current_scope = temp_scope;
 
         let output = format!(
-            "({}) -> {} {{\r\n", //no end function brace
+            "({}) -> {} {{\r\n", // no end function brace
             args_with_types,
             &type_signature[type_signature.len() - 1]
         );
@@ -908,7 +951,7 @@ impl Config {
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
             "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
-            self.filename, // TODO try to fix path so it becomes a link in VS Code
+            self.filename,
             self.current_line + 1,
             self.lines_of_chars[self.current_line]
                 .iter()
@@ -998,7 +1041,7 @@ fn strip_leading_whitespace(input: String) -> String {
         }
     }
     if first_non_whitespace_index == 0 && checking_for_whitespace {
-        //if you get to end of string and it's all whitespace return empty string
+        // if you get to end of string and it's all whitespace return empty string
         return "".to_string();
     }
     input[first_non_whitespace_index..].to_string()
@@ -1079,63 +1122,33 @@ mod tests {
             Err(_) => assert!(false, "error should not exist"),
         }
     }
-    #[test]
-    fn test_get_expression_result_for_variable_assignment() {
-        let err: Result<Option<String>, String> = Err(ERRORS.variable_assignment.to_string());
-        //let err2: Result<Option<String>, String> =
-        //    Err(ERRORS.no_valid_identifier_found.to_string());
-        assert_eq!(
-            mock_config("").get_expression_result_for_variable_assignment(),
-            err
-        );
-        //assert_eq!(mock_config("2 = x").get_expression_result_for_variable_assignment(), err2);
-        //assert_eq!(mock_config("let x = 2").get_expression_result_for_variable_assignment(), err2);
-        //assert_eq!(get_expression_result_for_variable_assignment("x = 2".to_string()), err);
-        //assert_eq!(get_expression_result_for_variable_assignment("x = Abc 2".to_string()), err);
-        //assert_eq!(get_expression_result_for_variable_assignment("x = Boats 2".to_string()), err);
-        //assert_eq!(get_expression_result_for_variable_assignment("x = Monkey 2".to_string()), err);
-
-        //OK
-        assert_eq!(
-            mock_config("= x 2").get_expression_result_for_variable_assignment(),
-            Ok(None)
-        );
-        assert_eq!(
-            mock_config("= x 2.2").get_expression_result_for_variable_assignment(),
-            Ok(None)
-        );
-        assert_eq!(
-            mock_config("= x 1\r\n= y x").get_expression_result_for_variable_assignment(),
-            Ok(None)
-        );
-        assert_eq!(
-            mock_config("= x \"string\"").get_expression_result_for_variable_assignment(),
-            Ok(None)
-        );
-    }
 
     #[test]
-    fn test_strip_leading_whitespace() {
-        assert_eq!(strip_leading_whitespace("".to_string()), "".to_string());
-        assert_eq!(
-            strip_leading_whitespace("abc".to_string()),
-            "abc".to_string()
-        );
-        assert_eq!(
-            strip_leading_whitespace("abc   \r\n".to_string()),
-            "abc   \r\n".to_string()
-        );
-        assert_eq!(
-            strip_leading_whitespace(" abc".to_string()),
-            "abc".to_string()
-        );
-        assert_eq!(
-            strip_leading_whitespace("    abc".to_string()),
-            "abc".to_string()
-        );
-        assert_eq!(
-            strip_leading_whitespace("\r\n    abc  \r\n".to_string()),
-            "abc  \r\n".to_string()
-        );
+    fn test_run() {
+        let test_cases = [
+            ["123", "fn main() {\r\n    123\r\n}\r\n}"],
+            ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
+            ["= b 123.45", "fn main() {\r\n    let b: f64 = 123.45;\r\n}"],
+            [
+                "= c \"a string\"",
+                "fn main() {\r\n    let c: String = \"a string\".to_string();\r\n}",
+            ],
+            [
+                "= e + 1 2\r\n",
+                "fn main() {\r\n    let e: i64 = 1 + 2;\r\n}",
+            ],
+        ];
+        for test in test_cases {
+            let input = test[0];
+            let output = test[1]; //wrong, needs trailing semicolon, no extra brace
+            let mut c = mock_config(input);
+            match c.run_main_tasks() {
+                Ok(_) => assert_eq!(c.output, output),
+                Err(e) => {
+                    dbg!(c, e);
+                    assert!(false, "error should not exist");
+                }
+            }
+        }
     }
 }
