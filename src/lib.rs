@@ -47,6 +47,7 @@ pub struct Config {
     pub error_stack: Vec<String>,
     pub ast: Ast,
     pub ast_output: String,
+    pub ast_walk_stack: Vec<usize>,
 }
 
 struct Errors {
@@ -122,6 +123,7 @@ impl Config {
         let error_stack = vec![];
         let ast = vec![];
         let ast_output = "".to_string();
+        let ast_walk_stack = vec![];
         Ok(Config {
             filepath,
             filename,
@@ -137,6 +139,7 @@ impl Config {
             error_stack,
             ast,
             ast_output,
+            ast_walk_stack,
         })
     }
 
@@ -176,6 +179,7 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
+                self.set_output_from_ast();
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -189,13 +193,14 @@ impl Config {
     }
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
-        self.set_output_for_main_fn();
+        self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
                 self.current_line = line;
                 self.check_one_or_more_succeeds()?;
             }
         }
+        self.set_ast_output_for_main_fn_end();
         Ok(())
     }
 
@@ -242,6 +247,12 @@ impl Config {
             Err(_e) => (), // println!("error {:?}", e), // self.error_stack.push(e), // just testing - move to a temporary error_stack
         }
         succeeded
+    }
+
+    fn set_output_from_ast(self: &mut Self) {
+        self.set_ast_output_for_main_fn_start();
+        //for
+        self.set_ast_output_for_main_fn_end();
     }
 
     fn set_lines_of_chars(self: &mut Self) {
@@ -319,12 +330,23 @@ impl Config {
         self.error_stack = to_clone.error_stack;
         self.ast = to_clone.ast;
         self.ast_output = to_clone.ast_output;
+        self.ast_walk_stack = to_clone.ast_walk_stack;
     }
 
     fn set_output_for_main_fn(self: &mut Self) {
         self.output = "fn main() {\r\n}".to_string();
         self.indent = 1;
         self.outputcursor = 13;
+    }
+
+    fn set_ast_output_for_main_fn_start(self: &mut Self) {
+        self.ast_output = format!("{}{}", self.ast_output, "fn main() {\r\n".to_string());
+        self.indent = 1;
+    }
+
+    fn set_ast_output_for_main_fn_end(self: &mut Self) {
+        self.ast_output = format!("{}{}", self.ast_output, "}".to_string());
+        self.indent = 0;
     }
 
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
@@ -1131,6 +1153,7 @@ mod tests {
             error_stack: vec![],
             ast: vec![],
             ast_output: "".to_string(),
+            ast_walk_stack: vec![],
         }
     }
 
@@ -1148,6 +1171,8 @@ mod tests {
     #[test]
     fn test_run() {
         let test_cases = [
+            ["//comment", "fn main() {\r\n    //comment\r\n}\r\n}"],
+            /*
             ["123", "fn main() {\r\n    123\r\n}\r\n}"],
             ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
             ["= b 123.45", "fn main() {\r\n    let b: f64 = 123.45;\r\n}"],
@@ -1159,18 +1184,89 @@ mod tests {
                 "= e + 1 2\r\n",
                 "fn main() {\r\n    let e: i64 = 1 + 2;\r\n}",
             ],
+            */
         ];
         for test in test_cases {
             let input = test[0];
             let output = test[1]; //wrong, needs trailing semicolon, no extra brace
             let mut c = mock_config(input);
             match c.run_main_tasks() {
-                Ok(_) => assert_eq!(c.output, output),
+                Ok(_) => assert_eq!(c.ast_output, output),
                 Err(e) => {
                     dbg!(c, e);
                     assert!(false, "error should not exist");
                 }
             }
         }
+    }
+
+    #[test]
+    fn test_ast_walk() {
+        /*
+        root
+        |_1
+        |_2
+        |_3
+        | |_4
+        | |_5
+        |   |_6
+        |   |_7
+        |_8
+        */
+        let root: Element = (ElementInfo::Comment("root".to_string()), vec![1, 2, 3, 8]);
+        let el1: Element = (ElementInfo::Comment("1".to_string()), vec![]);
+        let el2: Element = (ElementInfo::Comment("2".to_string()), vec![]);
+        let el3: Element = (ElementInfo::Comment("3".to_string()), vec![4, 5]);
+        let el4: Element = (ElementInfo::Comment("4".to_string()), vec![]);
+        let el5: Element = (ElementInfo::Comment("5".to_string()), vec![6, 7]);
+        let el6: Element = (ElementInfo::Comment("6".to_string()), vec![]);
+        let el7: Element = (ElementInfo::Comment("7".to_string()), vec![]);
+        let el8: Element = (ElementInfo::Comment("8".to_string()), vec![]);
+        let ast: Ast = vec![root, el1, el2, el3, el4, el5, el6, el7, el8];
+
+        let root_children: Vec<usize> = ast[0].1.clone();
+        let mut stack: Vec<usize> = vec![0]; //root_children.into_iter().rev().collect();
+        let mut output: Vec<String> = vec![];
+
+        /*
+        WIP attempting to generate nested output without recursing, using a stack
+
+        let mut test_counter = 0;
+        let mut level = 0;
+        let test_expected = vec![8, 3, 2, 1, 5, 4, 7, 6];
+        while stack.len() > 0 && test_counter < 20 {
+            let last_stack_item_index = stack.len() - 1;
+            let ast_index = stack[last_stack_item_index];
+            let element = ast[ast_index].clone();
+            let element_children = element.1.clone();
+
+            println!(
+                "level:{} count:{} = ast_index:{} with element: {:?} children: {:?} stack:{:?}",
+                level,
+                test_counter,
+                stack[stack.len() - 1],
+                element,
+                element_children,
+                stack
+            );
+
+            test_counter += 1;
+            if element_children.len() > 0 {
+                stack.push(0); // marker to go back down a level
+                level += 1;
+                for child_index in (0..element_children.len()).rev() {
+                    let child = element_children[child_index];
+                    stack.push(child);
+                }
+                println!("{:?}", stack)
+            }
+
+            if stack[stack.len() - 1] == 0 {
+                level -= 1;
+            }
+            stack.remove(stack.len() - 1);
+        }
+        assert!(true);
+        */
     }
 }
