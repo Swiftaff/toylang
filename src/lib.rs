@@ -1135,6 +1135,8 @@ fn get_function_args_with_types(args: Vec<String>, type_signature: Vec<String>) 
 
 #[cfg(test)]
 mod tests {
+    use std::thread::current;
+
     use super::*;
 
     fn mock_config(contents: &str) -> Config {
@@ -1203,6 +1205,11 @@ mod tests {
     #[test]
     fn test_ast_walk() {
         /*
+
+        WIP attempting to generate nested output without recursing, using a stack
+
+        Example, nested AST:
+
         root
         |_1
         |_2
@@ -1212,8 +1219,11 @@ mod tests {
         |   |_6
         |   |_7
         |_8
+
         */
         let root: Element = (ElementInfo::Comment("root".to_string()), vec![1, 2, 3, 8]);
+        // we use the 0 index (for root) to mean outdent a level
+        // so all real elements start at index 1!
         let el1: Element = (ElementInfo::Comment("1".to_string()), vec![]);
         let el2: Element = (ElementInfo::Comment("2".to_string()), vec![]);
         let el3: Element = (ElementInfo::Comment("3".to_string()), vec![4, 5]);
@@ -1225,48 +1235,56 @@ mod tests {
         let ast: Ast = vec![root, el1, el2, el3, el4, el5, el6, el7, el8];
 
         let root_children: Vec<usize> = ast[0].1.clone();
-        let mut stack: Vec<usize> = vec![0]; //root_children.into_iter().rev().collect();
+        let mut stack: Vec<usize> = root_children;
         let mut output: Vec<String> = vec![];
-
-        /*
-        WIP attempting to generate nested output without recursing, using a stack
-
         let mut test_counter = 0;
         let mut level = 0;
-        let test_expected = vec![8, 3, 2, 1, 5, 4, 7, 6];
+
         while stack.len() > 0 && test_counter < 20 {
-            let last_stack_item_index = stack.len() - 1;
-            let ast_index = stack[last_stack_item_index];
-            let element = ast[ast_index].clone();
-            let element_children = element.1.clone();
+            let current_item = stack[0];
 
-            println!(
-                "level:{} count:{} = ast_index:{} with element: {:?} children: {:?} stack:{:?}",
-                level,
-                test_counter,
-                stack[stack.len() - 1],
-                element,
-                element_children,
-                stack
-            );
-
-            test_counter += 1;
-            if element_children.len() > 0 {
-                stack.push(0); // marker to go back down a level
-                level += 1;
-                for child_index in (0..element_children.len()).rev() {
-                    let child = element_children[child_index];
-                    stack.push(child);
-                }
-                println!("{:?}", stack)
+            // remove current item from stack
+            if stack.len() == 1 {
+                stack = vec![];
+            } else {
+                stack = stack[1..].to_vec();
             }
 
-            if stack[stack.len() - 1] == 0 {
+            // if it is an outdent marker, outdent level!
+            if current_item == 0 {
                 level -= 1;
+
+                // push current end tag to output
+                let end_tag = stack[0];
+                output.push(format!("{}: close {:?}", level, end_tag));
+
+                // removed the outdent marker earlier, now remove the end tag indicator
+                if stack.len() == 1 {
+                    stack = vec![];
+                } else {
+                    stack = stack[1..].to_vec();
+                }
+            } else {
+                // push current to output
+                output.push(format!("{}: push {:?}", level, current_item));
+
+                // if current item has children...
+                if ast[current_item].1.len() > 0 {
+                    // prepend with current item end tag indicator - so we know to close it at after the outdent
+                    stack.splice(0..0, vec![current_item]);
+
+                    // prepend with 0 (marker for outdent)
+                    stack.splice(0..0, vec![0]);
+
+                    // prepend with children
+                    stack.splice(0..0, ast[current_item].1.clone());
+
+                    // and increase indent
+                    level += 1;
+                }
             }
-            stack.remove(stack.len() - 1);
+            println!("{:?}\r\n{:?}\r\n", stack, output);
         }
         assert!(true);
-        */
     }
 }
