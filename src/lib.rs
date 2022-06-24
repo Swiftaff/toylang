@@ -44,6 +44,9 @@ pub struct Config {
 struct Errors {
     variable_assignment: &'static str,
     no_valid_comment_single_line: &'static str,
+    no_valid_int: &'static str,
+    no_valid_float: &'static str,
+    no_valid_string: &'static str,
     no_valid_expression: &'static str,
     constants_are_immutable: &'static str,
 }
@@ -51,6 +54,9 @@ struct Errors {
 const ERRORS: Errors = Errors {
     variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
     no_valid_comment_single_line: "No valid single line comment found",
+    no_valid_int: "No valid integer found",
+    no_valid_float: "No valid float found",
+    no_valid_string: "No valid string found",
     no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
@@ -95,7 +101,6 @@ impl Config {
             return_type: "".to_string(),
             scope: "".to_string(),
         };
-        //penguin
         let print = FunctionDefinition {
             name: "@".to_string(),
             format: "println!(\"{}\",#1.to_string())".to_string(),
@@ -192,16 +197,24 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        if self.check_one_succeeds("set_output_for_comment_single_line") {
+        if self.check_one_succeeds("ast_set_comment_single_line") {
             return Ok(());
         }
-        if self.check_one_succeeds("get_expression_result_for_variable_assignment") {
+        if self.check_one_succeeds("ast_set_int") {
             return Ok(());
         }
-        if self.check_one_succeeds("get_expression_result_for_expression") {
+        if self.check_one_succeeds("ast_set_float") {
             return Ok(());
         }
-
+        if self.check_one_succeeds("ast_set_string") {
+            return Ok(());
+        }
+        //if self.check_one_succeeds("get_expression_result_for_variable_assignment") {
+        //    return Ok(());
+        //}
+        //if self.check_one_succeeds("get_expression_result_for_expression") {
+        //    return Ok(());
+        //}
         let e = self.get_error(0, 1, ERRORS.no_valid_expression);
         self.error_stack.push(e.to_string());
         Err(self.error_stack.clone())
@@ -215,7 +228,10 @@ impl Config {
                 clone.get_expression_result_for_variable_assignment()
             }
             "get_expression_result_for_expression" => clone.get_expression_result_for_expression(),
-            "set_output_for_comment_single_line" => clone.set_output_for_comment_single_line(),
+            "ast_set_comment_single_line" => clone.ast_set_comment_single_line(),
+            "ast_set_int" => clone.ast_set_int(),
+            "ast_set_float" => clone.ast_set_float(),
+            "ast_set_string" => clone.ast_set_string(),
             _ => {
                 return false;
             }
@@ -312,6 +328,61 @@ impl Config {
         self.ast = to_clone.ast;
     }
 
+    fn ast_set_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
+        if first_token_chars.len() > 1 && first_token_chars[0] == '/' && first_token_chars[1] == '/'
+        {
+            let val = concatenate_vec_strings(tokens);
+            self.ast
+                .append((ElementInfo::CommentSingleLine(val), vec![]));
+            self.ast.append((ElementInfo::Eol, vec![]));
+            let validation_error = None;
+            Ok(validation_error)
+        } else {
+            return Err(ERRORS.no_valid_comment_single_line.to_string());
+        }
+    }
+
+    fn ast_set_int(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        if tokens.len() == 1 && is_integer(&tokens[0].to_string()) {
+            let val = tokens[0].clone();
+            self.ast.append((ElementInfo::Int(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
+            let validation_error = None;
+            Ok(validation_error)
+        } else {
+            return Err(ERRORS.no_valid_int.to_string());
+        }
+    }
+
+    fn ast_set_float(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        if tokens.len() == 1 && is_float(&tokens[0].to_string()) {
+            let val = tokens[0].clone();
+            self.ast.append((ElementInfo::Float(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
+            let validation_error = None;
+            Ok(validation_error)
+        } else {
+            return Err(ERRORS.no_valid_float.to_string());
+        }
+    }
+
+    fn ast_set_string(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        if tokens.len() == 1 && is_string(&tokens[0].to_string()) {
+            let val = tokens[0].clone();
+            self.ast.append((ElementInfo::String(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
+            let validation_error = None;
+            Ok(validation_error)
+        } else {
+            return Err(ERRORS.no_valid_string.to_string());
+        }
+    }
+
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
         // if we found an expression while inside a function, then it must be the returning expression
         // so we should close this function brace and move scope back up a level
@@ -370,7 +441,8 @@ impl Config {
         self.outputcursor = self.outputcursor + insert.len();
     }
 
-    fn set_output_for_function_definition_singleline_or_firstline_of_multi(
+    //penguin
+    fn set_output_for_function_definition_singleline(
         self: &mut Self,
         identifier: &String,
         single_line_function_expression: &String,
@@ -385,19 +457,19 @@ impl Config {
         self.outputcursor = self.outputcursor + insert.len();
     }
 
-    fn set_output_for_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
-        let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
-        if first_token_chars.len() < 2 || first_token_chars[0] != '/' || first_token_chars[1] != '/'
-        {
-            return Err(ERRORS.no_valid_comment_single_line.to_string());
-        } else {
-            let comment = concatenate_vec_strings(tokens);
-            let el: Element = (ElementInfo::CommentSingleLine(comment.to_string()), vec![]);
-            self.ast.append(el);
-            let validation_error = None;
-            Ok(validation_error)
-        }
+    fn set_output_for_function_definition_singleline_or_firstline_of_multi(
+        self: &mut Self,
+        identifier: &String,
+        single_line_function_expression: &String,
+    ) {
+        let insert = format!(
+            "{}fn {}{}",
+            " ".repeat(self.indent * 4),
+            identifier,
+            single_line_function_expression
+        );
+        self.output.insert_str(self.outputcursor, &insert);
+        self.outputcursor = self.outputcursor + insert.len();
     }
 
     fn set_functions_for_func_args(
@@ -505,7 +577,6 @@ impl Config {
             Ok((expression, exp_type)) => {
                 dbg!(&expression, &exp_type, &self.current_scope);
                 if self.current_scope != "main".to_string() {
-                    //penguin
                     self.set_output_for_return_expression(&tokens);
                 } else {
                     //dbg!(expression);
@@ -594,7 +665,6 @@ impl Config {
                             ));
                     }
                 }
-                //penguin
                 let output = match def.types.len() {
                     2 => {
                         let out1 = def.format.replace("#1", &tokens[allow_for_fn_name]);
@@ -620,6 +690,23 @@ impl Config {
             }
         }
     }
+
+    //penguin
+    /*
+    fn ast_get_expression_result_for_variable_assignment(
+        self: &mut Self,
+    ) -> Result<Option<String>, String> {
+        let tokens = self.lines_of_tokens[self.current_line].clone();
+        if tokens.len() < 2 || tokens[0] != "=" {
+            return Err(ERRORS.variable_assignment.to_string());
+        } else {
+            let fn_name = "=".to_string();
+            let value_or_ref = tokens[1..];
+            let element = (Ast::ElementInfo::Assignment(fn_name, value_or_ref), vec![]);
+            self.ast.append(element)
+        }
+    }
+    */
 
     fn get_expression_result_for_variable_assignment(
         self: &mut Self,
@@ -647,7 +734,7 @@ impl Config {
                         Ok((expression, expression_type)) => {
                             if *expression_type == "Function".to_string() {
                                 //if *expression_type == "FunctionDefSingle".to_string() {
-                                self.set_output_for_function_definition_singleline_or_firstline_of_multi(
+                                self.set_output_for_function_definition_singleline(
                                     &identifier,
                                     &expression,
                                 );
@@ -682,6 +769,7 @@ impl Config {
         }
     }
 
+    //penguin
     fn get_expression_result_for_referenced_constant(
         self: &mut Self,
         tokens: &Vec<String>,
@@ -870,7 +958,6 @@ impl Config {
 
         self.current_scope = identifier.clone();
         //let temp_scope = self.current_scope.clone();
-        //penguin
         //dbg!("testy", &identifier, &self.current_scope);
         let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
 

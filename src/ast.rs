@@ -9,6 +9,11 @@ pub struct Ast {
 pub enum ElementInfo {
     Root,
     CommentSingleLine(String),
+    Int(String),
+    Float(String),
+    String(String),
+    Eol,
+    Seol,
 }
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
@@ -43,7 +48,6 @@ impl Ast {
         let mut stack: Vec<usize> = self.elements[0].1.clone();
         while stack.len() > 0 {
             let current_item = stack[0];
-            dbg!(&self.parents, current_item);
             // remove current item from stack
             stack = vec_remove_head(stack);
             // if it is an outdent marker, outdent level!
@@ -59,7 +63,6 @@ impl Ast {
                 self.set_open_output_for_element(current_item);
                 // if current item has children...
                 if current_item < self.elements.len() && self.elements[current_item].1.len() > 0 {
-                    dbg!("here");
                     // prepend with current item end tag indicator - so we know to close it at after the outdent
                     stack.splice(0..0, vec![current_item]);
                     // prepend with 0 (marker for outdent)
@@ -79,11 +82,20 @@ impl Ast {
     fn set_open_output_for_element(self: &mut Self, el_index: usize) {
         if el_index < self.elements.len() {
             let element = self.elements[el_index].clone();
-            let element_string = match element.0 {
+            let element_string = match element.0.clone() {
                 ElementInfo::Root => "".to_string(),
-                ElementInfo::CommentSingleLine(comment_string) => format!("{}\r\n", comment_string),
+                ElementInfo::CommentSingleLine(comment_string) => format!("{}", comment_string),
+                ElementInfo::Int(val) => format!("{}", val),
+                ElementInfo::Float(val) => format!("{}", val),
+                ElementInfo::String(val) => format!("{}", val),
+                ElementInfo::Eol => format!("\r\n"),
+                ElementInfo::Seol => format!(";\r\n"),
             };
-            self.set_output_append(&element_string);
+            match element.0 {
+                ElementInfo::Eol => self.set_output_append_no_indent(&element_string),
+                ElementInfo::Seol => self.set_output_append_no_indent(&element_string),
+                _ => self.set_output_append(&element_string),
+            }
         }
     }
 
@@ -91,8 +103,7 @@ impl Ast {
         if el_index < self.elements.len() {
             let element = self.elements[el_index].clone();
             let element_string = match element.0 {
-                ElementInfo::Root => "",
-                ElementInfo::CommentSingleLine(_) => "",
+                _ => "",
             };
             self.set_output_append(element_string);
         }
@@ -102,13 +113,16 @@ impl Ast {
         self.output = format!("{}{}{}", self.output, self.get_indent(), append_string);
     }
 
+    fn set_output_append_no_indent(self: &mut Self, append_string: &str) {
+        self.output = format!("{}{}", self.output, append_string);
+    }
+
     fn get_indent(self: &Self) -> String {
         " ".repeat(4 * (self.parents.len() - 1))
     }
 
     pub fn indent(self: &mut Self) {
         self.parents.push(self.elements.len() - 1);
-        dbg!(&self.parents);
     }
 
     pub fn outdent(self: &mut Self) {
@@ -117,7 +131,6 @@ impl Ast {
         } else {
             vec_remove_tail(self.parents.clone())
         };
-        dbg!(&self.parents);
     }
 }
 
