@@ -6,3 +6,11 @@
 123.456
 "string"
 // test 2
+= a 1
+= b 1.2
+= c "string"
+= aa a
+= bb b
+= cc c
+= ccc cc
+= cccc ccc

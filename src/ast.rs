@@ -12,6 +12,8 @@ pub enum ElementInfo {
     Int(String),
     Float(String),
     String(String),
+    Constant(String, String, String),
+    ConstantRef(String, String, String, usize),
     Eol,
     Seol,
 }
@@ -87,7 +89,18 @@ impl Ast {
                 ElementInfo::CommentSingleLine(comment_string) => format!("{}", comment_string),
                 ElementInfo::Int(val) => format!("{}", val),
                 ElementInfo::Float(val) => format!("{}", val),
-                ElementInfo::String(val) => format!("{}", val),
+                ElementInfo::String(val) => format!("{}.to_string()", val),
+                ElementInfo::Constant(name, typename, val) => {
+                    let optional_tostring = if typename == "String".to_string() {
+                        ".to_string()"
+                    } else {
+                        ""
+                    };
+                    format!("let {}: {} = {}{}", name, typename, val, optional_tostring)
+                }
+                ElementInfo::ConstantRef(name, typename, val, _index) => {
+                    format!("let {}: {} = {}", name, typename, val)
+                }
                 ElementInfo::Eol => format!("\r\n"),
                 ElementInfo::Seol => format!(";\r\n"),
             };
@@ -131,6 +144,22 @@ impl Ast {
         } else {
             vec_remove_tail(self.parents.clone())
         };
+    }
+
+    pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Constant(n, _t, _v) => n == name,
+            ElementInfo::ConstantRef(n, _t, _refname, _i) => n == name,
+            _ => false,
+        })
+    }
+
+    pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
+        let option_index = self.get_constant_index_by_name(name);
+        match option_index {
+            Some(index) => Some(self.elements[index].0.clone()),
+            None => None,
+        }
     }
 }
 

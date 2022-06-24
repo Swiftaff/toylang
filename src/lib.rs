@@ -47,6 +47,7 @@ struct Errors {
     no_valid_int: &'static str,
     no_valid_float: &'static str,
     no_valid_string: &'static str,
+    no_valid_assignment: &'static str,
     no_valid_expression: &'static str,
     constants_are_immutable: &'static str,
 }
@@ -57,6 +58,7 @@ const ERRORS: Errors = Errors {
     no_valid_int: "No valid integer found",
     no_valid_float: "No valid float found",
     no_valid_string: "No valid string found",
+    no_valid_assignment: "No valid assignment found",
     no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
@@ -209,6 +211,9 @@ impl Config {
         if self.check_one_succeeds("ast_set_string") {
             return Ok(());
         }
+        if self.check_one_succeeds("ast_set_constant") {
+            return Ok(());
+        }
         //if self.check_one_succeeds("get_expression_result_for_variable_assignment") {
         //    return Ok(());
         //}
@@ -232,6 +237,7 @@ impl Config {
             "ast_set_int" => clone.ast_set_int(),
             "ast_set_float" => clone.ast_set_float(),
             "ast_set_string" => clone.ast_set_string(),
+            "ast_set_constant" => clone.ast_set_constant(),
             _ => {
                 return false;
             }
@@ -381,6 +387,48 @@ impl Config {
         } else {
             return Err(ERRORS.no_valid_string.to_string());
         }
+    }
+
+    fn ast_set_constant(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        if tokens.len() == 3 && tokens[0] == "=".to_string() {
+            let name = tokens[1].clone();
+            let typename = self.ast_get_type(&tokens[2].clone());
+            let val = tokens[2].clone();
+            match self.ast.get_constant_index_by_name(&val) {
+                Some(index) => self
+                    .ast
+                    .append((ElementInfo::ConstantRef(name, typename, val, index), vec![])),
+                _ => self
+                    .ast
+                    .append((ElementInfo::Constant(name, typename, val), vec![])),
+            }
+            self.ast.append((ElementInfo::Seol, vec![]));
+            let validation_error = None;
+            Ok(validation_error)
+        } else {
+            return Err(ERRORS.no_valid_assignment.to_string());
+        }
+    }
+
+    fn ast_get_type(self: &Self, text: &String) -> String {
+        let mut return_type = "Undefined".to_string();
+        if is_integer(text) {
+            return_type = "i64".to_string();
+        }
+        if is_float(text) {
+            return_type = "f64".to_string();
+        }
+        if is_string(text) {
+            return_type = "String".to_string();
+        }
+        match self.ast.get_constant_by_name(text) {
+            Some(ElementInfo::Constant(_, typename, _)) => return typename,
+            Some(ElementInfo::ConstantRef(_, typename, _, _)) => return typename,
+            _ => (),
+        }
+        // allow for Function Return Type
+        return_type
     }
 
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
