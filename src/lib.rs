@@ -1,4 +1,6 @@
 // TODO make most function arguments refs
+mod ast;
+use ast::{Ast, Element, ElementInfo};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -22,15 +24,6 @@ pub struct FunctionDefinition {
 type Expression = String;
 type ExpressionType = String;
 
-type Ast = Vec<Element>;
-type Element = (ElementInfo, ElementChildren);
-#[derive(Clone, Debug)]
-pub enum ElementInfo {
-    Comment(String),
-}
-type ElementChildren = Vec<AstIndex>;
-type AstIndex = usize;
-
 #[derive(Clone, Debug)]
 pub struct Config {
     pub filepath: String,
@@ -46,8 +39,6 @@ pub struct Config {
     pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
     pub ast: Ast,
-    pub ast_output: String,
-    pub ast_walk_stack: Vec<usize>,
 }
 
 struct Errors {
@@ -121,9 +112,7 @@ impl Config {
             .map(|x| x.clone())
             .collect();
         let error_stack = vec![];
-        let ast = vec![];
-        let ast_output = "".to_string();
-        let ast_walk_stack = vec![];
+        let ast = Ast::new();
         Ok(Config {
             filepath,
             filename,
@@ -138,8 +127,6 @@ impl Config {
             functions,
             error_stack,
             ast,
-            ast_output,
-            ast_walk_stack,
         })
     }
 
@@ -161,7 +148,7 @@ impl Config {
 
     fn writefile_or_error(self: &Self) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
         if self.error_stack.len() == 0 {
-            fs::write("../../src/bin/output.rs", &self.output)?;
+            fs::write("../../src/bin/output.rs", &self.ast.output)?;
             println!("SAVED to '../../src/bin/output.rs'");
         } else {
             println!("DIDN'T SAVE");
@@ -179,7 +166,7 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.output
                 );
-                self.set_output_from_ast();
+                self.ast.set_output();
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -193,14 +180,14 @@ impl Config {
     }
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), Vec<String>> {
-        self.set_ast_output_for_main_fn_start();
+        //self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
                 self.current_line = line;
                 self.check_one_or_more_succeeds()?;
             }
         }
-        self.set_ast_output_for_main_fn_end();
+        //self.set_ast_output_for_main_fn_end();
         Ok(())
     }
 
@@ -247,12 +234,6 @@ impl Config {
             Err(_e) => (), // println!("error {:?}", e), // self.error_stack.push(e), // just testing - move to a temporary error_stack
         }
         succeeded
-    }
-
-    fn set_output_from_ast(self: &mut Self) {
-        self.set_ast_output_for_main_fn_start();
-        //for
-        self.set_ast_output_for_main_fn_end();
     }
 
     fn set_lines_of_chars(self: &mut Self) {
@@ -329,24 +310,6 @@ impl Config {
         self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
         self.ast = to_clone.ast;
-        self.ast_output = to_clone.ast_output;
-        self.ast_walk_stack = to_clone.ast_walk_stack;
-    }
-
-    fn set_output_for_main_fn(self: &mut Self) {
-        self.output = "fn main() {\r\n}".to_string();
-        self.indent = 1;
-        self.outputcursor = 13;
-    }
-
-    fn set_ast_output_for_main_fn_start(self: &mut Self) {
-        self.ast_output = format!("{}{}", self.ast_output, "fn main() {\r\n".to_string());
-        self.indent = 1;
-    }
-
-    fn set_ast_output_for_main_fn_end(self: &mut Self) {
-        self.ast_output = format!("{}{}", self.ast_output, "}".to_string());
-        self.indent = 0;
     }
 
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
@@ -431,8 +394,8 @@ impl Config {
         } else {
             let comment = concatenate_vec_strings(tokens);
             let insert = &format!("{}{}\r\n", " ".repeat(self.indent * 4), &comment);
-            let el: Element = (ElementInfo::Comment(comment.to_string()), vec![]);
-            self.ast.push(el);
+            let el: Element = (ElementInfo::CommentSingleLine(comment.to_string()), vec![]);
+            self.ast.append(el, 0); // index = 0 for testing. TODO track where it should be added
             self.output.insert_str(self.outputcursor, &insert);
             self.outputcursor = self.outputcursor + insert.len();
             let validation_error = None;
@@ -1153,9 +1116,7 @@ mod tests {
             indent: 1,
             functions: vec![],
             error_stack: vec![],
-            ast: vec![],
-            ast_output: "".to_string(),
-            ast_walk_stack: vec![],
+            ast: Ast::new(),
         }
     }
 
@@ -1193,7 +1154,7 @@ mod tests {
             let output = test[1]; //wrong, needs trailing semicolon, no extra brace
             let mut c = mock_config(input);
             match c.run_main_tasks() {
-                Ok(_) => assert_eq!(c.ast_output, output),
+                Ok(_) => assert_eq!(c.ast.output, output),
                 Err(e) => {
                     dbg!(c, e);
                     assert!(false, "error should not exist");
@@ -1221,26 +1182,34 @@ mod tests {
         |_8
 
         */
-        let root: Element = (ElementInfo::Comment("root".to_string()), vec![1, 2, 3, 8]);
+        //let root: Element = (ElementInfo::CommentSingleLine("root".to_string()), vec![1, 2, 3, 8]);
         // we use the 0 index (for root) to mean outdent a level
         // so all real elements start at index 1!
-        let el1: Element = (ElementInfo::Comment("1".to_string()), vec![]);
-        let el2: Element = (ElementInfo::Comment("2".to_string()), vec![]);
-        let el3: Element = (ElementInfo::Comment("3".to_string()), vec![4, 5]);
-        let el4: Element = (ElementInfo::Comment("4".to_string()), vec![]);
-        let el5: Element = (ElementInfo::Comment("5".to_string()), vec![6, 7]);
-        let el6: Element = (ElementInfo::Comment("6".to_string()), vec![]);
-        let el7: Element = (ElementInfo::Comment("7".to_string()), vec![]);
-        let el8: Element = (ElementInfo::Comment("8".to_string()), vec![]);
-        let ast: Ast = vec![root, el1, el2, el3, el4, el5, el6, el7, el8];
+        let el1: Element = (ElementInfo::CommentSingleLine("1".to_string()), vec![]);
+        let el2: Element = (ElementInfo::CommentSingleLine("2".to_string()), vec![]);
+        let el3: Element = (ElementInfo::CommentSingleLine("3".to_string()), vec![4, 5]);
+        let el4: Element = (ElementInfo::CommentSingleLine("4".to_string()), vec![]);
+        let el5: Element = (ElementInfo::CommentSingleLine("5".to_string()), vec![6, 7]);
+        let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
+        let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
+        let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
+        let mut ast: Ast = Ast::new();
+        ast.append(el1, 0);
+        ast.append(el2, 0);
+        ast.append(el3, 0);
+        ast.append(el4, 3);
+        ast.append(el5, 3);
+        ast.append(el6, 5);
+        ast.append(el7, 5);
+        ast.append(el8, 0);
 
-        let root_children: Vec<usize> = ast[0].1.clone();
-        let mut stack: Vec<usize> = root_children;
-        let mut output: Vec<String> = vec![];
-        let mut test_counter = 0;
-        let mut level = 0;
+        //let root_children: Vec<usize> = ast.elements[0].1.clone();
+        //let mut stack: Vec<usize> = root_children;
+        //let mut output: Vec<String> = vec![];
+        //let mut level = 0;
 
-        while stack.len() > 0 && test_counter < 20 {
+        /*
+        while stack.len() > 0 {
             let current_item = stack[0];
 
             // remove current item from stack
@@ -1269,7 +1238,7 @@ mod tests {
                 output.push(format!("{}: push {:?}", level, current_item));
 
                 // if current item has children...
-                if ast[current_item].1.len() > 0 {
+                if ast.elements[current_item].1.len() > 0 {
                     // prepend with current item end tag indicator - so we know to close it at after the outdent
                     stack.splice(0..0, vec![current_item]);
 
@@ -1285,6 +1254,7 @@ mod tests {
             }
             println!("{:?}\r\n{:?}\r\n", stack, output);
         }
+        */
         assert!(true);
     }
 }
