@@ -1,17 +1,18 @@
-use std::thread::current;
-
 #[derive(Clone, Debug)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1
     elements: Vec<Element>,
     pub output: String,
-    level: usize,
+    parents: Vec<usize>,
 }
 #[derive(Clone, Debug)]
 pub enum ElementInfo {
     Root,
     CommentSingleLine(String),
 }
+// no need to track parents in Element
+// should only ever be one per Element so can search for it each time
+// to save double handling parent/child refs in two places
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<AstIndex>;
 pub type AstIndex = usize;
@@ -21,35 +22,33 @@ impl Ast {
         Ast {
             elements: vec![(ElementInfo::Root, vec![])],
             output: "".to_string(),
-            level: 0,
+            parents: vec![0], // get current indent from length of parents
         }
     }
 
-    pub fn append(self: &mut Self, element: Element, index_of_parent_element: usize) {
+    pub fn append(self: &mut Self, element: Element) {
         // add element to list, and add to list of children of require parent where 0 = root
         self.elements.push(element);
         let new_items_index = self.elements.len() - 1;
-        let index_exists_and_isnt_new_element = index_of_parent_element < self.elements.len() - 1;
-        if index_exists_and_isnt_new_element {
-            self.elements[index_of_parent_element]
-                .1
-                .push(new_items_index);
-        }
+        let current_parent = self.parents[self.parents.len() - 1];
+        self.elements[current_parent].1.push(new_items_index);
     }
 
     pub fn set_output(self: &mut Self) {
-        dbg!(&self);
-        let mut stack: Vec<usize> = self.elements[0].1.clone();
         self.set_output_append("fn main() {\r\n");
-        self.level += 1;
+        // the values of indent and outdent don't matter when outputting - only using parents.len()
+        // values do matter when building the ast
+        self.indent();
+
+        let mut stack: Vec<usize> = self.elements[0].1.clone();
         while stack.len() > 0 {
             let current_item = stack[0];
-            dbg!(self.level, current_item);
+            dbg!(&self.parents, current_item);
             // remove current item from stack
             stack = vec_remove_head(stack);
             // if it is an outdent marker, outdent level!
             if current_item == 0 {
-                self.level -= 1;
+                self.outdent();
                 // push current end tag to output
                 let end_tag = stack[0];
                 self.set_close_output_for_element(end_tag);
@@ -68,11 +67,11 @@ impl Ast {
                     // prepend with children
                     stack.splice(0..0, self.elements[current_item].1.clone());
                     // and increase indent
-                    self.level += 1;
+                    self.indent();
                 }
             }
         }
-        self.level -= 1;
+        self.outdent();
         self.set_output_append("}\r\n");
         println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
     }
@@ -100,12 +99,25 @@ impl Ast {
     }
 
     fn set_output_append(self: &mut Self, append_string: &str) {
-        self.output = format!(
-            "{}{}{}",
-            self.output,
-            " ".repeat(4 * self.level),
-            append_string
-        );
+        self.output = format!("{}{}{}", self.output, self.get_indent(), append_string);
+    }
+
+    fn get_indent(self: &Self) -> String {
+        " ".repeat(4 * (self.parents.len() - 1))
+    }
+
+    pub fn indent(self: &mut Self) {
+        self.parents.push(self.elements.len() - 1);
+        dbg!(&self.parents);
+    }
+
+    pub fn outdent(self: &mut Self) {
+        self.parents = if self.parents.len() < 2 {
+            vec![0]
+        } else {
+            vec_remove_tail(self.parents.clone())
+        };
+        dbg!(&self.parents);
     }
 }
 
@@ -114,5 +126,13 @@ fn vec_remove_head(stack: Vec<usize>) -> Vec<usize> {
         vec![]
     } else {
         stack[1..].to_vec()
+    }
+}
+
+fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
+    if stack.len() == 1 {
+        vec![]
+    } else {
+        stack[..stack.len() - 1].to_vec()
     }
 }

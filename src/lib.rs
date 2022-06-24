@@ -393,11 +393,8 @@ impl Config {
             return Err(ERRORS.no_valid_comment_single_line.to_string());
         } else {
             let comment = concatenate_vec_strings(tokens);
-            let insert = &format!("{}{}\r\n", " ".repeat(self.indent * 4), &comment);
             let el: Element = (ElementInfo::CommentSingleLine(comment.to_string()), vec![]);
-            self.ast.append(el, 0); // index = 0 for testing. TODO track where it should be added
-            self.output.insert_str(self.outputcursor, &insert);
-            self.outputcursor = self.outputcursor + insert.len();
+            self.ast.append(el);
             let validation_error = None;
             Ok(validation_error)
         }
@@ -1194,14 +1191,18 @@ mod tests {
         let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
         let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
         let mut ast: Ast = Ast::new();
-        ast.append(el1, 0);
-        ast.append(el2, 0);
-        ast.append(el3, 0);
-        ast.append(el4, 3);
-        ast.append(el5, 3);
-        ast.append(el6, 5);
-        ast.append(el7, 5);
-        ast.append(el8, 0);
+        ast.append(el1);
+        ast.append(el2);
+        ast.append(el3);
+        ast.indent();
+        ast.append(el4);
+        ast.append(el5);
+        ast.indent();
+        ast.append(el6);
+        ast.append(el7);
+        ast.outdent();
+        ast.outdent();
+        ast.append(el8);
 
         //let root_children: Vec<usize> = ast.elements[0].1.clone();
         //let mut stack: Vec<usize> = root_children;
