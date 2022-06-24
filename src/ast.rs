@@ -3,26 +3,31 @@ pub struct Ast {
     //first element is always root. Real elements start at index 1
     elements: Vec<Element>,
     pub output: String,
-    parents: Vec<usize>,
+    parents: Vec<ElIndex>,
 }
 #[derive(Clone, Debug)]
 pub enum ElementInfo {
     Root,
-    CommentSingleLine(String),
-    Int(String),
-    Float(String),
-    String(String),
-    Constant(String, String, String),
-    ConstantRef(String, String, String, usize),
+    CommentSingleLine(Value),
+    Int(Value),
+    Float(Value),
+    String(Value),
+    Constant(Name, Type, Value),
+    ConstantRef(Name, ReturnType, Value, ElIndex),
+    Arithmetic(Name, ReturnType, Value, Value),
     Eol,
     Seol,
 }
+type Value = String;
+type ElIndex = usize;
+type Type = String;
+type ReturnType = String;
+type Name = String;
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
 // to save double handling parent/child refs in two places
 pub type Element = (ElementInfo, ElementChildren);
-pub type ElementChildren = Vec<AstIndex>;
-pub type AstIndex = usize;
+pub type ElementChildren = Vec<ElIndex>;
 
 impl Ast {
     pub fn new() -> Ast {
@@ -78,7 +83,7 @@ impl Ast {
         }
         self.outdent();
         self.set_output_append("}\r\n");
-        println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
+        //println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
     }
 
     fn set_open_output_for_element(self: &mut Self, el_index: usize) {
@@ -100,6 +105,9 @@ impl Ast {
                 }
                 ElementInfo::ConstantRef(name, typename, val, _index) => {
                     format!("let {}: {} = {}", name, typename, val)
+                }
+                ElementInfo::Arithmetic(name, typename, val1, val2) => {
+                    format!("{} {} {}", val1, name, val2)
                 }
                 ElementInfo::Eol => format!("\r\n"),
                 ElementInfo::Seol => format!(";\r\n"),

@@ -48,6 +48,7 @@ struct Errors {
     no_valid_float: &'static str,
     no_valid_string: &'static str,
     no_valid_assignment: &'static str,
+    no_valid_integer_arithmetic: &'static str,
     no_valid_expression: &'static str,
     constants_are_immutable: &'static str,
 }
@@ -59,6 +60,7 @@ const ERRORS: Errors = Errors {
     no_valid_float: "No valid float found",
     no_valid_string: "No valid string found",
     no_valid_assignment: "No valid assignment found",
+    no_valid_integer_arithmetic: "No valid integer arithmetic found",
     no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
@@ -168,12 +170,12 @@ impl Config {
 
         match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
-                dbg!(&self.ast);
+                //dbg!(&self.ast);
+                self.ast.set_output();
                 println!(
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
-                    self.output
+                    self.ast.output
                 );
-                self.ast.set_output();
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -214,6 +216,10 @@ impl Config {
         if self.check_one_succeeds("ast_set_constant") {
             return Ok(());
         }
+        if self.check_one_succeeds("ast_set_arithmetic") {
+            return Ok(());
+        }
+
         //if self.check_one_succeeds("get_expression_result_for_variable_assignment") {
         //    return Ok(());
         //}
@@ -238,6 +244,7 @@ impl Config {
             "ast_set_float" => clone.ast_set_float(),
             "ast_set_string" => clone.ast_set_string(),
             "ast_set_constant" => clone.ast_set_constant(),
+            "ast_set_arithmetic" => clone.ast_set_arithmetic(),
             _ => {
                 return false;
             }
@@ -408,6 +415,28 @@ impl Config {
             Ok(validation_error)
         } else {
             return Err(ERRORS.no_valid_assignment.to_string());
+        }
+    }
+
+    fn ast_set_arithmetic(self: &mut Self) -> Result<Option<String>, String> {
+        let tokens = &self.lines_of_tokens[self.current_line];
+        if tokens.len() == 3 && "+-*/%".to_string().contains(&tokens[0]) {
+            let op = tokens[0].clone();
+            let typename1 = self.ast_get_type(&tokens[1].clone());
+            let typename2 = self.ast_get_type(&tokens[2].clone());
+            let val1 = tokens[1].clone();
+            let val2 = tokens[2].clone();
+            if (typename1 == "i64" || typename1 == "f64") && typename1 == typename2 {
+                self.ast
+                    .append((ElementInfo::Arithmetic(op, typename1, val1, val2), vec![]));
+                self.ast.append((ElementInfo::Seol, vec![]));
+                let validation_error = None;
+                Ok(validation_error)
+            } else {
+                return Err(ERRORS.no_valid_integer_arithmetic.to_string());
+            }
+        } else {
+            return Err(ERRORS.no_valid_integer_arithmetic.to_string());
         }
     }
 
