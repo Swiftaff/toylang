@@ -176,6 +176,13 @@ impl Config {
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.ast.output
                 );
+                dbg!(&self.ast.elements[0].1);
+
+                let len = self.ast.elements[0].1.len();
+                for i in 0..len {
+                    let refer = self.ast.elements[0].1[i];
+                    dbg!(i, refer, &self.ast.elements[refer]);
+                }
             }
             Err(e) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -201,22 +208,23 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self) -> Result<(), Vec<String>> {
-        if self.check_one_succeeds("ast_set_comment_single_line") {
+        let tokens = self.lines_of_tokens[self.current_line].clone();
+        if self.check_one_succeeds("ast_set_comment_single_line", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_int") {
+        if self.check_one_succeeds("ast_set_int", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_float") {
+        if self.check_one_succeeds("ast_set_float", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_string") {
+        if self.check_one_succeeds("ast_set_string", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_constant") {
+        if self.check_one_succeeds("ast_set_constant", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_arithmetic") {
+        if self.check_one_succeeds("ast_set_arithmetic", &tokens) {
             return Ok(());
         }
 
@@ -231,20 +239,22 @@ impl Config {
         Err(self.error_stack.clone())
     }
 
-    fn check_one_succeeds(self: &mut Self, function_name: &str) -> bool {
+    fn check_one_succeeds(self: &mut Self, function_name: &str, tokens: &Vec<String>) -> bool {
         let mut succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
+            /*
             "get_expression_result_for_variable_assignment" => {
                 clone.get_expression_result_for_variable_assignment()
             }
-            "get_expression_result_for_expression" => clone.get_expression_result_for_expression(),
-            "ast_set_comment_single_line" => clone.ast_set_comment_single_line(),
-            "ast_set_int" => clone.ast_set_int(),
-            "ast_set_float" => clone.ast_set_float(),
-            "ast_set_string" => clone.ast_set_string(),
-            "ast_set_constant" => clone.ast_set_constant(),
-            "ast_set_arithmetic" => clone.ast_set_arithmetic(),
+            "get_expression_result_for_expression" => clone.get_expression_result_for_expression(tokens),
+            */
+            "ast_set_comment_single_line" => clone.ast_set_comment_single_line(tokens),
+            "ast_set_int" => clone.ast_set_int(tokens),
+            "ast_set_float" => clone.ast_set_float(tokens),
+            "ast_set_string" => clone.ast_set_string(tokens),
+            "ast_set_constant" => clone.ast_set_constant(tokens),
+            "ast_set_arithmetic" => clone.ast_set_arithmetic(tokens),
             _ => {
                 return false;
             }
@@ -341,15 +351,17 @@ impl Config {
         self.ast = to_clone.ast;
     }
 
-    fn ast_set_comment_single_line(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_comment_single_line(
+        self: &mut Self,
+        tokens: &Vec<String>,
+    ) -> Result<Option<String>, String> {
         let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
         if first_token_chars.len() > 1 && first_token_chars[0] == '/' && first_token_chars[1] == '/'
         {
             let val = concatenate_vec_strings(tokens);
             self.ast
-                .append((ElementInfo::CommentSingleLine(val), vec![]));
-            self.ast.append((ElementInfo::Eol, vec![]));
+                .append((ElementInfo::CommentSingleLine(val), vec![], true));
+            self.ast.append((ElementInfo::Eol, vec![], true));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -357,12 +369,11 @@ impl Config {
         }
     }
 
-    fn ast_set_int(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_int(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_integer(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Int(val), vec![]));
-            self.ast.append((ElementInfo::Seol, vec![]));
+            self.ast.append((ElementInfo::Int(val), vec![], false));
+            self.ast.append((ElementInfo::Seol, vec![], true));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -370,12 +381,11 @@ impl Config {
         }
     }
 
-    fn ast_set_float(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_float(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_float(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Float(val), vec![]));
-            self.ast.append((ElementInfo::Seol, vec![]));
+            self.ast.append((ElementInfo::Float(val), vec![], false));
+            self.ast.append((ElementInfo::Seol, vec![], true));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -383,12 +393,11 @@ impl Config {
         }
     }
 
-    fn ast_set_string(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_string(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_string(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::String(val), vec![]));
-            self.ast.append((ElementInfo::Seol, vec![]));
+            self.ast.append((ElementInfo::String(val), vec![], false));
+            self.ast.append((ElementInfo::Seol, vec![], true));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -396,21 +405,31 @@ impl Config {
         }
     }
 
-    fn ast_set_constant(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_constant(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 3 && tokens[0] == "=".to_string() {
             let name = tokens[1].clone();
             let typename = self.ast_get_type(&tokens[2].clone());
             let val = tokens[2].clone();
+
+            // TODO move val out of constant and constantref
+            // instead add these as separate ast elements, then as child refs
+            // need to add in reverse so we can reference them
+
             match self.ast.get_constant_index_by_name(&val) {
-                Some(index) => self
-                    .ast
-                    .append((ElementInfo::ConstantRef(name, typename, val, index), vec![])),
-                _ => self
-                    .ast
-                    .append((ElementInfo::Constant(name, typename, val), vec![])),
+                Some(_ref_of_constant) => {
+                    self.ast
+                        .append((ElementInfo::ConstantRef(name, typename, val), vec![], true));
+                }
+                _ => {
+                    let ref_of_value = self.ast_set_ref_by_type(val);
+                    self.ast.append((
+                        ElementInfo::Constant(name, typename),
+                        vec![ref_of_value],
+                        true,
+                    ));
+                }
             }
-            self.ast.append((ElementInfo::Seol, vec![]));
+            self.ast.append((ElementInfo::Seol, vec![], true));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -418,8 +437,22 @@ impl Config {
         }
     }
 
-    fn ast_set_arithmetic(self: &mut Self) -> Result<Option<String>, String> {
-        let tokens = &self.lines_of_tokens[self.current_line];
+    fn ast_set_ref_by_type(self: &mut Self, val: String) -> usize {
+        match self.ast_get_type(&val).as_str() {
+            "i64" => self
+                .ast
+                .append_as_ref((ElementInfo::Int(val), vec![], false)),
+            "f64" => self
+                .ast
+                .append_as_ref((ElementInfo::Float(val), vec![], false)),
+            "String" => self
+                .ast
+                .append_as_ref((ElementInfo::String(val), vec![], false)),
+            _ => 0,
+        }
+    }
+
+    fn ast_set_arithmetic(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 3 && "+-*/%".to_string().contains(&tokens[0]) {
             let op = tokens[0].clone();
             let typename1 = self.ast_get_type(&tokens[1].clone());
@@ -427,9 +460,12 @@ impl Config {
             let val1 = tokens[1].clone();
             let val2 = tokens[2].clone();
             if (typename1 == "i64" || typename1 == "f64") && typename1 == typename2 {
-                self.ast
-                    .append((ElementInfo::Arithmetic(op, typename1, val1, val2), vec![]));
-                self.ast.append((ElementInfo::Seol, vec![]));
+                self.ast.append((
+                    ElementInfo::Arithmetic(op, typename1, val1, val2),
+                    vec![],
+                    false,
+                ));
+                self.ast.append((ElementInfo::Seol, vec![], true));
                 let validation_error = None;
                 Ok(validation_error)
             } else {
@@ -452,8 +488,8 @@ impl Config {
             return_type = "String".to_string();
         }
         match self.ast.get_constant_by_name(text) {
-            Some(ElementInfo::Constant(_, typename, _)) => return typename,
-            Some(ElementInfo::ConstantRef(_, typename, _, _)) => return typename,
+            Some(ElementInfo::Constant(_, typename)) => return typename,
+            Some(ElementInfo::ConstantRef(_, typename, _)) => return typename,
             _ => (),
         }
         // allow for Function Return Type
@@ -1332,28 +1368,61 @@ mod tests {
 
         Example, nested AST:
 
-        root
-        |_1
-        |_2
-        |_3
-        | |_4
-        | |_5
-        |   |_6
-        |   |_7
-        |_8
+        typical nested tree         this flat ast
+        0 (root)                    |_(0,[1,2,3,8]) root
+        |_1                         |_(1,[])
+        |_2                         |_(2,[])
+        |_3                         |_(3,[4,5])
+        | |_4                       |_(4,[])
+        | |_5                       |_(5,[6,7])
+        |   |_6                     |_(6,[])
+        |   |_7                     |_(7,[])
+        |_8                         |_(8,[])
 
         */
         //let root: Element = (ElementInfo::CommentSingleLine("root".to_string()), vec![1, 2, 3, 8]);
         // we use the 0 index (for root) to mean outdent a level
         // so all real elements start at index 1!
-        let el1: Element = (ElementInfo::CommentSingleLine("1".to_string()), vec![]);
-        let el2: Element = (ElementInfo::CommentSingleLine("2".to_string()), vec![]);
-        let el3: Element = (ElementInfo::CommentSingleLine("3".to_string()), vec![4, 5]);
-        let el4: Element = (ElementInfo::CommentSingleLine("4".to_string()), vec![]);
-        let el5: Element = (ElementInfo::CommentSingleLine("5".to_string()), vec![6, 7]);
-        let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
-        let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
-        let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
+        let el1: Element = (
+            ElementInfo::CommentSingleLine("1".to_string()),
+            vec![],
+            false,
+        );
+        let el2: Element = (
+            ElementInfo::CommentSingleLine("2".to_string()),
+            vec![],
+            false,
+        );
+        let el3: Element = (
+            ElementInfo::CommentSingleLine("3".to_string()),
+            vec![4, 5],
+            false,
+        );
+        let el4: Element = (
+            ElementInfo::CommentSingleLine("4".to_string()),
+            vec![],
+            false,
+        );
+        let el5: Element = (
+            ElementInfo::CommentSingleLine("5".to_string()),
+            vec![6, 7],
+            false,
+        );
+        let el6: Element = (
+            ElementInfo::CommentSingleLine("6".to_string()),
+            vec![],
+            false,
+        );
+        let el7: Element = (
+            ElementInfo::CommentSingleLine("7".to_string()),
+            vec![],
+            false,
+        );
+        let el8: Element = (
+            ElementInfo::CommentSingleLine("8".to_string()),
+            vec![],
+            false,
+        );
         let mut ast: Ast = Ast::new();
         ast.append(el1);
         ast.append(el2);

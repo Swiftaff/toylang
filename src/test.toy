@@ -1,27 +1,23 @@
-// 123 test
-123
-1234
-12345
-1.2
-123.456
-"string"
+// single line comment
+
+// CONSTANT BINDING
+
+// constant binding to a literal
 = a 1
 = b 1.2
 = c "string"
+
+// constant binding to another constant
 = aa a
 = bb b
 = cc c
 = ccc cc
 = cccc ccc
-+ 1 2
-- 1 2
-* 1 2
-/ 1 2
-% 1 2
-+ 1.1 2.2
-- 1.1 2.2
-* 1.1 2.2
-/ 1.1 2.2
-% 1.1 2.2
-+ a 2
-* bb 1.1
+
+// EXPRESSIONS
+
+// literals
+123
+1.2
+123.456
+"string"
