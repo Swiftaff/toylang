@@ -224,7 +224,7 @@ impl Config {
         if self.check_one_succeeds("ast_set_constant", &tokens) {
             return Ok(());
         }
-        if self.check_one_succeeds("ast_set_arithmetic", &tokens) {
+        if self.check_one_succeeds("ast_set_inbuilt_function", &tokens) {
             return Ok(());
         }
 
@@ -254,7 +254,7 @@ impl Config {
             "ast_set_float" => clone.ast_set_float(tokens),
             "ast_set_string" => clone.ast_set_string(tokens),
             "ast_set_constant" => clone.ast_set_constant(tokens),
-            "ast_set_arithmetic" => clone.ast_set_arithmetic(tokens),
+            "ast_set_inbuilt_function" => clone.ast_set_inbuilt_function(tokens),
             _ => {
                 return false;
             }
@@ -449,23 +449,74 @@ impl Config {
         }
     }
 
-    fn ast_set_arithmetic(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
-        if tokens.len() == 3 && "+-*/%".to_string().contains(&tokens[0]) {
-            let op = tokens[0].clone();
-            let typename1 = self.ast_get_type(&tokens[1].clone());
-            let typename2 = self.ast_get_type(&tokens[2].clone());
-            let val1 = tokens[1].clone();
-            let val2 = tokens[2].clone();
-            if (typename1 == "i64" || typename1 == "f64") && typename1 == typename2 {
-                self.ast.append((ElementInfo::Indent, vec![]));
-                self.ast
-                    .append((ElementInfo::Arithmetic(op, typename1, val1, val2), vec![]));
-                self.ast.append((ElementInfo::Seol, vec![]));
-                let validation_error = None;
-                Ok(validation_error)
-            } else {
-                return Err(ERRORS.no_valid_integer_arithmetic.to_string());
+    fn ast_set_inbuilt_function(
+        self: &mut Self,
+        tokens: &Vec<String>,
+    ) -> Result<Option<String>, String> {
+        if tokens.len() > 0 {
+            dbg!(tokens);
+            match self.ast.get_inbuilt_function_by_name(&tokens[0]) {
+                Some(ElementInfo::InbuiltFunctionDef(
+                    name,
+                    argnames,
+                    argtypes,
+                    returntype,
+                    format,
+                )) => {
+                    if argnames.len() != tokens.len() - 1 {
+                        return Err(ERRORS.no_valid_integer_arithmetic.to_string());
+                    }
+
+                    dbg!("yes", &name, &argnames, &argtypes, &returntype);
+                    let mut types_match = true;
+                    for i in 0..argtypes.len() {
+                        let argtype = argtypes[i].clone();
+                        let tokentype = self.ast_get_type(&tokens[i + 1]);
+
+                        if argtype.contains("|") {
+                            if !argtype.contains(&tokentype) {
+                                types_match = false;
+                            }
+                        } else if argtype != tokentype {
+                            types_match = false;
+                        }
+                        dbg!(
+                            &argtype,
+                            &tokens[i + 1],
+                            &tokentype,
+                            argtype.contains("|"),
+                            argtype.contains(&tokentype),
+                            types_match
+                        );
+                    }
+                    if !types_match {
+                        return Err(ERRORS.no_valid_integer_arithmetic.to_string());
+                    }
+
+                    let mut output = format;
+                    for i in 0..argnames.len() {
+                        let argname = argnames[i].clone();
+                        output = output.replace(&argname, &tokens[i + 1]);
+                    }
+
+                    let mut final_returntype = returntype.clone();
+                    if returntype.contains("|") {
+                        final_returntype = argtypes[0].clone();
+                    }
+
+                    self.ast.append((ElementInfo::Indent, vec![]));
+                    self.ast.append((
+                        ElementInfo::InbuiltFunctionCall(output, final_returntype),
+                        vec![],
+                    ));
+                    self.ast.append((ElementInfo::Seol, vec![]));
+
+                    let validation_error = None;
+                    return Ok(validation_error);
+                }
+                _ => {}
             }
+            return Err(ERRORS.no_valid_integer_arithmetic.to_string());
         } else {
             return Err(ERRORS.no_valid_integer_arithmetic.to_string());
         }
@@ -481,6 +532,10 @@ impl Config {
         }
         if is_string(text) {
             return_type = "String".to_string();
+        }
+        match self.ast.get_inbuilt_function_by_name(text) {
+            Some(ElementInfo::InbuiltFunctionDef(_, _, _, returntype, _)) => return returntype,
+            _ => (),
         }
         match self.ast.get_constant_by_name(text) {
             Some(ElementInfo::Constant(_, typename)) => return typename,

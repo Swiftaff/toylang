@@ -16,7 +16,7 @@
 
 // constant binding to simple arithmetic expression
 
-//= d (+ 1 2)
+//= d + 1 2
 
 //= e1 * (6 (+ 2 3))
 // const e1 (in tree)

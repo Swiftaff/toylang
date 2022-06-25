@@ -14,7 +14,10 @@ pub enum ElementInfo {
     String(Value),
     Constant(Name, ReturnType),
     ConstantRef(Name, ReturnType, RefName),
-    FunctionCall(Name, ReturnType),
+    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format),
+    InbuiltFunctionCall(String, ReturnType),
+    FunctionDef(Name, ArgNames, ArgTypes, ReturnType),
+    FunctionCall(Name),
     Arithmetic(Name, ReturnType, Value, Value),
     Eol,
     Seol,
@@ -25,6 +28,9 @@ type ElIndex = usize;
 type ReturnType = String;
 type Name = String;
 type RefName = String;
+type ArgNames = Vec<String>;
+type ArgTypes = Vec<String>;
+type Format = String;
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
 // to save double handling parent/child refs in two places
@@ -33,8 +39,36 @@ pub type ElementChildren = Vec<ElIndex>;
 
 impl Ast {
     pub fn new() -> Ast {
+        let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
+        let arithmetic_closure = |prim: &str| {
+            (
+                ElementInfo::InbuiltFunctionDef(
+                    prim.to_string(),
+                    vec!["arg1".to_string(), "arg2".to_string()],
+                    vec!["i64|f64".to_string(), "i64|f64".to_string()],
+                    "i64|f64".to_string(),
+                    format!("arg1 {} arg2", prim).to_string(),
+                ),
+                vec![],
+            )
+        };
+        let arithmetic_operators: Vec<Element> = arithmetic_primitives
+            .clone()
+            .into_iter()
+            .map(arithmetic_closure)
+            .collect();
+        //let arithmetic_operators_f64: Vec<Element> =
+        //    arithmetic_primitives.into_iter().map(f64_closure).collect();
+        let root = vec![(ElementInfo::Root, vec![])];
+        let elements: Vec<Element> = vec![]
+            .iter()
+            .chain(&root)
+            .chain(&arithmetic_operators)
+            //.chain(&arithmetic_operators_f64)
+            .map(|x| x.clone())
+            .collect();
         Ast {
-            elements: vec![(ElementInfo::Root, vec![])],
+            elements,
             output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
         }
@@ -122,26 +156,19 @@ impl Ast {
             ElementInfo::Float(val) => format!("{}", val),
             ElementInfo::String(val) => format!("{}.to_string()", val),
             ElementInfo::Constant(name, returntype) => {
-                //let children = element.1.clone();
-                //let expression = self.get_single_line_expression_from_children(children);
-                //dbg!(&expression);
-                // shouldn't need this, if children expressions output themselves correctly
-                /*
-                if returntype == "String".to_string() {
-                    format!(
-                        "let {}: {} = ({}).to_string()",
-                        name, returntype, expression
-                    )
-                    .to_string()
-                } else {
-                */
                 format!("let {}: {} = ", name, returntype).to_string()
-                //}
             }
             ElementInfo::ConstantRef(name, typename, reference) => {
                 format!("let {}: {} = {}", name, typename, reference)
             }
-            ElementInfo::FunctionCall(name, _returntype) => {
+            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, format) => {
+                format!("fn {}() ->{{ /* stuff */ }}", name)
+            }
+            ElementInfo::InbuiltFunctionCall(output, _returntype) => output,
+            ElementInfo::FunctionDef(name, _argnames, _argtypes, _returntype) => {
+                format!("fn {}() ->{{ /* stuff */ }}", name)
+            }
+            ElementInfo::FunctionCall(name) => {
                 format!("{}()", name)
             }
             ElementInfo::Arithmetic(name, _typename, val1, val2) => {
@@ -213,6 +240,21 @@ impl Ast {
 
     pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
         let option_index = self.get_constant_index_by_name(name);
+        match option_index {
+            Some(index) => Some(self.elements[index].0.clone()),
+            None => None,
+        }
+    }
+
+    pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
+        let option_index = self.get_inbuilt_function_index_by_name(name);
         match option_index {
             Some(index) => Some(self.elements[index].0.clone()),
             None => None,
