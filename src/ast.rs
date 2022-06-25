@@ -25,17 +25,16 @@ type ElIndex = usize;
 type ReturnType = String;
 type Name = String;
 type RefName = String;
-type IsNewLine = bool;
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
 // to save double handling parent/child refs in two places
-pub type Element = (ElementInfo, ElementChildren, IsNewLine);
+pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
 
 impl Ast {
     pub fn new() -> Ast {
         Ast {
-            elements: vec![(ElementInfo::Root, vec![], false)],
+            elements: vec![(ElementInfo::Root, vec![])],
             output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
         }
@@ -58,7 +57,7 @@ impl Ast {
     }
 
     pub fn set_output(self: &mut Self) {
-        self.set_output_append("fn main() {\r\n", true);
+        self.set_output_append("fn main() {\r\n");
         // the values of indent and outdent don't matter when outputting - only using parents.len()
         // values do matter when building the ast
         self.indent();
@@ -81,25 +80,25 @@ impl Ast {
                 self.set_open_output_for_element(current_item);
                 // if current item has children...
                 let current_item_children = self.elements[current_item].1.clone();
-                let does_indent = self.elements[current_item].2;
+                //let does_indent = self.elements[current_item].2;
                 if current_item < self.elements.len() && current_item_children.len() > 0 {
-                    if does_indent {
-                        // prepend with current item end tag indicator - so we know to close it at after the outdent
-                        stack.splice(0..0, vec![current_item]);
-                        // prepend with 0 (marker for outdent)
-                        stack.splice(0..0, vec![0]);
-                    }
+                    //if does_indent {
+                    // prepend with current item end tag indicator - so we know to close it at after the outdent
+                    stack.splice(0..0, vec![current_item]);
+                    // prepend with 0 (marker for outdent)
+                    stack.splice(0..0, vec![0]);
+                    //}
                     // prepend with children
                     stack.splice(0..0, self.elements[current_item].1.clone());
                     // and increase indent
-                    if does_indent {
-                        self.indent();
-                    }
+                    //if does_indent {
+                    self.indent();
+                    //}
                 }
             }
         }
         self.outdent();
-        self.set_output_append("}\r\n", true);
+        self.set_output_append("}\r\n");
         //println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
     }
 
@@ -110,7 +109,7 @@ impl Ast {
             match element.0 {
                 ElementInfo::Eol => self.set_output_append_no_indent(&element_string),
                 ElementInfo::Seol => self.set_output_append_no_indent(&element_string),
-                _ => self.set_output_append(&element_string, element.2),
+                _ => self.set_output_append(&element_string),
             }
         }
     }
@@ -150,6 +149,7 @@ impl Ast {
             }
             ElementInfo::Eol => format!("\r\n"),
             ElementInfo::Seol => format!(";\r\n"),
+            ElementInfo::Indent => self.get_indent(),
         }
     }
 
@@ -170,17 +170,17 @@ impl Ast {
             let element_string = match element.0 {
                 _ => "",
             };
-            self.set_output_append(element_string, false);
+            self.set_output_append(element_string);
         }
     }
 
-    fn set_output_append(self: &mut Self, append_string: &str, does_indent: bool) {
-        let indent = if does_indent {
-            self.get_indent()
-        } else {
-            "".to_string()
-        };
-        self.output = format!("{}{}{}", self.output, indent, append_string);
+    fn set_output_append(self: &mut Self, append_string: &str) {
+        //let indent = if does_indent {
+        //    self.get_indent()
+        //} else {
+        //    "".to_string()
+        //};
+        self.output = format!("{}{}", self.output, append_string);
     }
 
     fn set_output_append_no_indent(self: &mut Self, append_string: &str) {
@@ -204,13 +204,11 @@ impl Ast {
     }
 
     pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements
-            .iter()
-            .position(|(elinfo, _, _)| match elinfo {
-                ElementInfo::Constant(n, _t) => n == name,
-                ElementInfo::ConstantRef(n, _t, _refname) => n == name,
-                _ => false,
-            })
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Constant(n, _t) => n == name,
+            ElementInfo::ConstantRef(n, _t, _refname) => n == name,
+            _ => false,
+        })
     }
 
     pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {

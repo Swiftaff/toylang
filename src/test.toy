@@ -14,6 +14,22 @@
 = ccc cc
 = cccc ccc
 
+// constant binding to simple arithmetic expression
+
+//= d (+ 1 2)
+
+//= e1 * (6 (+ 2 3))
+// const e1 (in tree)
+// |_fncall * (not in tree, just a ref)
+//   |_6
+//   |_ ref1
+// const ref1 (not in tree, just a ref)
+// |_fncall + (not in tree, just a ref)
+//   |_2
+//   |_3
+
+//= e2 + (2 (* 3 6))
+
 // EXPRESSIONS
 
 // literals
@@ -21,3 +37,19 @@
 1.2
 123.456
 "string"
+
+// arithmetic expression of int or float
++ 1 2
+- 1 2
+* 1 2
+/ 1 2
+% 1 2
++ 1.1 2.2
+- 1.1 2.2
+* 1.1 2.2
+/ 1.1 2.2
+% 1.1 2.2
+
+// arithmetic expression of constants
++ a 2
+* bb 1.1

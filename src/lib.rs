@@ -359,9 +359,10 @@ impl Config {
         if first_token_chars.len() > 1 && first_token_chars[0] == '/' && first_token_chars[1] == '/'
         {
             let val = concatenate_vec_strings(tokens);
+            self.ast.append((ElementInfo::Indent, vec![]));
             self.ast
-                .append((ElementInfo::CommentSingleLine(val), vec![], true));
-            self.ast.append((ElementInfo::Eol, vec![], true));
+                .append((ElementInfo::CommentSingleLine(val), vec![]));
+            self.ast.append((ElementInfo::Eol, vec![]));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -372,8 +373,9 @@ impl Config {
     fn ast_set_int(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_integer(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Int(val), vec![], false));
-            self.ast.append((ElementInfo::Seol, vec![], true));
+            self.ast.append((ElementInfo::Indent, vec![]));
+            self.ast.append((ElementInfo::Int(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -384,8 +386,9 @@ impl Config {
     fn ast_set_float(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_float(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Float(val), vec![], false));
-            self.ast.append((ElementInfo::Seol, vec![], true));
+            self.ast.append((ElementInfo::Indent, vec![]));
+            self.ast.append((ElementInfo::Float(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -396,8 +399,9 @@ impl Config {
     fn ast_set_string(self: &mut Self, tokens: &Vec<String>) -> Result<Option<String>, String> {
         if tokens.len() == 1 && is_string(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::String(val), vec![], false));
-            self.ast.append((ElementInfo::Seol, vec![], true));
+            self.ast.append((ElementInfo::Indent, vec![]));
+            self.ast.append((ElementInfo::String(val), vec![]));
+            self.ast.append((ElementInfo::Seol, vec![]));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -417,19 +421,18 @@ impl Config {
 
             match self.ast.get_constant_index_by_name(&val) {
                 Some(_ref_of_constant) => {
+                    self.ast.append((ElementInfo::Indent, vec![]));
                     self.ast
-                        .append((ElementInfo::ConstantRef(name, typename, val), vec![], true));
+                        .append((ElementInfo::ConstantRef(name, typename, val), vec![]));
                 }
                 _ => {
+                    self.ast.append((ElementInfo::Indent, vec![]));
                     let ref_of_value = self.ast_set_ref_by_type(val);
-                    self.ast.append((
-                        ElementInfo::Constant(name, typename),
-                        vec![ref_of_value],
-                        true,
-                    ));
+                    self.ast
+                        .append((ElementInfo::Constant(name, typename), vec![ref_of_value]));
                 }
             }
-            self.ast.append((ElementInfo::Seol, vec![], true));
+            self.ast.append((ElementInfo::Seol, vec![]));
             let validation_error = None;
             Ok(validation_error)
         } else {
@@ -439,15 +442,9 @@ impl Config {
 
     fn ast_set_ref_by_type(self: &mut Self, val: String) -> usize {
         match self.ast_get_type(&val).as_str() {
-            "i64" => self
-                .ast
-                .append_as_ref((ElementInfo::Int(val), vec![], false)),
-            "f64" => self
-                .ast
-                .append_as_ref((ElementInfo::Float(val), vec![], false)),
-            "String" => self
-                .ast
-                .append_as_ref((ElementInfo::String(val), vec![], false)),
+            "i64" => self.ast.append_as_ref((ElementInfo::Int(val), vec![])),
+            "f64" => self.ast.append_as_ref((ElementInfo::Float(val), vec![])),
+            "String" => self.ast.append_as_ref((ElementInfo::String(val), vec![])),
             _ => 0,
         }
     }
@@ -460,12 +457,10 @@ impl Config {
             let val1 = tokens[1].clone();
             let val2 = tokens[2].clone();
             if (typename1 == "i64" || typename1 == "f64") && typename1 == typename2 {
-                self.ast.append((
-                    ElementInfo::Arithmetic(op, typename1, val1, val2),
-                    vec![],
-                    false,
-                ));
-                self.ast.append((ElementInfo::Seol, vec![], true));
+                self.ast.append((ElementInfo::Indent, vec![]));
+                self.ast
+                    .append((ElementInfo::Arithmetic(op, typename1, val1, val2), vec![]));
+                self.ast.append((ElementInfo::Seol, vec![]));
                 let validation_error = None;
                 Ok(validation_error)
             } else {
@@ -1383,46 +1378,14 @@ mod tests {
         //let root: Element = (ElementInfo::CommentSingleLine("root".to_string()), vec![1, 2, 3, 8]);
         // we use the 0 index (for root) to mean outdent a level
         // so all real elements start at index 1!
-        let el1: Element = (
-            ElementInfo::CommentSingleLine("1".to_string()),
-            vec![],
-            false,
-        );
-        let el2: Element = (
-            ElementInfo::CommentSingleLine("2".to_string()),
-            vec![],
-            false,
-        );
-        let el3: Element = (
-            ElementInfo::CommentSingleLine("3".to_string()),
-            vec![4, 5],
-            false,
-        );
-        let el4: Element = (
-            ElementInfo::CommentSingleLine("4".to_string()),
-            vec![],
-            false,
-        );
-        let el5: Element = (
-            ElementInfo::CommentSingleLine("5".to_string()),
-            vec![6, 7],
-            false,
-        );
-        let el6: Element = (
-            ElementInfo::CommentSingleLine("6".to_string()),
-            vec![],
-            false,
-        );
-        let el7: Element = (
-            ElementInfo::CommentSingleLine("7".to_string()),
-            vec![],
-            false,
-        );
-        let el8: Element = (
-            ElementInfo::CommentSingleLine("8".to_string()),
-            vec![],
-            false,
-        );
+        let el1: Element = (ElementInfo::CommentSingleLine("1".to_string()), vec![]);
+        let el2: Element = (ElementInfo::CommentSingleLine("2".to_string()), vec![]);
+        let el3: Element = (ElementInfo::CommentSingleLine("3".to_string()), vec![4, 5]);
+        let el4: Element = (ElementInfo::CommentSingleLine("4".to_string()), vec![]);
+        let el5: Element = (ElementInfo::CommentSingleLine("5".to_string()), vec![6, 7]);
+        let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
+        let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
+        let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
         let mut ast: Ast = Ast::new();
         ast.append(el1);
         ast.append(el2);
