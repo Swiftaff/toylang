@@ -16,7 +16,9 @@
 
 // constant binding to simple arithmetic expression
 
-//= d (+ 1 2)
+//= d + 1 2
+//= e (* 6 (+ 2 (- 5 3)))
+//= f monkey arg1 (+ arg2 arg3) arg4
 
 //= e1 * (6 (+ 2 3))
 // const e1 (in tree)

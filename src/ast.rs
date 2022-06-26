@@ -161,7 +161,7 @@ impl Ast {
             ElementInfo::ConstantRef(name, typename, reference) => {
                 format!("let {}: {} = {}", name, typename, reference)
             }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, format) => {
+            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
             ElementInfo::InbuiltFunctionCall(output, _returntype) => output,
@@ -180,6 +180,7 @@ impl Ast {
         }
     }
 
+    /*
     fn get_single_line_expression_from_children(self: &mut Self, children: Vec<usize>) -> String {
         let mut expression = "".to_string();
         for i in 0..children.len() {
@@ -190,6 +191,7 @@ impl Ast {
         }
         expression
     }
+    */
 
     fn set_close_output_for_element(self: &mut Self, el_index: usize) {
         if el_index < self.elements.len() {
@@ -255,6 +257,34 @@ impl Ast {
 
     pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
         let option_index = self.get_inbuilt_function_index_by_name(name);
+        match option_index {
+            Some(index) => Some(self.elements[index].0.clone()),
+            None => None,
+        }
+    }
+
+    pub fn get_inbuilt_function_index_by_name_and_returntype(
+        self: &Self,
+        name: &String,
+        returntype: &String,
+    ) -> Option<usize> {
+        dbg!(returntype);
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
+                dbg!("here", n, r, name, returntype);
+                n == name && (r.contains(returntype) || returntype.contains(r))
+            }
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_function_by_name_and_returntype(
+        self: &Self,
+        name: &String,
+        returntype: &String,
+    ) -> Option<ElementInfo> {
+        dbg!(returntype);
+        let option_index = self.get_inbuilt_function_index_by_name_and_returntype(name, returntype);
         match option_index {
             Some(index) => Some(self.elements[index].0.clone()),
             None => None,
