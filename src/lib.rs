@@ -1,6 +1,6 @@
 // TODO make most function arguments refs
 mod ast;
-use ast::{Ast, Element, ElementInfo};
+use ast::{vec_remove_tail, Ast, Element, ElementInfo};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -209,27 +209,39 @@ impl Config {
     }
 
     fn check_one_or_more_succeeds(self: &mut Self, tokens: Vec<String>) -> Result<(), Vec<String>> {
-        match self.check_one_succeeds("ast_set_comment_single_line", &tokens, None) {
+        match self.check_one_succeeds("ast_set_comment_single_line", &tokens, None, true) {
             Ok(_) => return Ok(()),
             _ => (),
         }
-        match self.check_one_succeeds("ast_set_int", &tokens, None) {
-            Ok(_) => return Ok(()),
+        match self.check_one_succeeds("ast_set_int", &tokens, None, true) {
+            Ok(_) => {
+                self.ast.append((ElementInfo::Seol, vec![]));
+                return Ok(());
+            }
             _ => (),
         }
-        match self.check_one_succeeds("ast_set_float", &tokens, None) {
-            Ok(_) => return Ok(()),
+        match self.check_one_succeeds("ast_set_float", &tokens, None, true) {
+            Ok(_) => {
+                self.ast.append((ElementInfo::Seol, vec![]));
+                return Ok(());
+            }
             _ => (),
         }
-        match self.check_one_succeeds("ast_set_string", &tokens, None) {
-            Ok(_) => return Ok(()),
+        match self.check_one_succeeds("ast_set_string", &tokens, None, true) {
+            Ok(_) => {
+                self.ast.append((ElementInfo::Seol, vec![]));
+                return Ok(());
+            }
             _ => (),
         }
-        match self.check_one_succeeds("ast_set_constant", &tokens, None) {
-            Ok(_) => return Ok(()),
+        match self.check_one_succeeds("ast_set_constant", &tokens, None, true) {
+            Ok(_) => {
+                self.ast.append((ElementInfo::Seol, vec![]));
+                return Ok(());
+            }
             _ => (),
         }
-        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, None) {
+        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, None, true) {
             Ok(_) => return Ok(()),
             _ => (),
         }
@@ -253,7 +265,7 @@ impl Config {
         dbg!(&returntype);
         if returntype.contains(&"i64".to_string()) {
             dbg!("i64");
-            match self.check_one_succeeds("ast_set_int", &tokens, None) {
+            match self.check_one_succeeds("ast_set_int", &tokens, None, false) {
                 Ok(remaining_tokens) => {
                     dbg!("ok i64");
                     return Ok(remaining_tokens);
@@ -262,18 +274,19 @@ impl Config {
             }
         }
         if returntype.contains(&"f64".to_string()) {
-            match self.check_one_succeeds("ast_set_float", &tokens, None) {
+            match self.check_one_succeeds("ast_set_float", &tokens, None, false) {
                 Ok(remaining_tokens) => return Ok(remaining_tokens),
                 _ => (),
             }
         }
         if returntype.contains(&"String".to_string()) {
-            match self.check_one_succeeds("ast_set_string", &tokens, None) {
+            match self.check_one_succeeds("ast_set_string", &tokens, None, false) {
                 Ok(remaining_tokens) => return Ok(remaining_tokens),
                 _ => (),
             }
         }
-        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, Some(returntype)) {
+        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, Some(returntype), false)
+        {
             Ok(remaining_tokens) => return Ok(remaining_tokens),
             _ => (),
         }
@@ -287,6 +300,7 @@ impl Config {
         function_name: &str,
         tokens: &Vec<String>,
         returntype: Option<String>,
+        singleline: bool,
     ) -> Result<Vec<String>, String> {
         let mut succeeded = false;
         let mut clone = self.clone();
@@ -298,9 +312,9 @@ impl Config {
             "get_expression_result_for_expression" => clone.get_expression_result_for_expression(tokens),
             */
             "ast_set_comment_single_line" => clone.ast_set_comment_single_line(tokens),
-            "ast_set_int" => clone.ast_set_int(tokens),
-            "ast_set_float" => clone.ast_set_float(tokens),
-            "ast_set_string" => clone.ast_set_string(tokens),
+            "ast_set_int" => clone.ast_set_int(tokens, singleline),
+            "ast_set_float" => clone.ast_set_float(tokens, singleline),
+            "ast_set_string" => clone.ast_set_string(tokens, singleline),
             "ast_set_constant" => clone.ast_set_constant(tokens),
             "ast_set_inbuilt_function" => clone.ast_set_inbuilt_function(tokens, returntype),
             _ => {
@@ -412,14 +426,22 @@ impl Config {
         }
     }
 
-    fn ast_set_int(self: &mut Self, tokens: &Vec<String>) -> Result<Vec<String>, String> {
+    fn ast_set_int(
+        self: &mut Self,
+        tokens: &Vec<String>,
+        singleline: bool,
+    ) -> Result<Vec<String>, String> {
         dbg!("set_int");
         if tokens.len() > 0 && is_integer(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Indent, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Indent, vec![]));
+            }
             let x = self.ast.append((ElementInfo::Int(val), vec![]));
             dbg!(self.ast.elements[x].clone());
-            self.ast.append((ElementInfo::Seol, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
             Ok(tokens_remove_head(tokens.clone()))
             //let validation_error = None;
             //Ok(validation_error)
@@ -428,12 +450,20 @@ impl Config {
         }
     }
 
-    fn ast_set_float(self: &mut Self, tokens: &Vec<String>) -> Result<Vec<String>, String> {
+    fn ast_set_float(
+        self: &mut Self,
+        tokens: &Vec<String>,
+        singleline: bool,
+    ) -> Result<Vec<String>, String> {
         if tokens.len() > 0 && is_float(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Indent, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Indent, vec![]));
+            }
             self.ast.append((ElementInfo::Float(val), vec![]));
-            self.ast.append((ElementInfo::Seol, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
             Ok(tokens_remove_head(tokens.clone()))
             //let validation_error = None;
             //Ok(validation_error)
@@ -442,12 +472,20 @@ impl Config {
         }
     }
 
-    fn ast_set_string(self: &mut Self, tokens: &Vec<String>) -> Result<Vec<String>, String> {
+    fn ast_set_string(
+        self: &mut Self,
+        tokens: &Vec<String>,
+        singleline: bool,
+    ) -> Result<Vec<String>, String> {
         if tokens.len() > 0 && is_string(&tokens[0].to_string()) {
             let val = tokens[0].clone();
-            self.ast.append((ElementInfo::Indent, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Indent, vec![]));
+            }
             self.ast.append((ElementInfo::String(val), vec![]));
-            self.ast.append((ElementInfo::Seol, vec![]));
+            if singleline {
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
             Ok(tokens_remove_head(tokens.clone()))
             //let validation_error = None;
             //Ok(validation_error)
@@ -485,10 +523,11 @@ impl Config {
                         Some(ref_of_value) => {
                             dbg!("3");
 
-                            self.ast.append((
-                                ElementInfo::Constant(name, typename),
+                            let ref_of_constant = self.ast.append((
+                                ElementInfo::Constant(name, typename.clone()),
                                 vec![ref_of_value],
                             ));
+                            //self.ast.parents = vec_remove_tail(self.ast.parents.clone());
                             self.ast.append((ElementInfo::Seol, vec![]));
 
                             //remove 3 tokens
@@ -500,8 +539,6 @@ impl Config {
                             remaining_tokens = tokens_remove_head(remaining_tokens);
                             remaining_tokens = tokens_remove_head(remaining_tokens);
 
-                            //penguin
-                            // TODO get refs to the necessary number of arguments <-------- TODO
                             let element_from_ref = self.ast.elements[ref_of_value].clone();
                             dbg!(element_from_ref.clone());
                             match element_from_ref.0 {
@@ -509,6 +546,7 @@ impl Config {
                                     let function_def_for_this_call_option =
                                         self.ast.get_inbuilt_function_by_name(&name);
                                     dbg!(function_def_for_this_call_option.clone());
+                                    dbg!(&self.ast.parents);
                                     match function_def_for_this_call_option {
                                         Some(ElementInfo::InbuiltFunctionDef(
                                             _,
@@ -517,8 +555,36 @@ impl Config {
                                             return_type,
                                             _,
                                         )) => {
+                                            //penguin
+
+                                            self.ast.parents.push(ref_of_value); //[self.parents.len() - 1];
+
+                                            // TODO also fix the type if it happens to be optional, like i64/f64
+                                            /*
+                                            if typename.contains("|") {
+                                                let previously_saved_constant =
+                                                    self.ast.elements[ref_of_constant].clone();
+                                                match previously_saved_constant {
+                                                    (ElementInfo::Constant(name, _), children) => {
+                                                        dbg!("a");
+                                                        let new_constant_with_corrected_type = (
+                                                            ElementInfo::Constant(
+                                                                name,
+                                                                arg_types[0].clone(),
+                                                            ),
+                                                            children,
+                                                        );
+                                                        self.ast.elements[ref_of_value] =
+                                                            new_constant_with_corrected_type;
+                                                    }
+                                                    _ => (),
+                                                }
+                                            }
+                                            */
+
                                             for argtype in arg_types {
                                                 dbg!(argtype);
+                                                dbg!(&self.ast.parents);
                                                 match self
                                                     .check_one_or_more_succeeds_for_returntypes(
                                                         remaining_tokens,
@@ -535,9 +601,13 @@ impl Config {
                                                     }
                                                 }
                                             }
+                                            //self.ast.parents =
+                                            //    vec_remove_head(self.ast.parents.clone());
+                                            //self.ast.append((ElementInfo::Seol, vec![]));
                                         }
                                         _ => (),
                                     }
+                                    //dbg!(&self.ast);
                                 }
                                 _ => (),
                             }
@@ -644,11 +714,13 @@ impl Config {
                     }
 
                     self.ast.append((ElementInfo::Indent, vec![]));
+                    dbg!("###########################");
                     self.ast.append((
                         ElementInfo::InbuiltFunctionCall(output, final_returntype),
                         vec![],
                     ));
-                    self.ast.append((ElementInfo::Seol, vec![]));
+                    //self.ast.parents = vec_remove_tail(self.ast.parents.clone());
+                    //self.ast.append((ElementInfo::Seol, vec![]));
 
                     //let validation_error = None;
                     let mut ret_tokens = tokens_remove_head(tokens.clone());

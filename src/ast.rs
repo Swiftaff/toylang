@@ -3,7 +3,7 @@ pub struct Ast {
     //first element is always root. Real elements start at index 1
     pub elements: Vec<Element>,
     pub output: String,
-    parents: Vec<ElIndex>,
+    pub parents: Vec<ElIndex>,
 }
 #[derive(Clone, Debug)]
 pub enum ElementInfo {
@@ -15,7 +15,7 @@ pub enum ElementInfo {
     Constant(Name, ReturnType),
     ConstantRef(Name, ReturnType, RefName),
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format),
-    InbuiltFunctionCall(String, ReturnType),
+    InbuiltFunctionCall(Name, ReturnType),
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType),
     FunctionCall(Name),
     Arithmetic(Name, ReturnType, Value, Value),
@@ -91,6 +91,7 @@ impl Ast {
     }
 
     pub fn set_output(self: &mut Self) {
+        dbg!(&self);
         self.set_output_append("fn main() {\r\n");
         // the values of indent and outdent don't matter when outputting - only using parents.len()
         // values do matter when building the ast
@@ -113,7 +114,15 @@ impl Ast {
                 // push current to output
                 self.set_open_output_for_element(current_item);
                 // if current item has children...
-                let current_item_children = self.elements[current_item].1.clone();
+                let mut current_item_children = self.elements[current_item].1.clone();
+
+                // don't render children of certain elements - they are rendered separately
+                let el = self.elements[current_item].clone();
+                match el.0 {
+                    ElementInfo::InbuiltFunctionCall(_, _) => current_item_children = vec![],
+                    _ => (),
+                }
+
                 //let does_indent = self.elements[current_item].2;
                 if current_item < self.elements.len() && current_item_children.len() > 0 {
                     //if does_indent {
@@ -164,7 +173,34 @@ impl Ast {
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
-            ElementInfo::InbuiltFunctionCall(output, _returntype) => output,
+            ElementInfo::InbuiltFunctionCall(name, _returntype) => {
+                dbg!("InbuiltFunctionCall");
+                let def_option = self.get_inbuilt_function_by_name(&name);
+                match def_option {
+                    Some(def) => match def {
+                        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
+                            let children = element.1.clone();
+                            dbg!(&argnames, &children);
+                            //if children.len() == argnames.len() {
+                            let mut output = format;
+                            dbg!(&output);
+                            for i in 0..argnames.len() {
+                                let arg_var_num = format!("arg{}", i + 1);
+                                let arg_value_el_ref = children[i];
+                                let arg_value_el = self.elements[arg_value_el_ref.clone()].clone();
+                                let arg_output = self.get_output_for_element(arg_value_el.clone());
+                                dbg!(&arg_var_num, arg_value_el_ref, arg_value_el, &arg_output);
+                                output = output.replace(&arg_var_num, &arg_output);
+                            }
+                            return output;
+                            //}
+                            return "".to_string();
+                        }
+                        _ => return "".to_string(),
+                    },
+                    None => return "".to_string(),
+                }
+            }
             ElementInfo::FunctionDef(name, _argnames, _argtypes, _returntype) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
@@ -300,7 +336,7 @@ fn vec_remove_head(stack: Vec<usize>) -> Vec<usize> {
     }
 }
 
-fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
+pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
     if stack.len() == 1 {
         vec![]
     } else {
