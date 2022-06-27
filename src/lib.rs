@@ -119,45 +119,44 @@ impl Config {
         Ok(())
     }
 
-    fn check_one_or_more_succeeds(self: &mut Self, tokens: Tokens) -> Result<(), ()> {
+    fn check_one_or_more_succeeds(self: &mut Self, tokens: Tokens) -> Result<Tokens, ()> {
         match self.check_one_succeeds("ast_set_comment_single_line", &tokens, None, true) {
-            Ok(_) => return Ok(()),
+            Ok(_) => return Ok(tokens),
             _ => (),
         }
         match self.check_one_succeeds("ast_set_int", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(());
+                return Ok(tokens);
             }
             _ => (),
         }
         match self.check_one_succeeds("ast_set_float", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(());
+                return Ok(tokens);
             }
             _ => (),
         }
         match self.check_one_succeeds("ast_set_string", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(());
+                return Ok(tokens);
             }
             _ => (),
         }
         match self.check_one_succeeds("ast_set_constant", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(());
+                return Ok(tokens);
             }
             _ => (),
         }
         match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, None, true) {
-            Ok(_) => return Ok(()),
+            Ok(_) => return Ok(tokens),
             _ => (),
         }
-        self.get_error(0, 1, ERRORS.no_valid_expression);
-        Err(())
+        self.get_error(0, 1, ERRORS.no_valid_expression)
     }
 
     fn check_one_or_more_succeeds_for_returntypes(
@@ -193,8 +192,7 @@ impl Config {
             Ok(remaining_tokens) => return Ok(remaining_tokens),
             _ => (),
         }
-        self.get_error(0, 1, ERRORS.no_valid_expression);
-        Err(())
+        self.get_error(0, 1, ERRORS.no_valid_expression)
     }
 
     fn check_one_succeeds(
@@ -309,8 +307,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_comment_single_line);
-            Err(()) //return Err(ERRORS.no_valid_comment_single_line.to_string());
+            self.get_error(0, 1, ERRORS.no_valid_comment_single_line)
         }
     }
 
@@ -330,8 +327,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_int);
-            Err(())
+            self.get_error(0, 1, ERRORS.no_valid_int)
         }
     }
 
@@ -349,8 +345,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_float);
-            Err(())
+            self.get_error(0, 1, ERRORS.no_valid_float)
         }
     }
 
@@ -368,8 +363,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_string);
-            Err(())
+            self.get_error(0, 1, ERRORS.no_valid_string)
         }
     }
 
@@ -533,12 +527,11 @@ impl Config {
                                                         }
                                                     }
                                                     Err(_e) => {
-                                                        self.get_error(
+                                                        return self.get_error(
                                                             0,
                                                             1,
                                                             ERRORS.no_valid_assignment,
-                                                        );
-                                                        return Err(());
+                                                        )
                                                     }
                                                 }
                                             }
@@ -563,15 +556,13 @@ impl Config {
                         }
                         None => {
                             //dbg!("4");
-                            self.get_error(0, 1, ERRORS.no_valid_assignment);
-                            return Err(());
+                            return self.get_error(0, 1, ERRORS.no_valid_assignment);
                         }
                     }
                 }
             }
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_assignment);
-            return Err(());
+            return self.get_error(0, 1, ERRORS.no_valid_assignment);
         }
     }
 
@@ -616,8 +607,7 @@ impl Config {
                     format,
                 )) => {
                     if argnames.len() != tokens.len() - 1 {
-                        self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-                        return Err(());
+                        return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
                     }
 
                     //dbg!("yes", &name, &argnames, &argtypes, &returntype);
@@ -643,8 +633,7 @@ impl Config {
                         );*/
                     }
                     if !types_match {
-                        self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-                        return Err(());
+                        return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
                     }
 
                     let mut output = format;
@@ -675,11 +664,9 @@ impl Config {
                 }
                 _ => {}
             }
-            self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-            return Err(());
+            return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-            return Err(());
+            return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
         }
     }
 
@@ -762,7 +749,12 @@ impl Config {
         return_type
     }
 
-    fn get_error(self: &mut Self, arrow_indent: usize, arrow_len: usize, error: &str) -> () {
+    fn get_error(
+        self: &mut Self,
+        arrow_indent: usize,
+        arrow_len: usize,
+        error: &str,
+    ) -> Result<Tokens, ()> {
         let e = format!(
             "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
             self.file.filename,
@@ -776,6 +768,7 @@ impl Config {
             error,
         );
         self.error_stack.push(e);
+        Err(())
     }
 }
 
