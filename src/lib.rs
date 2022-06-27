@@ -1,15 +1,13 @@
 // TODO make most function arguments refs
 mod ast;
+mod file;
 use ast::{Ast, ElementInfo};
+use file::File;
 use std::error::Error;
-use std::fs;
-use std::path::Path;
 
 #[derive(Clone, Debug)]
 pub struct Config {
-    pub filepath: String,
-    pub filename: String,
-    pub filecontents: String,
+    pub file: File,
     pub lines_of_chars: Vec<Vec<char>>,
     pub lines_of_tokens: Vec<Vec<String>>,
     pub output: String,
@@ -47,14 +45,7 @@ impl Config {
         if args.len() < 2 {
             return Err("missing filepath argument".to_string());
         }
-        let filepath = args[1].clone();
-        let filename = Path::new(&filepath.clone())
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-        let filecontents = "".to_string();
+        let file = File::new();
         let lines_of_chars = vec![];
         let lines_of_tokens = vec![];
         let output = "".to_string();
@@ -62,9 +53,7 @@ impl Config {
         let error_stack = vec![];
         let ast = Ast::new();
         Ok(Config {
-            filepath,
-            filename,
-            filecontents,
+            file,
             lines_of_chars,
             lines_of_tokens,
             output,
@@ -74,30 +63,21 @@ impl Config {
         })
     }
 
-    pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
-        self.filecontents = fs::read_to_string(&self.filepath)?;
-        println!("\r\nINPUT contents of filepath: {:?}", &self.filepath);
+    pub fn run(self: &mut Self, args: &[String]) -> Result<(), Box<dyn Error>> {
+        self.file.get(args)?;
+        dbg!(self.file.clone());
         match self.run_main_tasks() {
             Ok(_) => (),
             Err(_e) => (),
         }
-        self.writefile_or_error()
+        self.file
+            .writefile_or_error(&self.ast.output, self.error_stack.len() > 0)
     }
 
     pub fn run_main_tasks(self: &mut Self) -> Result<(), String> {
         self.set_lines_of_chars();
         self.set_lines_of_tokens();
         self.run_main_loop()
-    }
-
-    fn writefile_or_error(self: &Self) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
-        if self.error_stack.len() == 0 {
-            fs::write("../../src/bin/output.rs", &self.ast.output)?;
-            println!("SAVED to '../../src/bin/output.rs'");
-        } else {
-            println!("DIDN'T SAVE");
-        }
-        Ok(())
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), String> {
@@ -268,7 +248,7 @@ impl Config {
     fn set_lines_of_chars(self: &mut Self) {
         let mut index_from = 0;
         let mut index_to = 0;
-        let char_vec: Vec<char> = self.filecontents.chars().collect();
+        let char_vec: Vec<char> = self.file.filecontents.chars().collect();
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
             let incr =
@@ -326,9 +306,7 @@ impl Config {
 
     fn set_all_from_clone(self: &mut Self, to_clone: Config) -> () {
         // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
-        self.filepath = to_clone.filepath;
-        self.filename = to_clone.filename;
-        self.filecontents = to_clone.filecontents;
+        self.file = to_clone.file;
         self.lines_of_chars = to_clone.lines_of_chars;
         self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
@@ -1479,7 +1457,7 @@ impl Config {
     fn get_error(self: &Self, arrow_indent: usize, arrow_len: usize, error: &str) -> String {
         format!(
             "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
-            self.filename,
+            self.file.filename,
             self.current_line + 1,
             self.lines_of_chars[self.current_line]
                 .iter()
@@ -1639,9 +1617,7 @@ mod tests {
 
     fn mock_config(contents: &str) -> Config {
         Config {
-            filepath: "".to_string(),
-            filename: "".to_string(),
-            filecontents: contents.to_string(),
+            file: File::new(),
             lines_of_chars: vec![],
             lines_of_tokens: vec![],
             output: "".to_string(),
@@ -1657,7 +1633,7 @@ mod tests {
         let config_result = Config::new(&args);
         let filepath = "filepath_example".to_string();
         match config_result {
-            Ok(config) => assert_eq!(config.filepath, filepath),
+            Ok(config) => assert_eq!(config.file.filepath, filepath),
             Err(_) => assert!(false, "error should not exist"),
         }
     }
