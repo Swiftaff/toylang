@@ -1,6 +1,6 @@
 // TODO make most function arguments refs
 mod ast;
-use ast::{vec_remove_tail, Ast, Element, ElementInfo};
+use ast::{Ast, ElementInfo};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -32,11 +32,8 @@ pub struct Config {
     pub lines_of_chars: Vec<Vec<char>>,
     pub lines_of_tokens: Vec<Vec<String>>,
     pub output: String,
-    pub outputcursor: usize,
     pub current_line: usize,
     pub current_scope: FunctionScope,
-    pub indent: usize,
-    pub functions: Vec<FunctionDefinition>,
     pub error_stack: Vec<String>,
     pub ast: Ast,
 }
@@ -81,45 +78,8 @@ impl Config {
         let lines_of_chars = vec![];
         let lines_of_tokens = vec![];
         let output = "".to_string();
-        let outputcursor = 0;
         let current_line = 0;
-        let indent = 0;
         let current_scope = "main".to_string();
-        let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
-        let arithmetic_operators: Vec<FunctionDefinition> = arithmetic_primitives
-            .into_iter()
-            .map(|prim| FunctionDefinition {
-                name: prim.to_string(),
-                format: format!("#1 {} #2", prim).to_string(),
-                types: vec!["i64|f64".to_string(), "i64|f64".to_string()],
-                validations: vec!["arg_types_must_match".to_string()],
-                return_type: "i64|f64".to_string(),
-                scope: "global".to_string(),
-            })
-            .collect();
-        let function_def = FunctionDefinition {
-            name: "\\".to_string(),
-            format: "#0fn #1(#2) {\r\n#3\r\n#0}\r\n".to_string(),
-            types: vec![],
-            validations: vec![],
-            return_type: "".to_string(),
-            scope: "".to_string(),
-        };
-        let print = FunctionDefinition {
-            name: "@".to_string(),
-            format: "println!(\"{}\",#1.to_string())".to_string(),
-            types: vec!["String".to_string()],
-            validations: vec![],
-            return_type: "".to_string(),
-            scope: "global".to_string(),
-        };
-        let functions: Vec<FunctionDefinition> = vec![]
-            .iter()
-            .chain(&arithmetic_operators)
-            .chain(&vec![function_def])
-            .chain(&vec![print])
-            .map(|x| x.clone())
-            .collect();
         let error_stack = vec![];
         let ast = Ast::new();
         Ok(Config {
@@ -129,11 +89,8 @@ impl Config {
             lines_of_chars,
             lines_of_tokens,
             output,
-            outputcursor,
             current_line,
             current_scope,
-            indent,
-            functions,
             error_stack,
             ast,
         })
@@ -170,18 +127,18 @@ impl Config {
 
         match self.main_loop_over_lines_of_tokens() {
             Ok(()) => {
-                //dbg!(&self.ast);
+                ////dbg!(&self.ast);
                 self.ast.set_output();
                 println!(
                     "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
                     self.ast.output
                 );
-                //dbg!(&self.ast.elements[0].1);
+                ////dbg!(&self.ast.elements[0].1);
 
                 let len = self.ast.elements[0].1.len();
                 for i in 0..len {
-                    let refer = self.ast.elements[0].1[i];
-                    //dbg!(i, refer, &self.ast.elements[refer]);
+                    let _refer = self.ast.elements[0].1[i];
+                    ////dbg!(i, refer, &self.ast.elements[refer]);
                 }
             }
             Err(e) => {
@@ -262,12 +219,12 @@ impl Config {
         tokens: Vec<String>,
         returntype: String,
     ) -> Result<Vec<String>, Vec<String>> {
-        dbg!(&returntype);
+        //dbg!(&returntype);
         if returntype.contains(&"i64".to_string()) {
-            dbg!("i64");
+            //dbg!("i64");
             match self.check_one_succeeds("ast_set_int", &tokens, None, false) {
                 Ok(remaining_tokens) => {
-                    dbg!("ok i64");
+                    //dbg!("ok i64");
                     return Ok(remaining_tokens);
                 }
                 _ => (),
@@ -302,7 +259,7 @@ impl Config {
         returntype: Option<String>,
         singleline: bool,
     ) -> Result<Vec<String>, String> {
-        let mut succeeded = false;
+        let mut _succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
             /*
@@ -397,11 +354,8 @@ impl Config {
         self.lines_of_chars = to_clone.lines_of_chars;
         self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
-        self.outputcursor = to_clone.outputcursor;
         self.current_line = to_clone.current_line;
         self.current_scope = to_clone.current_scope;
-        self.indent = to_clone.indent;
-        self.functions = to_clone.functions;
         self.error_stack = to_clone.error_stack;
         self.ast = to_clone.ast;
     }
@@ -431,14 +385,14 @@ impl Config {
         tokens: &Vec<String>,
         singleline: bool,
     ) -> Result<Vec<String>, String> {
-        dbg!("set_int");
+        //dbg!("set_int");
         if tokens.len() > 0 && is_integer(&tokens[0].to_string()) {
             let val = tokens[0].clone();
             if singleline {
                 self.ast.append((ElementInfo::Indent, vec![]));
             }
-            let x = self.ast.append((ElementInfo::Int(val), vec![]));
-            dbg!(self.ast.elements[x].clone());
+            let _x = self.ast.append((ElementInfo::Int(val), vec![]));
+            //dbg!(self.ast.elements[x].clone());
             if singleline {
                 self.ast.append((ElementInfo::Seol, vec![]));
             }
@@ -496,7 +450,7 @@ impl Config {
 
     fn ast_set_constant(self: &mut Self, tokens: &Vec<String>) -> Result<Vec<String>, String> {
         if tokens.len() > 2 && tokens[0] == "=".to_string() {
-            dbg!("ast_set_constant");
+            //dbg!("ast_set_constant");
             let name = tokens[1].clone();
             let typename = self.ast_get_type(&tokens[2].clone());
             let val = tokens[2].clone();
@@ -505,7 +459,7 @@ impl Config {
             match self.ast.get_constant_index_by_name(&val) {
                 //equals a reference to existing constant
                 Some(_ref_of_constant) => {
-                    dbg!("1");
+                    //dbg!("1");
                     self.ast.append((ElementInfo::Indent, vec![]));
                     self.ast
                         .append((ElementInfo::ConstantRef(name, typename, val), vec![]));
@@ -516,12 +470,12 @@ impl Config {
                 }
                 //create a new constant
                 _ => {
-                    dbg!("2");
+                    //dbg!("2");
                     self.ast.append((ElementInfo::Indent, vec![]));
                     let ref_of_value_option = self.ast_set_ref_by_type(&val);
                     match ref_of_value_option {
                         Some(ref_of_value) => {
-                            dbg!("3");
+                            //dbg!("3");
 
                             let ref_of_constant = self.ast.append((
                                 ElementInfo::Constant(name, typename.clone()),
@@ -540,13 +494,13 @@ impl Config {
                             remaining_tokens = tokens_remove_head(remaining_tokens);
 
                             let element_from_ref = self.ast.elements[ref_of_value].clone();
-                            dbg!(element_from_ref.clone());
+                            //dbg!(element_from_ref.clone());
                             match element_from_ref.0 {
                                 ElementInfo::InbuiltFunctionCall(name, _) => {
                                     let function_def_for_this_call_option =
                                         self.ast.get_inbuilt_function_by_name(&name);
-                                    dbg!(function_def_for_this_call_option.clone());
-                                    dbg!(&self.ast.parents);
+                                    //dbg!(function_def_for_this_call_option.clone());
+                                    //dbg!(&self.ast.parents);
                                     match function_def_for_this_call_option {
                                         Some(ElementInfo::InbuiltFunctionDef(
                                             _,
@@ -559,16 +513,16 @@ impl Config {
 
                                             self.ast.parents.push(ref_of_value); //[self.parents.len() - 1];
 
-                                            for argtype in arg_types {
-                                                dbg!(argtype);
-                                                dbg!(&self.ast.parents);
+                                            for _argtype in arg_types {
+                                                //dbg!(argtype);
+                                                //dbg!(&self.ast.parents);
                                                 match self
                                                     .check_one_or_more_succeeds_for_returntypes(
                                                         remaining_tokens,
                                                         return_type.clone(),
                                                     ) {
                                                     Ok(returned_tokens) => {
-                                                        dbg!("return_type", return_type.clone());
+                                                        //dbg!("return_type", return_type.clone());
                                                         remaining_tokens = returned_tokens;
 
                                                         // TODO also fix the type if it happens to be optional, like i64/f64
@@ -611,11 +565,11 @@ impl Config {
                                                                     );
                                                                     self.ast.elements[ref_of_value] =
                                                                             new_function_with_corrected_type.clone();
-                                                                    dbg!("b", new_function_with_corrected_type);
+                                                                    //dbg!("b", new_function_with_corrected_type);
                                                                     ()
                                                                 }
                                                                 _ => {
-                                                                    dbg!("c");
+                                                                    //dbg!("c");
                                                                     ()
                                                                 }
                                                             }
@@ -643,11 +597,11 @@ impl Config {
                                                                     );
                                                                     self.ast.elements[ref_of_constant] =
                                                                     new_constant_with_corrected_type.clone();
-                                                                    dbg!("b", new_constant_with_corrected_type);
+                                                                    //dbg!("b", new_constant_with_corrected_type);
                                                                     ()
                                                                 }
                                                                 _ => {
-                                                                    dbg!("c");
+                                                                    //dbg!("c");
                                                                     ()
                                                                 }
                                                             }
@@ -658,7 +612,7 @@ impl Config {
                                                         if typename.contains("|") {
                                                             let previously_saved_constant =
                                                                 self.ast.elements[ref_of_constant].clone();
-                                                            dbg!("a", &previously_saved_constant);
+                                                            //dbg!("a", &previously_saved_constant);
                                                             match previously_saved_constant {
                                                                 (
                                                                     ElementInfo::Constant(constant_name, _),
@@ -673,11 +627,11 @@ impl Config {
                                                                     );
                                                                     self.ast.elements[ref_of_value] =
                                                                         new_constant_with_corrected_type;
-                                                                    dbg!("b", new_constant_with_corrected_type);
+                                                                    //dbg!("b", new_constant_with_corrected_type);
                                                                     ()
                                                                 }
                                                                 _ => {
-                                                                    dbg!("c");
+                                                                    //dbg!("c");
                                                                     ()
                                                                 }
                                                             }
@@ -686,7 +640,7 @@ impl Config {
 
                                                         //self.ast.append_as_ref((ElementInfo::Indent, vec![]));
                                                     }
-                                                    Err(e) => {
+                                                    Err(_e) => {
                                                         return Err(ERRORS
                                                             .no_valid_assignment
                                                             .to_string())
@@ -699,7 +653,7 @@ impl Config {
                                         }
                                         _ => (),
                                     }
-                                    //dbg!(&self.ast);
+                                    ////dbg!(&self.ast);
                                 }
                                 _ => (),
                             }
@@ -713,7 +667,7 @@ impl Config {
                             //Ok(validation_error
                         }
                         None => {
-                            dbg!("4");
+                            //dbg!("4");
                             Err(ERRORS.no_valid_assignment.to_string())
                         }
                     }
@@ -734,7 +688,7 @@ impl Config {
                 return_type,
                 _format,
             )) => {
-                dbg!(return_type.clone());
+                //dbg!(return_type.clone());
                 let elinfo = ElementInfo::InbuiltFunctionCall(name, return_type);
                 let child_refs = vec![];
                 Some(self.ast.append_as_ref((elinfo, child_refs)))
@@ -749,7 +703,7 @@ impl Config {
         required_return_type_option: Option<String>,
     ) -> Result<Vec<String>, String> {
         if tokens.len() > 0 {
-            dbg!(tokens);
+            //dbg!(tokens);
             let inbuilt_function_option = match required_return_type_option {
                 Some(required_return_type) => self
                     .ast
@@ -758,7 +712,7 @@ impl Config {
             };
             match inbuilt_function_option {
                 Some(ElementInfo::InbuiltFunctionDef(
-                    name,
+                    _name,
                     argnames,
                     argtypes,
                     returntype,
@@ -768,7 +722,7 @@ impl Config {
                         return Err(ERRORS.no_valid_integer_arithmetic.to_string());
                     }
 
-                    dbg!("yes", &name, &argnames, &argtypes, &returntype);
+                    //dbg!("yes", &name, &argnames, &argtypes, &returntype);
                     let mut types_match = true;
                     for i in 0..argtypes.len() {
                         let argtype = argtypes[i].clone();
@@ -781,14 +735,14 @@ impl Config {
                         } else if argtype != tokentype {
                             types_match = false;
                         }
-                        dbg!(
+                        /*dbg!(
                             &argtype,
                             &tokens[i + 1],
                             &tokentype,
                             argtype.contains("|"),
                             argtype.contains(&tokentype),
                             types_match
-                        );
+                        );*/
                     }
                     if !types_match {
                         return Err(ERRORS.no_valid_integer_arithmetic.to_string());
@@ -806,7 +760,7 @@ impl Config {
                     }
 
                     self.ast.append((ElementInfo::Indent, vec![]));
-                    dbg!("###########################");
+                    //dbg!("###########################");
                     self.ast.append((
                         ElementInfo::InbuiltFunctionCall(output, final_returntype),
                         vec![],
@@ -829,7 +783,7 @@ impl Config {
     }
 
     fn ast_get_type(self: &Self, text: &String) -> String {
-        dbg!("ast_get_type");
+        //dbg!("ast_get_type");
         let mut return_type = "Undefined".to_string();
         if is_integer(text) {
             return_type = "i64".to_string();
@@ -842,11 +796,11 @@ impl Config {
         }
         match self.ast.get_inbuilt_function_by_name(text) {
             Some(ElementInfo::InbuiltFunctionDef(_, _, _, returntype, _)) => {
-                dbg!("ast_get_type - 1", &returntype);
+                //dbg!("ast_get_type - 1", &returntype);
                 return returntype;
             }
             _ => {
-                dbg!("ast_get_type - 2");
+                //dbg!("ast_get_type - 2");
                 ()
             }
         }
@@ -860,7 +814,7 @@ impl Config {
     }
 
     fn ast_get_enumtype_of_elementinfo(self: &Self, text: &String) -> Option<ElementInfo> {
-        dbg!("ast_get_enum_of_element");
+        //dbg!("ast_get_enum_of_element");
         //note: these don't have real values - just indicates correct Enum to use
         let mut return_type = None;
         if is_integer(text) {
@@ -880,7 +834,7 @@ impl Config {
                 return_type,
                 format,
             )) => {
-                dbg!("ast_get_type - 1", &return_type);
+                //dbg!("ast_get_type - 1", &return_type);
                 return Some(ElementInfo::InbuiltFunctionDef(
                     name,
                     argnames,
@@ -890,7 +844,7 @@ impl Config {
                 ));
             }
             _ => {
-                dbg!("ast_get_type - 2");
+                //dbg!("ast_get_type - 2");
                 ()
             }
         }
@@ -911,7 +865,7 @@ impl Config {
     fn set_output_for_return_expression(self: &mut Self, tokens: &Vec<String>) {
         // if we found an expression while inside a function, then it must be the returning expression
         // so we should close this function brace and move scope back up a level
-        dbg!("close }", &self.current_scope);
+        //dbg!("close }", &self.current_scope);
         //if self.indent > 0 {
         self.indent = self.indent - 1;
         //}
@@ -922,7 +876,7 @@ impl Config {
             Some(parent_scope) => self.current_scope = parent_scope.scope,
             None => (), // couldn't find function called self.current_scope - so um, leave as is, or maybe default to main??
         }
-        dbg!("close }", &self.current_scope, option_parent_scope);
+        //dbg!("close }", &self.current_scope, option_parent_scope);
         //self.current_scope = self.parent_scope.clone(); // TODO hm will only work for 1 level
         let insert = format!(
             "{}{}\r\n{}",
@@ -936,7 +890,7 @@ impl Config {
 
     fn set_output_for_plain_expression(self: &mut Self, tokens: &Vec<String>) {
         //}, expression: &String) {
-        //dbg!("plain_expression", &expression, &tokens);
+        ////dbg!("plain_expression", &expression, &tokens);
         let insert = format!(
             "{}{};\r\n",
             " ".repeat(self.indent * 4),
@@ -1040,7 +994,7 @@ impl Config {
         };
         self.functions.push(new_constant_function);
         if &identifier == &"k2".to_string() {
-            dbg!(&self.functions, &self.current_scope);
+            //dbg!(&self.functions, &self.current_scope);
         }
     }
 
@@ -1049,7 +1003,7 @@ impl Config {
         identifier: &String,
         tokens: Vec<String>,
     ) -> Result<(Expression, ExpressionType), String> {
-        dbg!(&tokens);
+        //dbg!(&tokens);
         if tokens.len() == 1 {
             if is_integer(&tokens[0]) {
                 return Ok((tokens[0].clone(), "i64".to_string()));
@@ -1066,7 +1020,7 @@ impl Config {
             }
         }
         if tokens.len() > 0 {
-            //dbg!(
+            ////dbg!(
             //    &tokens,
             //    self.get_exists_function(&tokens[0], self.current_scope.clone())
             //);
@@ -1092,18 +1046,18 @@ impl Config {
     }
 
     fn get_expression_result_for_expression(self: &mut Self) -> Result<Option<String>, String> {
-        //dbg!("get_expression_result_for_expression");
+        ////dbg!("get_expression_result_for_expression");
         let tokens = self.lines_of_tokens[self.current_line].clone();
         let identifier = self.current_scope.clone();
         let mut validation_error = None;
         let expression_result = &self.get_expression_result(&identifier, tokens.clone());
         match expression_result {
             Ok((expression, exp_type)) => {
-                dbg!(&expression, &exp_type, &self.current_scope);
+                //dbg!(&expression, &exp_type, &self.current_scope);
                 if self.current_scope != "main".to_string() {
                     self.set_output_for_return_expression(&tokens);
                 } else {
-                    //dbg!(expression);
+                    ////dbg!(expression);
                     self.set_output_for_plain_expression(&tokens); //, expression);
                 }
             }
@@ -1122,7 +1076,7 @@ impl Config {
         let fn_option: Option<FunctionDefinition> =
             self.get_option_function_definition(tokens[0].clone(), self.current_scope.clone());
         let tokens_string_length = get_len_tokens_string(&tokens);
-        //dbg!(&fn_option);
+        ////dbg!(&fn_option);
         match fn_option {
             Some(def) => {
                 let allow_for_fn_name = 1;
@@ -1201,7 +1155,7 @@ impl Config {
                     }
                     _ => def.format,
                 };
-                //dbg!(&output);
+                ////dbg!(&output);
 
                 return Ok((output, final_return_type.clone()));
             }
@@ -1259,7 +1213,7 @@ impl Config {
                                     &expression_type,
                                 );
                             }
-                            dbg!("here?", &self.current_scope, &identifier);
+                            //dbg!("here?", &self.current_scope, &identifier);
                             self.set_functions_for_constant(
                                 identifier,
                                 expression,
@@ -1464,7 +1418,7 @@ impl Config {
 
         self.current_scope = identifier.clone();
         //let temp_scope = self.current_scope.clone();
-        //dbg!("testy", &identifier, &self.current_scope);
+        ////dbg!("testy", &identifier, &self.current_scope);
         let args_with_types = get_function_args_with_types(args.clone(), type_signature.clone());
 
         // define the arguments so get_expression_result doesn't return "Undefined" for their types
@@ -1704,6 +1658,7 @@ fn get_function_args_with_types(args: Vec<String>, type_signature: Vec<String>) 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ast::Element;
 
     fn mock_config(contents: &str) -> Config {
         Config {
@@ -1713,11 +1668,8 @@ mod tests {
             lines_of_chars: vec![],
             lines_of_tokens: vec![],
             output: "".to_string(),
-            outputcursor: 0,
             current_line: 0,
             current_scope: "".to_string(),
-            indent: 1,
-            functions: vec![],
             error_stack: vec![],
             ast: Ast::new(),
         }
@@ -1758,8 +1710,8 @@ mod tests {
             let mut c = mock_config(input);
             match c.run_main_tasks() {
                 Ok(_) => assert_eq!(c.ast.output, output),
-                Err(e) => {
-                    dbg!(c, e);
+                Err(_e) => {
+                    //dbg!(c, e);
                     assert!(false, "error should not exist");
                 }
             }
@@ -1810,59 +1762,6 @@ mod tests {
         ast.outdent();
         ast.outdent();
         ast.append(el8);
-
-        //let root_children: Vec<usize> = ast.elements[0].1.clone();
-        //let mut stack: Vec<usize> = root_children;
-        //let mut output: Vec<String> = vec![];
-        //let mut level = 0;
-
-        /*
-        while stack.len() > 0 {
-            let current_item = stack[0];
-
-            // remove current item from stack
-            if stack.len() == 1 {
-                stack = vec![];
-            } else {
-                stack = stack[1..].to_vec();
-            }
-
-            // if it is an outdent marker, outdent level!
-            if current_item == 0 {
-                level -= 1;
-
-                // push current end tag to output
-                let end_tag = stack[0];
-                output.push(format!("{}: close {:?}", level, end_tag));
-
-                // removed the outdent marker earlier, now remove the end tag indicator
-                if stack.len() == 1 {
-                    stack = vec![];
-                } else {
-                    stack = stack[1..].to_vec();
-                }
-            } else {
-                // push current to output
-                output.push(format!("{}: push {:?}", level, current_item));
-
-                // if current item has children...
-                if ast.elements[current_item].1.len() > 0 {
-                    // prepend with current item end tag indicator - so we know to close it at after the outdent
-                    stack.splice(0..0, vec![current_item]);
-
-                    // prepend with 0 (marker for outdent)
-                    stack.splice(0..0, vec![0]);
-
-                    // prepend with children
-                    stack.splice(0..0, ast[current_item].1.clone());
-
-                    // and increase indent
-                    level += 1;
-                }
-            }
-            println!("{:?}\r\n{:?}\r\n", stack, output);
-        }
-        */
         assert!(true);
     }
 }

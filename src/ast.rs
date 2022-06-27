@@ -91,7 +91,7 @@ impl Ast {
     }
 
     pub fn set_output(self: &mut Self) {
-        dbg!(&self);
+        //dbg!(&self);
         self.set_output_append("fn main() {\r\n");
         // the values of indent and outdent don't matter when outputting - only using parents.len()
         // values do matter when building the ast
@@ -174,27 +174,27 @@ impl Ast {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
             ElementInfo::InbuiltFunctionCall(name, _returntype) => {
-                dbg!("InbuiltFunctionCall");
+                //dbg!("InbuiltFunctionCall");
                 let def_option = self.get_inbuilt_function_by_name(&name);
                 match def_option {
                     Some(def) => match def {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
                             let children = element.1.clone();
-                            dbg!(&argnames, &children);
+                            //dbg!(&argnames, &children);
                             //if children.len() == argnames.len() {
                             let mut output = format;
-                            dbg!(&output);
+                            //dbg!(&output);
                             for i in 0..argnames.len() {
                                 let arg_var_num = format!("arg{}", i + 1);
                                 let arg_value_el_ref = children[i];
                                 let arg_value_el = self.elements[arg_value_el_ref.clone()].clone();
                                 let arg_output = self.get_output_for_element(arg_value_el.clone());
-                                dbg!(&arg_var_num, arg_value_el_ref, arg_value_el, &arg_output);
+                                //dbg!(&arg_var_num, arg_value_el_ref, arg_value_el, &arg_output);
                                 output = output.replace(&arg_var_num, &arg_output);
                             }
                             return output;
                             //}
-                            return "".to_string();
+                            //return "".to_string();
                         }
                         _ => return "".to_string(),
                     },
@@ -316,10 +316,10 @@ impl Ast {
         name: &String,
         returntype: &String,
     ) -> Option<usize> {
-        dbg!(returntype);
+        //dbg!(returntype);
         self.elements.iter().position(|(elinfo, _)| match &elinfo {
             ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
-                dbg!("here", n, r, name, returntype);
+                //dbg!("here", n, r, name, returntype);
                 n == name && (r.contains(returntype) || returntype.contains(r))
             }
             _ => false,
@@ -331,7 +331,7 @@ impl Ast {
         name: &String,
         returntype: &String,
     ) -> Option<ElementInfo> {
-        dbg!(returntype);
+        //dbg!(returntype);
         let option_index = self.get_inbuilt_function_index_by_name_and_returntype(name, returntype);
         match option_index {
             Some(index) => Some(self.elements[index].0.clone()),
