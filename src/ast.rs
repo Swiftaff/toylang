@@ -216,6 +216,18 @@ impl Ast {
         }
     }
 
+    pub fn get_elementinfo_type(self: &Self, elementinfo: ElementInfo) -> String {
+        match elementinfo {
+            ElementInfo::Int(_) => "i64".to_string(),
+            ElementInfo::Float(_) => "f64".to_string(),
+            ElementInfo::String(_) => "String".to_string(),
+            ElementInfo::Constant(_, returntype) => returntype,
+            ElementInfo::ConstantRef(_, returntype, _) => returntype,
+            ElementInfo::InbuiltFunctionCall(_, returntype) => returntype,
+            _ => "Undefined".to_string(),
+        }
+    }
+
     /*
     fn get_single_line_expression_from_children(self: &mut Self, children: Vec<usize>) -> String {
         let mut expression = "".to_string();

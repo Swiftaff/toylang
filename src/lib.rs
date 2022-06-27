@@ -559,29 +559,6 @@ impl Config {
 
                                             self.ast.parents.push(ref_of_value); //[self.parents.len() - 1];
 
-                                            // TODO also fix the type if it happens to be optional, like i64/f64
-                                            /*
-                                            if typename.contains("|") {
-                                                let previously_saved_constant =
-                                                    self.ast.elements[ref_of_constant].clone();
-                                                match previously_saved_constant {
-                                                    (ElementInfo::Constant(name, _), children) => {
-                                                        dbg!("a");
-                                                        let new_constant_with_corrected_type = (
-                                                            ElementInfo::Constant(
-                                                                name,
-                                                                arg_types[0].clone(),
-                                                            ),
-                                                            children,
-                                                        );
-                                                        self.ast.elements[ref_of_value] =
-                                                            new_constant_with_corrected_type;
-                                                    }
-                                                    _ => (),
-                                                }
-                                            }
-                                            */
-
                                             for argtype in arg_types {
                                                 dbg!(argtype);
                                                 dbg!(&self.ast.parents);
@@ -591,7 +568,122 @@ impl Config {
                                                         return_type.clone(),
                                                     ) {
                                                     Ok(returned_tokens) => {
+                                                        dbg!("return_type", return_type.clone());
                                                         remaining_tokens = returned_tokens;
+
+                                                        // TODO also fix the type if it happens to be optional, like i64/f64
+
+                                                        //ref_of_constant = constant
+                                                        //ref_of_value = functionCall
+
+                                                        //get type from first child of function
+                                                        if return_type.contains("|") {
+                                                            let el_of_fn = self.ast.elements
+                                                                [ref_of_value]
+                                                                .clone();
+                                                            let ref_of_first_child = el_of_fn.1[0];
+                                                            let el_of_first_child = self
+                                                                .ast
+                                                                .elements[ref_of_first_child]
+                                                                .clone();
+                                                            let first_child_type =
+                                                                self.ast.get_elementinfo_type(
+                                                                    el_of_first_child.0,
+                                                                );
+                                                            let previously_saved_function =
+                                                                self.ast.elements[ref_of_value]
+                                                                    .clone();
+                                                            match previously_saved_function {
+                                                                (
+                                                                    ElementInfo::Constant(
+                                                                        fn_name,
+                                                                        _,
+                                                                    ),
+                                                                    fn_children,
+                                                                ) => {
+                                                                    let new_function_with_corrected_type = (
+                                                                        ElementInfo::InbuiltFunctionCall(
+                                                                            fn_name,
+                                                                            first_child_type
+                                                                                .clone(),
+                                                                        ),
+                                                                        fn_children,
+                                                                    );
+                                                                    self.ast.elements[ref_of_value] =
+                                                                            new_function_with_corrected_type.clone();
+                                                                    dbg!("b", new_function_with_corrected_type);
+                                                                    ()
+                                                                }
+                                                                _ => {
+                                                                    dbg!("c");
+                                                                    ()
+                                                                }
+                                                            }
+
+                                                            //then fix constant
+
+                                                            let previously_saved_constant =
+                                                                self.ast.elements[ref_of_constant]
+                                                                    .clone();
+                                                            match previously_saved_constant {
+                                                                (
+                                                                    ElementInfo::Constant(
+                                                                        constant_name,
+                                                                        _,
+                                                                    ),
+                                                                    constant_children,
+                                                                ) => {
+                                                                    let new_constant_with_corrected_type = (
+                                                                        ElementInfo::Constant(
+                                                                            constant_name,
+                                                                            first_child_type
+                                                                                .clone(),
+                                                                        ),
+                                                                        constant_children,
+                                                                    );
+                                                                    self.ast.elements[ref_of_constant] =
+                                                                    new_constant_with_corrected_type.clone();
+                                                                    dbg!("b", new_constant_with_corrected_type);
+                                                                    ()
+                                                                }
+                                                                _ => {
+                                                                    dbg!("c");
+                                                                    ()
+                                                                }
+                                                            }
+                                                        }
+
+                                                        /*
+                                                        //fix constant first
+                                                        if typename.contains("|") {
+                                                            let previously_saved_constant =
+                                                                self.ast.elements[ref_of_constant].clone();
+                                                            dbg!("a", &previously_saved_constant);
+                                                            match previously_saved_constant {
+                                                                (
+                                                                    ElementInfo::Constant(constant_name, _),
+                                                                    constant_children,
+                                                                ) => {
+                                                                    let new_constant_with_corrected_type = (
+                                                                        ElementInfo::Constant(
+                                                                            constant_name,
+                                                                            arg_types[0].clone(),
+                                                                        ),
+                                                                        constant_children,
+                                                                    );
+                                                                    self.ast.elements[ref_of_value] =
+                                                                        new_constant_with_corrected_type;
+                                                                    dbg!("b", new_constant_with_corrected_type);
+                                                                    ()
+                                                                }
+                                                                _ => {
+                                                                    dbg!("c");
+                                                                    ()
+                                                                }
+                                                            }
+                                                        }
+                                                        */
+
                                                         //self.ast.append_as_ref((ElementInfo::Indent, vec![]));
                                                     }
                                                     Err(e) => {
