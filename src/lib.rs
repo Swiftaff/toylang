@@ -5,25 +5,6 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-type FunctionName = String;
-type FunctionFormat = String;
-type FunctionType = String;
-type FunctionValidation = String;
-type FunctionReturnType = String;
-type FunctionScope = String;
-
-#[derive(Clone, Debug)]
-pub struct FunctionDefinition {
-    pub name: FunctionName,
-    pub format: FunctionFormat,
-    pub types: Vec<FunctionType>,
-    pub validations: Vec<FunctionValidation>,
-    pub return_type: FunctionReturnType,
-    pub scope: FunctionScope,
-}
-//type Expression = String;
-//type ExpressionType = String;
-
 #[derive(Clone, Debug)]
 pub struct Config {
     pub filepath: String,
@@ -33,7 +14,6 @@ pub struct Config {
     pub lines_of_tokens: Vec<Vec<String>>,
     pub output: String,
     pub current_line: usize,
-    pub current_scope: FunctionScope,
     pub error_stack: Vec<String>,
     pub ast: Ast,
 }
@@ -79,7 +59,6 @@ impl Config {
         let lines_of_tokens = vec![];
         let output = "".to_string();
         let current_line = 0;
-        let current_scope = "main".to_string();
         let error_stack = vec![];
         let ast = Ast::new();
         Ok(Config {
@@ -90,7 +69,6 @@ impl Config {
             lines_of_tokens,
             output,
             current_line,
-            current_scope,
             error_stack,
             ast,
         })
@@ -355,7 +333,6 @@ impl Config {
         self.lines_of_tokens = to_clone.lines_of_tokens;
         self.output = to_clone.output;
         self.current_line = to_clone.current_line;
-        self.current_scope = to_clone.current_scope;
         self.error_stack = to_clone.error_stack;
         self.ast = to_clone.ast;
     }
@@ -1669,7 +1646,6 @@ mod tests {
             lines_of_tokens: vec![],
             output: "".to_string(),
             current_line: 0,
-            current_scope: "".to_string(),
             error_stack: vec![],
             ast: Ast::new(),
         }
