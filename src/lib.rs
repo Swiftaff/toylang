@@ -7,6 +7,7 @@ use std::error::Error;
 
 type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
+type FullOrValidationError = bool;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -89,11 +90,19 @@ impl Config {
         match self.main_loop_over_lines_of_tokens() {
             Ok(_) => {
                 ////dbg!(&self.ast);
-                self.ast.set_output();
-                println!(
-                    "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
-                    self.ast.output
-                );
+                if self.error_stack.len() > 0 {
+                    println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                    for error in self.error_stack.clone() {
+                        println!("{}", error);
+                    }
+                    println!("----------\r\n");
+                } else {
+                    self.ast.set_output();
+                    println!(
+                        "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
+                        self.ast.output
+                    );
+                }
             }
             Err(_) => {
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
@@ -106,7 +115,7 @@ impl Config {
         Ok(())
     }
 
-    fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
+    fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), FullOrValidationError> {
         //self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
@@ -119,44 +128,53 @@ impl Config {
         Ok(())
     }
 
-    fn check_one_or_more_succeeds(self: &mut Self, tokens: Tokens) -> Result<Tokens, ()> {
+    fn check_one_or_more_succeeds(
+        self: &mut Self,
+        tokens: Tokens,
+    ) -> Result<Tokens, FullOrValidationError> {
         match self.check_one_succeeds("ast_set_comment_single_line", &tokens, None, true) {
             Ok(_) => return Ok(tokens),
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
         match self.check_one_succeeds("ast_set_int", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
                 return Ok(tokens);
             }
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
         match self.check_one_succeeds("ast_set_float", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
                 return Ok(tokens);
             }
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
         match self.check_one_succeeds("ast_set_string", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
                 return Ok(tokens);
             }
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
         match self.check_one_succeeds("ast_set_constant", &tokens, None, true) {
             Ok(_) => {
                 self.ast.append((ElementInfo::Seol, vec![]));
                 return Ok(tokens);
             }
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
         match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, None, true) {
             Ok(_) => return Ok(tokens),
-            _ => (),
+            Err(false) => return Err(false),
+            Err(true) => (),
         }
-        self.get_error(0, 1, ERRORS.no_valid_expression)
+        self.get_error_ok(0, 1, ERRORS.no_valid_expression, true)
     }
 
     fn check_one_or_more_succeeds_for_returntypes(
@@ -201,7 +219,7 @@ impl Config {
         tokens: &Tokens,
         returntype: Option<String>,
         singleline: bool,
-    ) -> Result<Tokens, ()> {
+    ) -> Result<Tokens, FullOrValidationError> {
         let mut _succeeded = false;
         let mut clone = self.clone();
         let result = match function_name {
@@ -215,12 +233,20 @@ impl Config {
                 return Ok(tokens.clone());
             }
         };
+        dbg!(&clone.error_stack);
         match result {
             Ok(vec_string) => {
                 self.set_all_from_clone(clone);
                 Ok(vec_string)
             }
-            Err(_e) => Err(()),
+            Err(false) => {
+                self.set_all_from_clone(clone);
+                Err(false)
+            }
+            Err(true) => {
+                //self.set_all_from_clone(clone);
+                Err(true)
+            }
         }
     }
 
@@ -294,7 +320,10 @@ impl Config {
         self.ast = to_clone.ast;
     }
 
-    fn ast_set_comment_single_line(self: &mut Self, tokens: &Tokens) -> Result<Tokens, ()> {
+    fn ast_set_comment_single_line(
+        self: &mut Self,
+        tokens: &Tokens,
+    ) -> Result<Tokens, FullOrValidationError> {
         let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
         if first_token_chars.len() > 1 && first_token_chars[0] == '/' && first_token_chars[1] == '/'
         {
@@ -307,31 +336,57 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_comment_single_line)
+            self.get_error_ok(0, 1, ERRORS.no_valid_comment_single_line, true)
+            //self.get_error(0, 1, ERRORS.no_valid_comment_single_line)
         }
     }
 
-    fn ast_set_int(self: &mut Self, tokens: &Tokens, singleline: bool) -> Result<Tokens, ()> {
+    fn ast_set_int(
+        self: &mut Self,
+        tokens: &Tokens,
+        singleline: bool,
+    ) -> Result<Tokens, FullOrValidationError> {
         //dbg!("set_int");
-        if tokens.len() > 0 && is_integer(&tokens[0].to_string()) {
-            let val = tokens[0].clone();
-            if singleline {
-                self.ast.append((ElementInfo::Indent, vec![]));
-            }
-            let _x = self.ast.append((ElementInfo::Int(val), vec![]));
-            //dbg!(self.ast.elements[x].clone());
-            if singleline {
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
-            Ok(tokens_remove_head(tokens.clone()))
-            //let validation_error = None;
-            //Ok(validation_error)
-        } else {
-            self.get_error(0, 1, ERRORS.no_valid_int)
+        if tokens.len() == 0 || tokens[0].len() == 0 {
+            dbg!(is_integer(&tokens[0]));
+            return self.get_error_ok(0, 1, ERRORS.no_valid_int, true);
         }
+        let first_token_vec: &Vec<char> = &tokens[0].chars().collect();
+        let first_char = first_token_vec[0];
+        dbg!(
+            "1",
+            &first_char,
+            is_integer(&first_char.to_string()),
+            is_integer(&tokens[0])
+        );
+        if is_integer(&first_char.to_string()) && !is_integer(&tokens[0]) {
+            return self.get_error_ok(
+                0,
+                1,
+                "not a valid int: starts with a digit, but contains non-digits",
+                false,
+            );
+        }
+        if !is_integer(&tokens[0]) {
+            return self.get_error_ok(0, 1, ERRORS.no_valid_int, true);
+        }
+        let val = tokens[0].clone();
+        if singleline {
+            self.ast.append((ElementInfo::Indent, vec![]));
+        }
+        let _x = self.ast.append((ElementInfo::Int(val), vec![]));
+        //dbg!(self.ast.elements[x].clone());
+        if singleline {
+            self.ast.append((ElementInfo::Seol, vec![]));
+        }
+        return Ok(tokens_remove_head(tokens.clone()));
     }
 
-    fn ast_set_float(self: &mut Self, tokens: &Tokens, singleline: bool) -> Result<Tokens, ()> {
+    fn ast_set_float(
+        self: &mut Self,
+        tokens: &Tokens,
+        singleline: bool,
+    ) -> Result<Tokens, FullOrValidationError> {
         if tokens.len() > 0 && is_float(&tokens[0].to_string()) {
             let val = tokens[0].clone();
             if singleline {
@@ -345,11 +400,16 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_float)
+            self.get_error_ok(0, 1, ERRORS.no_valid_float, true)
+            //self.get_error(0, 1, ERRORS.no_valid_float)
         }
     }
 
-    fn ast_set_string(self: &mut Self, tokens: &Tokens, singleline: bool) -> Result<Tokens, ()> {
+    fn ast_set_string(
+        self: &mut Self,
+        tokens: &Tokens,
+        singleline: bool,
+    ) -> Result<Tokens, FullOrValidationError> {
         if tokens.len() > 0 && is_string(&tokens[0].to_string()) {
             let val = tokens[0].clone();
             if singleline {
@@ -363,11 +423,12 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error(0, 1, ERRORS.no_valid_string)
+            self.get_error_ok(0, 1, ERRORS.no_valid_string, true)
+            //self.get_error(0, 1, ERRORS.no_valid_string)
         }
     }
 
-    fn ast_set_constant(self: &mut Self, tokens: &Tokens) -> Result<Tokens, ()> {
+    fn ast_set_constant(self: &mut Self, tokens: &Tokens) -> Result<Tokens, FullOrValidationError> {
         if tokens.len() > 2 && tokens[0] == "=".to_string() {
             //dbg!("ast_set_constant");
             let name = tokens[1].clone();
@@ -527,11 +588,17 @@ impl Config {
                                                         }
                                                     }
                                                     Err(_e) => {
-                                                        return self.get_error(
+                                                        //return self.get_error(
+                                                        //    0,
+                                                        //    1,
+                                                        //    ERRORS.no_valid_assignment,
+                                                        //)
+                                                        return return self.get_error_ok(
                                                             0,
                                                             1,
                                                             ERRORS.no_valid_assignment,
-                                                        )
+                                                            true,
+                                                        );
                                                     }
                                                 }
                                             }
@@ -556,13 +623,15 @@ impl Config {
                         }
                         None => {
                             //dbg!("4");
-                            return self.get_error(0, 1, ERRORS.no_valid_assignment);
+                            return self.get_error_ok(0, 1, ERRORS.no_valid_assignment, true);
+                            //return self.get_error(0, 1, ERRORS.no_valid_assignment);
                         }
                     }
                 }
             }
         } else {
-            return self.get_error(0, 1, ERRORS.no_valid_assignment);
+            return self.get_error_ok(0, 1, ERRORS.no_valid_assignment, true);
+            //return self.get_error(0, 1, ERRORS.no_valid_assignment);
         }
     }
 
@@ -589,7 +658,7 @@ impl Config {
         self: &mut Self,
         tokens: &Tokens,
         required_return_type_option: Option<String>,
-    ) -> Result<Tokens, ()> {
+    ) -> Result<Tokens, FullOrValidationError> {
         if tokens.len() > 0 {
             //dbg!(tokens);
             let inbuilt_function_option = match required_return_type_option {
@@ -607,7 +676,8 @@ impl Config {
                     format,
                 )) => {
                     if argnames.len() != tokens.len() - 1 {
-                        return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
+                        return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
+                        //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
                     }
 
                     //dbg!("yes", &name, &argnames, &argtypes, &returntype);
@@ -633,7 +703,8 @@ impl Config {
                         );*/
                     }
                     if !types_match {
-                        return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
+                        return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
+                        //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
                     }
 
                     let mut output = format;
@@ -664,9 +735,11 @@ impl Config {
                 }
                 _ => {}
             }
-            return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
+            return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
+            //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
         } else {
-            return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
+            return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
+            //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
         }
     }
 
@@ -769,6 +842,29 @@ impl Config {
         );
         self.error_stack.push(e);
         Err(())
+    }
+
+    fn get_error_ok(
+        self: &mut Self,
+        arrow_indent: usize,
+        arrow_len: usize,
+        error: &str,
+        is_real_error: bool,
+    ) -> Result<Tokens, FullOrValidationError> {
+        let e = format!(
+            "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
+            self.file.filename,
+            self.current_line + 1,
+            self.lines_of_chars[self.current_line]
+                .iter()
+                .cloned()
+                .collect::<String>(),
+            " ".repeat(arrow_indent),
+            "^".repeat(arrow_len),
+            error,
+        );
+        self.error_stack.push(e);
+        Err(is_real_error)
     }
 }
 
