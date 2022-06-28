@@ -22,8 +22,8 @@ pub struct Config {
 }
 
 struct Errors {
+    comment_single_line: &'static str,
     assign: &'static str,
-    no_valid_comment_single_line: &'static str,
     no_valid_int: &'static str,
     no_valid_float: &'static str,
     no_valid_string: &'static str,
@@ -34,8 +34,8 @@ struct Errors {
 }
 
 const ERRORS: Errors = Errors {
+    comment_single_line: "Invalid single line comment: Must begin with two forward slashes '//'",
     assign: "Invalid assignment: There are characters directly after '=', it must be followed by a space",
-    no_valid_comment_single_line: "No valid single line comment found",
     no_valid_int: "No valid integer found",
     no_valid_float: "No valid float found",
     no_valid_string: "No valid string found",
@@ -155,6 +155,13 @@ impl Config {
 
         //dbg!(&current_token, first_char);
         match first_char {
+            '/' => {
+                if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
+                    return self.get_error2(0, 1, ERRORS.comment_single_line, false);
+                }
+                dbg!("assign");
+                Ok(())
+            }
             '=' => {
                 if current_token_vec.len() > 1 {
                     return self.get_error2(0, 1, ERRORS.assign, false);
@@ -407,7 +414,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error_ok(0, 1, ERRORS.no_valid_comment_single_line, true)
+            self.get_error_ok(0, 1, ERRORS.comment_single_line, true)
             //self.get_error(0, 1, ERRORS.no_valid_comment_single_line)
         }
     }
@@ -1044,6 +1051,9 @@ fn strip_leading_whitespace(input: String) -> String {
 
 #[cfg(test)]
 mod tests {
+
+    // cargo watch -x "test run"
+
     use super::*;
     use ast::Element;
 
@@ -1073,8 +1083,9 @@ mod tests {
 
     #[test]
     fn test_run() {
-        let test_cases = [
-            ["//comment", "fn main() {\r\n    //comment\r\n}\r\n}"],
+        let test_case_passes = [
+            ["", "fn main() {\r\n}\r\n"],
+            //["//comment", "fn main() {\r\n    //comment\r\n}\r\n}"],
             /*
             ["123", "fn main() {\r\n    123\r\n}\r\n}"],
             ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
@@ -1089,16 +1100,34 @@ mod tests {
             ],
             */
         ];
-        for test in test_cases {
+        let test_case_errors = [
+            ["", ""],
+            //["/1/comment", ERRORS.comment_single_line]
+        ];
+
+        for test in test_case_passes {
             let input = test[0];
-            let output = test[1]; //wrong, needs trailing semicolon, no extra brace
+            let output = test[1];
             let mut c = mock_config(input);
             match c.run_main_tasks() {
                 Ok(_) => assert_eq!(c.ast.output, output),
-                Err(_e) => {
-                    //dbg!(c, e);
-                    assert!(false, "error should not exist");
+                Err(_e) => assert!(false, "error should not exist"),
+            }
+        }
+
+        for test in test_case_errors {
+            let input = test[0];
+            let error = test[1];
+            let mut c = mock_config(input);
+            match c.run_main_tasks() {
+                Ok(_) => {
+                    if error == "" && c.error_stack.len() == 0 {
+                        assert_eq!(true, true)
+                    } else {
+                        assert_eq!(c.error_stack[0], error)
+                    }
                 }
+                Err(_e) => assert!(false, "error should not exist"),
             }
         }
     }
