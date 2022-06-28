@@ -23,10 +23,10 @@ pub struct Config {
 
 struct Errors {
     comment_single_line: &'static str,
+    string: &'static str,
     assign: &'static str,
     no_valid_int: &'static str,
     no_valid_float: &'static str,
-    no_valid_string: &'static str,
     no_valid_assignment: &'static str,
     no_valid_integer_arithmetic: &'static str,
     no_valid_expression: &'static str,
@@ -35,10 +35,10 @@ struct Errors {
 
 const ERRORS: Errors = Errors {
     comment_single_line: "Invalid single line comment: Must begin with two forward slashes '//'",
+    string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '=', it must be followed by a space",
     no_valid_int: "No valid integer found",
     no_valid_float: "No valid float found",
-    no_valid_string: "No valid string found",
     no_valid_assignment: "No valid assignment found",
     no_valid_integer_arithmetic: "No valid integer arithmetic found",
     no_valid_expression: "No valid expression was found",
@@ -118,7 +118,7 @@ impl Config {
         Ok(())
     }
 
-    fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), FullOrValidationError> {
+    fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
         //self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
@@ -132,7 +132,7 @@ impl Config {
         Ok(())
     }
 
-    fn parse_current_line(self: &mut Self) -> Result<(), FullOrValidationError> {
+    fn parse_current_line(self: &mut Self) -> Result<(), ()> {
         let tokens = self.lines_of_tokens[self.current_line].clone();
         if tokens.len() > 0 {
             while self.current_line_token < tokens.len() {
@@ -143,36 +143,23 @@ impl Config {
         Ok(())
     }
 
-    fn parse_current_token(self: &mut Self, tokens: &Tokens) -> Result<(), FullOrValidationError> {
+    fn parse_current_token(self: &mut Self, tokens: &Tokens) -> Result<(), ()> {
         let current_token = tokens[self.current_line_token].clone();
         let current_token_vec: &Vec<char> = &tokens[self.current_line_token].chars().collect();
-
         if current_token_vec.len() == 0 {
             return Ok(());
         }
-
         let first_char = current_token_vec[0];
-
-        //dbg!(&current_token, first_char);
         match first_char {
-            '/' => {
-                if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
-                    return self.get_error2(0, 1, ERRORS.comment_single_line, false);
-                }
-                dbg!("assign");
-                Ok(())
-            }
+            '/' => self.parse_comment_single_line(current_token_vec),
             '=' => {
                 if current_token_vec.len() > 1 {
-                    return self.get_error2(0, 1, ERRORS.assign, false);
+                    return self.get_error2(0, 1, ERRORS.assign);
                 }
                 dbg!("assign");
                 Ok(())
             }
-            '"' => {
-                dbg!("string");
-                Ok(())
-            }
+            '"' => self.parse_string(&current_token),
             '\\' => {
                 dbg!("func_def");
                 Ok(())
@@ -203,6 +190,35 @@ impl Config {
                     Ok(())
                 }
             },
+        }
+    }
+
+    fn parse_comment_single_line(self: &mut Self, current_token_vec: &Vec<char>) -> Result<(), ()> {
+        if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
+            return self.get_error2(0, 1, ERRORS.comment_single_line);
+        }
+        let val = concatenate_vec_strings(&self.lines_of_tokens[self.current_line]);
+        self.ast.append((ElementInfo::Indent, vec![]));
+        self.ast
+            .append((ElementInfo::CommentSingleLine(val), vec![]));
+        self.ast.append((ElementInfo::Eol, vec![]));
+        Ok(())
+    }
+
+    fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        if is_string(&current_token.clone()) {
+            if self.current_line_token == 0 {
+                self.ast.append((ElementInfo::Indent, vec![]));
+            }
+            self.ast
+                .append((ElementInfo::String(current_token.clone()), vec![]));
+            if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
+            Ok(())
+        } else {
+            dbg!(&self.lines_of_tokens);
+            self.get_error2(0, 1, ERRORS.string)
         }
     }
 
@@ -354,6 +370,7 @@ impl Config {
         for line in 0..self.lines_of_chars.len() {
             let mut index_from = 0;
             let mut index_to = 0;
+            let mut count_quotes = 0;
 
             let char_vec_initial: Vec<char> = self.lines_of_chars[line].clone();
             let char_as_string = char_vec_initial.iter().cloned().collect::<String>();
@@ -365,20 +382,25 @@ impl Config {
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
                 let eof = index_to == char_vec.len() - 1;
-                inside_quotes = if c == '"' {
-                    !inside_quotes
-                } else {
-                    inside_quotes
+                if c == '"' {
+                    inside_quotes = !inside_quotes;
+                    count_quotes = count_quotes + 1;
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-
-                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment) || eof {
-                    let token_chars = char_vec[index_from..index_to + (if eof { 1 } else { 0 })]
+                dbg!(inside_quotes, count_quotes, &line_of_tokens);
+                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
+                    || eof
+                    || count_quotes == 2
+                {
+                    let token_chars = char_vec
+                        [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
                         .iter()
                         .cloned()
                         .collect::<String>();
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
+                    inside_quotes = false;
+                    count_quotes = 0;
                 }
                 index_to = index_to + 1;
             }
@@ -501,7 +523,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error_ok(0, 1, ERRORS.no_valid_string, true)
+            self.get_error_ok(0, 1, ERRORS.string, true)
             //self.get_error(0, 1, ERRORS.no_valid_string)
         }
     }
@@ -950,8 +972,7 @@ impl Config {
         mut arrow_indent: usize,
         arrow_len: usize,
         error: &str,
-        is_real_error: bool,
-    ) -> Result<(), FullOrValidationError> {
+    ) -> Result<(), ()> {
         if arrow_indent == 0 && self.current_line_token != 0 {
             let line_of_tokens = self.lines_of_tokens[self.current_line].clone();
             arrow_indent = line_of_tokens[0..self.current_line_token]
@@ -960,7 +981,6 @@ impl Config {
                 .collect::<String>()
                 .len()
                 + self.current_line_token;
-            dbg!(arrow_indent, line_of_tokens);
         }
 
         let e = format!(
@@ -976,7 +996,7 @@ impl Config {
             error,
         );
         self.error_stack.push(e);
-        Err(is_real_error)
+        Err(())
     }
 }
 
@@ -1057,7 +1077,7 @@ mod tests {
     use super::*;
     use ast::Element;
 
-    fn mock_config(_contents: &str) -> Config {
+    fn mock_config() -> Config {
         Config {
             file: File::new(),
             lines_of_chars: vec![],
@@ -1085,7 +1105,16 @@ mod tests {
     fn test_run() {
         let test_case_passes = [
             ["", "fn main() {\r\n}\r\n"],
-            //["//comment", "fn main() {\r\n    //comment\r\n}\r\n}"],
+            ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
+            [
+                "    //    comment",
+                "fn main() {\r\n    //    comment\r\n}\r\n",
+            ],
+            [
+                "\"string\"",
+                "fn main() {\r\n    \"string\".to_string();\r\n}\r\n",
+            ],
+            ["\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"],
             /*
             ["123", "fn main() {\r\n    123\r\n}\r\n}"],
             ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
@@ -1102,15 +1131,23 @@ mod tests {
         ];
         let test_case_errors = [
             ["", ""],
-            //["/1/comment", ERRORS.comment_single_line]
+            ["/1/comment", ERRORS.comment_single_line],
+            ["\"", ERRORS.string],
+            ["\"\"\"", ERRORS.string],
+            ["\"\" \"", ERRORS.string],
+            //["\"\" \"\"", ERRORS.string], // TODO find a way to avoid '"".to_string()"".to_string()'
         ];
 
         for test in test_case_passes {
             let input = test[0];
             let output = test[1];
-            let mut c = mock_config(input);
+            let mut c = mock_config();
+            c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
-                Ok(_) => assert_eq!(c.ast.output, output),
+                Ok(_) => {
+                    dbg!(&c);
+                    assert_eq!(c.ast.output, output);
+                }
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
@@ -1118,13 +1155,14 @@ mod tests {
         for test in test_case_errors {
             let input = test[0];
             let error = test[1];
-            let mut c = mock_config(input);
+            let mut c = mock_config();
+            c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
                     if error == "" && c.error_stack.len() == 0 {
                         assert_eq!(true, true)
                     } else {
-                        assert_eq!(c.error_stack[0], error)
+                        assert!(c.error_stack[0].contains(error))
                     }
                 }
                 Err(_e) => assert!(false, "error should not exist"),
