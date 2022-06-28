@@ -16,6 +16,7 @@ pub struct Config {
     pub lines_of_tokens: Vec<Tokens>,
     pub output: String,
     pub current_line: usize,
+    pub current_line_token: usize,
     pub error_stack: ErrorStack,
     pub ast: Ast,
 }
@@ -54,6 +55,7 @@ impl Config {
         let lines_of_tokens = vec![];
         let output = "".to_string();
         let current_line = 0;
+        let current_line_token = 0;
         let error_stack = vec![];
         let ast = Ast::new();
         Ok(Config {
@@ -62,6 +64,7 @@ impl Config {
             lines_of_tokens,
             output,
             current_line,
+            current_line_token,
             error_stack,
             ast,
         })
@@ -119,13 +122,72 @@ impl Config {
         //self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
+                println!("line: {}", line);
                 self.current_line = line;
-                let tokens = self.lines_of_tokens[self.current_line].clone();
-                self.check_one_or_more_succeeds(tokens)?;
+                self.current_line_token = 0;
+                self.parse_current_line()?;
+                println!("end of line: {}\r\n", line);
             }
         }
-        //self.set_ast_output_for_main_fn_end();
         Ok(())
+    }
+
+    fn parse_current_line(self: &mut Self) -> Result<(), FullOrValidationError> {
+        let tokens = self.lines_of_tokens[self.current_line].clone();
+        if tokens.len() > 0 {
+            while self.current_line_token < tokens.len() {
+                self.parse_current_token(&tokens)?;
+                self.current_line_token = self.current_line_token + 1;
+            }
+        }
+        Ok(())
+    }
+
+    fn parse_current_token(self: &mut Self, tokens: &Tokens) -> Result<(), FullOrValidationError> {
+        let current_token = tokens[self.current_line_token].clone();
+        let first_token_vec: &Vec<char> = &tokens[self.current_line_token].chars().collect();
+        let first_char = first_token_vec[0];
+        //dbg!(&current_token, first_char);
+        match first_char {
+            '=' => {
+                dbg!("assign");
+                Ok(())
+            }
+            '"' => {
+                dbg!("string");
+                Ok(())
+            }
+            '\\' => {
+                dbg!("func_def");
+                Ok(())
+            }
+            first_char if is_integer(&first_char.to_string()) => {
+                if is_integer(&current_token) {
+                    dbg!("integer");
+                    Ok(())
+                } else if is_float(&current_token) {
+                    dbg!("float");
+                    Ok(())
+                } else {
+                    dbg!("UNKNOWN");
+                    Ok(())
+                }
+            }
+            first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
+                dbg!("constant");
+                Ok(())
+            }
+            _ => match self.ast.get_inbuilt_function_index_by_name(&current_token) {
+                Some(i) => {
+                    println!("func_call: {}", i);
+                    Ok(())
+                }
+                _ => {
+                    dbg!("UNKNOWN");
+                    Ok(())
+                }
+            },
+        }
     }
 
     fn check_one_or_more_succeeds(
@@ -593,7 +655,7 @@ impl Config {
                                                         //    1,
                                                         //    ERRORS.no_valid_assignment,
                                                         //)
-                                                        return return self.get_error_ok(
+                                                        return self.get_error_ok(
                                                             0,
                                                             1,
                                                             ERRORS.no_valid_assignment,
@@ -949,6 +1011,7 @@ mod tests {
             lines_of_tokens: vec![],
             output: "".to_string(),
             current_line: 0,
+            current_line_token: 0,
             error_stack: vec![],
             ast: Ast::new(),
         }
