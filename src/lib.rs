@@ -22,7 +22,7 @@ pub struct Config {
 }
 
 struct Errors {
-    //variable_assignment: &'static str,
+    assign: &'static str,
     no_valid_comment_single_line: &'static str,
     no_valid_int: &'static str,
     no_valid_float: &'static str,
@@ -34,7 +34,7 @@ struct Errors {
 }
 
 const ERRORS: Errors = Errors {
-    //variable_assignment: "Invalid variable assignment. Must contain Int or Float, e.g. x = Int 2",
+    assign: "Invalid assignment: There are characters directly after '=', it must be followed by a space",
     no_valid_comment_single_line: "No valid single line comment found",
     no_valid_int: "No valid integer found",
     no_valid_float: "No valid float found",
@@ -145,11 +145,20 @@ impl Config {
 
     fn parse_current_token(self: &mut Self, tokens: &Tokens) -> Result<(), FullOrValidationError> {
         let current_token = tokens[self.current_line_token].clone();
-        let first_token_vec: &Vec<char> = &tokens[self.current_line_token].chars().collect();
-        let first_char = first_token_vec[0];
+        let current_token_vec: &Vec<char> = &tokens[self.current_line_token].chars().collect();
+
+        if current_token_vec.len() == 0 {
+            return Ok(());
+        }
+
+        let first_char = current_token_vec[0];
+
         //dbg!(&current_token, first_char);
         match first_char {
             '=' => {
+                if current_token_vec.len() > 1 {
+                    return self.get_error2(0, 1, ERRORS.assign, false);
+                }
                 dbg!("assign");
                 Ok(())
             }
@@ -913,6 +922,40 @@ impl Config {
         error: &str,
         is_real_error: bool,
     ) -> Result<Tokens, FullOrValidationError> {
+        let e = format!(
+            "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
+            self.file.filename,
+            self.current_line + 1,
+            self.lines_of_chars[self.current_line]
+                .iter()
+                .cloned()
+                .collect::<String>(),
+            " ".repeat(arrow_indent),
+            "^".repeat(arrow_len),
+            error,
+        );
+        self.error_stack.push(e);
+        Err(is_real_error)
+    }
+
+    fn get_error2(
+        self: &mut Self,
+        mut arrow_indent: usize,
+        arrow_len: usize,
+        error: &str,
+        is_real_error: bool,
+    ) -> Result<(), FullOrValidationError> {
+        if arrow_indent == 0 && self.current_line_token != 0 {
+            let line_of_tokens = self.lines_of_tokens[self.current_line].clone();
+            arrow_indent = line_of_tokens[0..self.current_line_token]
+                .iter()
+                .cloned()
+                .collect::<String>()
+                .len()
+                + self.current_line_token;
+            dbg!(arrow_indent, line_of_tokens);
+        }
+
         let e = format!(
             "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
             self.file.filename,
