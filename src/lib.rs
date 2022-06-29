@@ -27,6 +27,7 @@ struct Errors {
     assign: &'static str,
     int: &'static str,
     int_out_of_bounds: &'static str,
+    int_negative: &'static str,
     no_valid_float: &'static str,
     no_valid_assignment: &'static str,
     no_valid_integer_arithmetic: &'static str,
@@ -37,9 +38,10 @@ struct Errors {
 const ERRORS: Errors = Errors {
     comment_single_line: "Invalid single line comment: Must begin with two forward slashes '//'",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
-    assign: "Invalid assignment: There are characters directly after '=', it must be followed by a space",
-    int: "Invalid int: starts with a digit, but contains non-digits. Must only contain digits",
+    assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
+    int: "Invalid int: there are characters after the first digit. Must only contain digits",
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
+    int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
     no_valid_float: "No valid float found",
     no_valid_assignment: "No valid assignment found",
     no_valid_integer_arithmetic: "No valid integer arithmetic found",
@@ -152,6 +154,11 @@ impl Config {
             return Ok(());
         }
         let first_char = current_token_vec[0];
+        let second_char = if current_token_vec.len() > 1 {
+            Some(current_token_vec[1])
+        } else {
+            None
+        };
         match first_char {
             '/' => self.parse_comment_single_line(current_token_vec),
             '=' => {
@@ -174,6 +181,19 @@ impl Config {
                     self.parse_int(&current_token)
                 }
             }
+            '-' => match second_char {
+                Some(_digit) => {
+                    if is_float(&current_token) {
+                        dbg!("float");
+                        Ok(())
+                    } else {
+                        self.parse_int(&current_token)
+                    }
+                }
+                None => {
+                    return self.get_error2(0, 1, ERRORS.int_negative);
+                }
+            },
             first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
                 dbg!("constant");
                 Ok(())
@@ -222,13 +242,23 @@ impl Config {
 
     fn parse_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
         dbg!("parse_int - positive only for now");
-        if !is_integer(current_token) {
+        let all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
+        let chars: Vec<char> = current_token.chars().collect();
+        let first_char_is_negative_sign = chars[0] == '-';
+        let is_negative_all_other_chars_are_not_numeric = first_char_is_negative_sign
+            && chars.len() > 1
+            && !chars[1..chars.len()].into_iter().all(|c| c.is_numeric());
+
+        if (!first_char_is_negative_sign && !all_chars_are_numeric)
+            || is_negative_all_other_chars_are_not_numeric
+        {
             self.get_error2(0, 1, ERRORS.int)?;
         }
         match current_token.parse::<i64>() {
             Ok(_) => (),
             Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
         }
+
         if self.current_line_token == 0 {
             self.ast.append((ElementInfo::Indent, vec![]));
         }
@@ -1030,8 +1060,26 @@ fn tokens_remove_head(tokens: Tokens) -> Tokens {
 
 fn is_integer(text: &String) -> bool {
     let mut is_valid = true;
-    if !text.chars().into_iter().all(|c| c.is_numeric()) {
+    let all_chars_are_numeric = text.chars().into_iter().all(|c| c.is_numeric());
+    let text_chars: Vec<char> = text.chars().collect();
+    let first_char_is_negative_sign = text_chars[0] == '-';
+
+    let is_negative_all_other_chars_are_numeric = first_char_is_negative_sign
+        && text_chars.len() > 1
+        && text_chars[1..text_chars.len()]
+            .into_iter()
+            .all(|c| c.is_numeric());
+
+    if !all_chars_are_numeric && !is_negative_all_other_chars_are_numeric {
         is_valid = false;
+    }
+    println!(
+        "{}",
+        !all_chars_are_numeric || !is_negative_all_other_chars_are_numeric
+    );
+    match text.parse::<i64>() {
+        Ok(_) => (),
+        Err(_) => is_valid = false,
     }
     is_valid
 }
@@ -1111,7 +1159,8 @@ fn strip_trailing_whitespace(input: String) -> String {
 #[cfg(test)]
 mod tests {
 
-    // cargo watch -x "test run"
+    // cargo watch -x "test test_run"
+    // cargo watch -x "test test_is_integer -- --show-output"
 
     use super::*;
     use ast::Element;
@@ -1126,6 +1175,29 @@ mod tests {
             current_line_token: 0,
             error_stack: vec![],
             ast: Ast::new(),
+        }
+    }
+
+    #[test]
+    fn test_is_integer() {
+        let test_case_passes = [
+            "1",
+            "123",
+            "1234567890",
+            "9223372036854775807",
+            "-1",
+            "-123",
+            "-1234567890",
+            "-9223372036854775808",
+        ];
+        for test in test_case_passes {
+            let input = &test.to_string();
+            assert!(is_integer(input));
+        }
+        let test_case_fails = ["1a", "9223372036854775808", "-1a", "-9223372036854775809"];
+        for test in test_case_fails {
+            let input = &test.to_string();
+            assert!(!is_integer(input));
         }
     }
 
@@ -1165,19 +1237,14 @@ mod tests {
                 "9223372036854775807",
                 "fn main() {\r\n    9223372036854775807;\r\n}\r\n",
             ],
-            /*
-            ["123", "fn main() {\r\n    123\r\n}\r\n}"],
-            ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
-            ["= b 123.45", "fn main() {\r\n    let b: f64 = 123.45;\r\n}"],
+            //int negative
+            ["-1", "fn main() {\r\n    -1;\r\n}\r\n"],
+            ["-123", "fn main() {\r\n    -123;\r\n}\r\n"],
+            ["    -123    ", "fn main() {\r\n    -123;\r\n}\r\n"],
             [
-                "= c \"a string\"",
-                "fn main() {\r\n    let c: String = \"a string\".to_string();\r\n}",
+                "-9223372036854775808",
+                "fn main() {\r\n    -9223372036854775808;\r\n}\r\n",
             ],
-            [
-                "= e + 1 2\r\n",
-                "fn main() {\r\n    let e: i64 = 1 + 2;\r\n}",
-            ],
-            */
         ];
         let test_case_errors = [
             //empty file
@@ -1191,6 +1258,8 @@ mod tests {
             //int
             ["1a", ERRORS.int],
             ["9223372036854775808", ERRORS.int_out_of_bounds],
+            ["-1a", ERRORS.int],
+            ["-9223372036854775809", ERRORS.int_out_of_bounds],
             //["\"\" \"\"", ERRORS.string], // TODO find a way to avoid '"".to_string()"".to_string()'
         ];
 
