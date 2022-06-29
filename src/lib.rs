@@ -28,7 +28,7 @@ struct Errors {
     int: &'static str,
     int_out_of_bounds: &'static str,
     int_negative: &'static str,
-    no_valid_float: &'static str,
+    float: &'static str,
     no_valid_assignment: &'static str,
     no_valid_integer_arithmetic: &'static str,
     no_valid_expression: &'static str,
@@ -42,7 +42,7 @@ const ERRORS: Errors = Errors {
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
-    no_valid_float: "No valid float found",
+    float: "Invalid float",
     no_valid_assignment: "No valid assignment found",
     no_valid_integer_arithmetic: "No valid integer arithmetic found",
     no_valid_expression: "No valid expression was found",
@@ -173,19 +173,19 @@ impl Config {
                 dbg!("func_def");
                 Ok(())
             }
+            //positive numbers
             first_char if is_integer(&first_char.to_string()) => {
                 if is_float(&current_token) {
-                    dbg!("float");
-                    Ok(())
+                    self.parse_float(&current_token)
                 } else {
                     self.parse_int(&current_token)
                 }
             }
+            //negative numbers
             '-' => match second_char {
                 Some(_digit) => {
                     if is_float(&current_token) {
-                        dbg!("float");
-                        Ok(())
+                        self.parse_float(&current_token)
                     } else {
                         self.parse_int(&current_token)
                     }
@@ -258,7 +258,6 @@ impl Config {
             Ok(_) => (),
             Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
         }
-
         if self.current_line_token == 0 {
             self.ast.append((ElementInfo::Indent, vec![]));
         }
@@ -269,6 +268,22 @@ impl Config {
             self.ast.append((ElementInfo::Seol, vec![]));
         }
         Ok(())
+    }
+
+    fn parse_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        if current_token.len() > 0 && is_float(current_token) {
+            if self.current_line_token == 0 {
+                self.ast.append((ElementInfo::Indent, vec![]));
+            }
+            self.ast
+                .append((ElementInfo::Float(current_token.clone()), vec![]));
+            if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
+            Ok(())
+        } else {
+            return self.get_error2(0, 1, ERRORS.float);
+        }
     }
 
     fn check_one_or_more_succeeds(
@@ -550,7 +565,7 @@ impl Config {
             //let validation_error = None;
             //Ok(validation_error)
         } else {
-            self.get_error_ok(0, 1, ERRORS.no_valid_float, true)
+            self.get_error_ok(0, 1, ERRORS.float, true)
             //self.get_error(0, 1, ERRORS.no_valid_float)
         }
     }
@@ -1086,19 +1101,39 @@ fn is_integer(text: &String) -> bool {
 
 fn is_float(text: &String) -> bool {
     let mut is_valid = true;
-    let mut count_decimal_points = 0;
+    let mut index_decimal_point = 0;
+    let mut index_e = 0;
+    let mut index_plus = 0;
     let char_vec: Vec<char> = text.chars().collect();
     for i in 0..text.len() {
         let c = char_vec[i];
-        if c == '.' {
-            count_decimal_points = count_decimal_points + 1;
-        } else {
-            if !c.is_numeric() {
+        if c == '.' && index_decimal_point == 0 {
+            index_decimal_point = i;
+        } else if c == 'E' && index_e == 0 {
+            index_e = i;
+        } else if c == '+' && index_plus == 0 {
+            index_plus = i;
+        } else if !c.is_numeric() && !(i == 0 && c == '-') {
+            is_valid = false;
+        }
+    }
+    let has_one_decimal_point = index_decimal_point != 0;
+    let no_power_of_10 = index_e == 0 && index_plus == 0;
+    let has_one_power_of_10 = index_e != 0
+        && index_plus > 0
+        && index_plus == index_e + 1
+        && (char_vec.len() > 1 && index_plus < char_vec.len() - 1)
+        && index_e > 0;
+    //println!("{} {:?}", text, text.parse::<f64>());
+    match text.parse::<f64>() {
+        Ok(val) => {
+            if val == f64::INFINITY || val == f64::NEG_INFINITY {
                 is_valid = false;
             }
         }
+        Err(_) => is_valid = false,
     }
-    is_valid && count_decimal_points == 1
+    is_valid && has_one_decimal_point && (no_power_of_10 || has_one_power_of_10)
 }
 
 fn is_string(text: &String) -> bool {
@@ -1161,6 +1196,7 @@ mod tests {
 
     // cargo watch -x "test test_run"
     // cargo watch -x "test test_is_integer -- --show-output"
+    // cargo watch -x "test test_is_float -- --show-output"
 
     use super::*;
     use ast::Element;
@@ -1198,6 +1234,37 @@ mod tests {
         for test in test_case_fails {
             let input = &test.to_string();
             assert!(!is_integer(input));
+        }
+    }
+
+    #[test]
+    fn test_is_float() {
+        let test_case_passes = [
+            "1.1",
+            "123.123",
+            "1234567890.123456789",
+            "1.7976931348623157E+308",
+            "-1.1",
+            "-123.123",
+            "-1234567890.123456789",
+            "-1.7976931348623157E+308",
+        ];
+        for test in test_case_passes {
+            let input = &test.to_string();
+            assert!(is_float(input));
+        }
+        let test_case_fails = [
+            "123",
+            "-123",
+            "1.1.1",
+            "1.7976931348623157E+309",
+            "-1.7976931348623157E+309",
+            "1.797693134E+8623157E+309",
+            "-1.79769313E+48623157E+309",
+        ];
+        for test in test_case_fails {
+            let input = &test.to_string();
+            assert!(!is_float(input));
         }
     }
 
@@ -1245,6 +1312,30 @@ mod tests {
                 "-9223372036854775808",
                 "fn main() {\r\n    -9223372036854775808;\r\n}\r\n",
             ],
+            //float
+            ["1.1", "fn main() {\r\n    1.1;\r\n}\r\n"],
+            ["123.123", "fn main() {\r\n    123.123;\r\n}\r\n"],
+            ["    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n"],
+            [
+                "1234567890.123456789",
+                "fn main() {\r\n    1234567890.123456789;\r\n}\r\n",
+            ],
+            [
+                "1.7976931348623157E+308",
+                "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n",
+            ],
+            //float negative
+            ["-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n"],
+            ["-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n"],
+            ["    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n"],
+            [
+                "-1234567890.123456789",
+                "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n",
+            ],
+            [
+                "-1.7976931348623157E+308",
+                "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
+            ],
         ];
         let test_case_errors = [
             //empty file
@@ -1258,9 +1349,15 @@ mod tests {
             //int
             ["1a", ERRORS.int],
             ["9223372036854775808", ERRORS.int_out_of_bounds],
+            //int negative
             ["-1a", ERRORS.int],
             ["-9223372036854775809", ERRORS.int_out_of_bounds],
-            //["\"\" \"\"", ERRORS.string], // TODO find a way to avoid '"".to_string()"".to_string()'
+            //float (errors say int)
+            ["1.1.1", ERRORS.int],
+            ["1.7976931348623157E+309", ERRORS.int],
+            //float negative (errors say int)
+            ["-1.1.1", ERRORS.int],
+            ["-1.7976931348623157E+309", ERRORS.int],
         ];
 
         for test in test_case_passes {
