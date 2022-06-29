@@ -25,7 +25,8 @@ struct Errors {
     comment_single_line: &'static str,
     string: &'static str,
     assign: &'static str,
-    no_valid_int: &'static str,
+    int: &'static str,
+    int_out_of_bounds: &'static str,
     no_valid_float: &'static str,
     no_valid_assignment: &'static str,
     no_valid_integer_arithmetic: &'static str,
@@ -37,7 +38,8 @@ const ERRORS: Errors = Errors {
     comment_single_line: "Invalid single line comment: Must begin with two forward slashes '//'",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '=', it must be followed by a space",
-    no_valid_int: "No valid integer found",
+    int: "Invalid int: starts with a digit, but contains non-digits. Must only contain digits",
+    int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     no_valid_float: "No valid float found",
     no_valid_assignment: "No valid assignment found",
     no_valid_integer_arithmetic: "No valid integer arithmetic found",
@@ -165,15 +167,11 @@ impl Config {
                 Ok(())
             }
             first_char if is_integer(&first_char.to_string()) => {
-                if is_integer(&current_token) {
-                    dbg!("integer");
-                    Ok(())
-                } else if is_float(&current_token) {
+                if is_float(&current_token) {
                     dbg!("float");
                     Ok(())
                 } else {
-                    dbg!("UNKNOWN");
-                    Ok(())
+                    self.parse_int(&current_token)
                 }
             }
             first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
@@ -220,6 +218,27 @@ impl Config {
             dbg!(&self.lines_of_tokens);
             self.get_error2(0, 1, ERRORS.string)
         }
+    }
+
+    fn parse_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        dbg!("parse_int - positive only for now");
+        if !is_integer(current_token) {
+            self.get_error2(0, 1, ERRORS.int)?;
+        }
+        match current_token.parse::<i64>() {
+            Ok(_) => (),
+            Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
+        }
+        if self.current_line_token == 0 {
+            self.ast.append((ElementInfo::Indent, vec![]));
+        }
+        self.ast
+            .append((ElementInfo::Int(current_token.clone()), vec![]));
+        //dbg!(self.ast.elements[x].clone());
+        if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+            self.ast.append((ElementInfo::Seol, vec![]));
+        }
+        Ok(())
     }
 
     fn check_one_or_more_succeeds(
@@ -375,7 +394,8 @@ impl Config {
             let char_vec_initial: Vec<char> = self.lines_of_chars[line].clone();
             let char_as_string = char_vec_initial.iter().cloned().collect::<String>();
             let removed_leading_whitespace = strip_leading_whitespace(char_as_string);
-            let char_vec: Vec<char> = removed_leading_whitespace.chars().collect();
+            let removed_trailing_whitespace = strip_trailing_whitespace(removed_leading_whitespace);
+            let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
 
             let mut inside_quotes = false;
             let mut line_of_tokens: Tokens = vec![];
@@ -449,7 +469,7 @@ impl Config {
         //dbg!("set_int");
         if tokens.len() == 0 || tokens[0].len() == 0 {
             dbg!(is_integer(&tokens[0]));
-            return self.get_error_ok(0, 1, ERRORS.no_valid_int, true);
+            return self.get_error_ok(0, 1, ERRORS.int, true);
         }
         let first_token_vec: &Vec<char> = &tokens[0].chars().collect();
         let first_char = first_token_vec[0];
@@ -468,7 +488,7 @@ impl Config {
             );
         }
         if !is_integer(&tokens[0]) {
-            return self.get_error_ok(0, 1, ERRORS.no_valid_int, true);
+            return self.get_error_ok(0, 1, ERRORS.int, true);
         }
         let val = tokens[0].clone();
         if singleline {
@@ -1069,6 +1089,25 @@ fn strip_leading_whitespace(input: String) -> String {
     input[first_non_whitespace_index..].to_string()
 }
 
+fn strip_trailing_whitespace(input: String) -> String {
+    let char_vec: Vec<char> = input.chars().collect();
+    let mut checking_for_whitespace = true;
+    let mut first_non_whitespace_index = input.len();
+    for i in (0..input.len()).rev() {
+        if checking_for_whitespace {
+            if !char_vec[i].is_whitespace() {
+                first_non_whitespace_index = i + 1;
+                checking_for_whitespace = false;
+            }
+        }
+    }
+    if first_non_whitespace_index == 0 && checking_for_whitespace {
+        //if you get to end of string and it's all whitespace return empty string
+        return "".to_string();
+    }
+    input[..first_non_whitespace_index].to_string()
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -1104,17 +1143,28 @@ mod tests {
     #[test]
     fn test_run() {
         let test_case_passes = [
+            //empty file
             ["", "fn main() {\r\n}\r\n"],
+            //comment single line
             ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
             [
-                "    //    comment",
+                "    //    comment    ",
                 "fn main() {\r\n    //    comment\r\n}\r\n",
             ],
+            //string
             [
                 "\"string\"",
                 "fn main() {\r\n    \"string\".to_string();\r\n}\r\n",
             ],
             ["\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"],
+            //int
+            ["1", "fn main() {\r\n    1;\r\n}\r\n"],
+            ["123", "fn main() {\r\n    123;\r\n}\r\n"],
+            ["    123    ", "fn main() {\r\n    123;\r\n}\r\n"],
+            [
+                "9223372036854775807",
+                "fn main() {\r\n    9223372036854775807;\r\n}\r\n",
+            ],
             /*
             ["123", "fn main() {\r\n    123\r\n}\r\n}"],
             ["= a 123", "fn main() {\r\n    let a: i64 = 123;\r\n}"],
@@ -1130,11 +1180,17 @@ mod tests {
             */
         ];
         let test_case_errors = [
+            //empty file
             ["", ""],
+            //comment single line
             ["/1/comment", ERRORS.comment_single_line],
+            //string
             ["\"", ERRORS.string],
             ["\"\"\"", ERRORS.string],
             ["\"\" \"", ERRORS.string],
+            //int
+            ["1a", ERRORS.int],
+            ["9223372036854775808", ERRORS.int_out_of_bounds],
             //["\"\" \"\"", ERRORS.string], // TODO find a way to avoid '"".to_string()"".to_string()'
         ];
 
