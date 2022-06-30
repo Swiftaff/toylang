@@ -7,7 +7,7 @@ use std::error::Error;
 
 type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
-type FullOrValidationError = bool;
+//type FullOrValidationError = bool;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -29,9 +29,9 @@ struct Errors {
     int_out_of_bounds: &'static str,
     int_negative: &'static str,
     float: &'static str,
-    no_valid_assignment: &'static str,
-    no_valid_integer_arithmetic: &'static str,
-    no_valid_expression: &'static str,
+    //no_valid_assignment: &'static str,
+    //no_valid_integer_arithmetic: &'static str,
+    //no_valid_expression: &'static str,
     //constants_are_immutable: &'static str,
 }
 
@@ -43,9 +43,9 @@ const ERRORS: Errors = Errors {
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
     float: "Invalid float",
-    no_valid_assignment: "No valid assignment found",
-    no_valid_integer_arithmetic: "No valid integer arithmetic found",
-    no_valid_expression: "No valid expression was found",
+    //no_valid_assignment: "No valid assignment found",
+    //no_valid_integer_arithmetic: "No valid integer arithmetic found",
+    //no_valid_expression: "No valid expression was found",
     //constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
@@ -106,8 +106,8 @@ impl Config {
                 } else {
                     self.ast.set_output();
                     println!(
-                        "Toylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
-                        self.ast.output
+                        "{:?}\r\nToylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
+                        self.ast.parents, self.ast.output
                     );
                 }
             }
@@ -126,11 +126,11 @@ impl Config {
         //self.set_ast_output_for_main_fn_start();
         for line in 0..self.lines_of_tokens.len() {
             if self.lines_of_tokens[line].len() > 0 {
-                println!("line: {}", line);
+                //println!("line: {}", line);
                 self.current_line = line;
                 self.current_line_token = 0;
                 self.parse_current_line()?;
-                println!("end of line: {}\r\n", line);
+                //println!("end of line: {}\r\n", line);
             }
         }
         Ok(())
@@ -160,17 +160,17 @@ impl Config {
             None
         };
         match first_char {
+            // oops what about divide - check for def functions first
             '/' => self.parse_comment_single_line(current_token_vec),
             '=' => {
                 if current_token_vec.len() > 1 {
                     return self.get_error2(0, 1, ERRORS.assign);
                 }
-                dbg!("assign");
-                Ok(())
+                self.parse_assignment(&current_token)
             }
             '"' => self.parse_string(&current_token),
             '\\' => {
-                dbg!("func_def");
+                //dbg!("func_def");
                 Ok(())
             }
             //positive numbers
@@ -195,16 +195,16 @@ impl Config {
                 }
             },
             first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
-                dbg!("constant");
-                Ok(())
+                //dbg!("constant or constantRef");
+                self.parse_constant(&current_token)
             }
             _ => match self.ast.get_inbuilt_function_index_by_name(&current_token) {
-                Some(i) => {
-                    println!("func_call: {}", i);
+                Some(_i) => {
+                    //println!("func_call: {}", i);
                     Ok(())
                 }
                 _ => {
-                    dbg!("UNKNOWN");
+                    //dbg!("Undefined");
                     Ok(())
                 }
             },
@@ -235,13 +235,13 @@ impl Config {
             }
             Ok(())
         } else {
-            dbg!(&self.lines_of_tokens);
+            //dbg!(&self.lines_of_tokens);
             self.get_error2(0, 1, ERRORS.string)
         }
     }
 
     fn parse_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
-        dbg!("parse_int - positive only for now");
+        //dbg!("parse_int - positive only for now");
         let all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
         let chars: Vec<char> = current_token.chars().collect();
         let first_char_is_negative_sign = chars[0] == '-';
@@ -263,7 +263,10 @@ impl Config {
         }
         self.ast
             .append((ElementInfo::Int(current_token.clone()), vec![]));
-        //dbg!(self.ast.elements[x].clone());
+        dbg!(
+            self.current_line_token,
+            self.lines_of_tokens[self.current_line].clone()
+        );
         if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
             self.ast.append((ElementInfo::Seol, vec![]));
         }
@@ -286,6 +289,63 @@ impl Config {
         }
     }
 
+    fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        match self.ast.get_constant_index_by_name(&current_token) {
+            //equals a reference to existing constant
+            Some(_ref_of_constant) => {
+                //dbg!("1.ref");
+                let typename = self.ast_get_type(&current_token);
+                if self.current_line_token == 0 {
+                    self.ast.append((ElementInfo::Indent, vec![]));
+                }
+                self.ast.append((
+                    ElementInfo::ConstantRef(
+                        current_token.clone(),
+                        typename,
+                        current_token.clone(),
+                    ),
+                    vec![],
+                ));
+                if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+                    self.ast.append((ElementInfo::Seol, vec![]));
+                }
+                Ok(())
+            }
+            //create a new constant
+            _ => {
+                //dbg!("2.const");
+
+                let typename = "Undefined".to_string();
+                if self.current_line_token == 0 {
+                    self.ast.append((ElementInfo::Indent, vec![]));
+                }
+
+                //TODO change this to inbuiltfunction?
+                let _ref_of_constant = self.ast.append((
+                    ElementInfo::Constant(current_token.clone(), typename),
+                    vec![],
+                ));
+                if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+                    self.ast.append((ElementInfo::Seol, vec![]));
+                }
+
+                Ok(())
+            }
+        }
+    }
+
+    fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
+        if self.current_line_token == 0 {
+            self.ast.append((ElementInfo::Indent, vec![]));
+        }
+        let undefined_for_now = "Undefined".to_string();
+        self.ast
+            .append((ElementInfo::Assignment(undefined_for_now), vec![]));
+        self.ast.indent();
+        Ok(())
+    }
+
+    /*
     fn check_one_or_more_succeeds(
         self: &mut Self,
         tokens: Tokens,
@@ -407,6 +467,7 @@ impl Config {
             }
         }
     }
+    */
 
     fn set_lines_of_chars(self: &mut Self) {
         let mut index_from = 0;
@@ -452,7 +513,7 @@ impl Config {
                     count_quotes = count_quotes + 1;
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-                dbg!(inside_quotes, count_quotes, &line_of_tokens);
+                //dbg!(inside_quotes, count_quotes, &line_of_tokens);
                 if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
                     || eof
                     || count_quotes == 2
@@ -474,6 +535,7 @@ impl Config {
         }
     }
 
+    /*
     fn set_all_from_clone(self: &mut Self, to_clone: Config) -> () {
         // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
         self.file = to_clone.file;
@@ -613,7 +675,7 @@ impl Config {
                     Ok(tokens_remove_head(ret_tokens))
                     //Ok(validation_error)
                 }
-                //create a new constant
+                //create a new constant, with no value assigned yet
                 _ => {
                     //dbg!("2");
                     self.ast.append((ElementInfo::Indent, vec![]));
@@ -907,6 +969,7 @@ impl Config {
             //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
         }
     }
+    */
 
     fn ast_get_type(self: &Self, text: &String) -> String {
         //dbg!("ast_get_type");
@@ -939,6 +1002,7 @@ impl Config {
         return_type
     }
 
+    /*
     fn ast_get_enumtype_of_elementinfo(self: &Self, text: &String) -> Option<ElementInfo> {
         //dbg!("ast_get_enum_of_element");
         //note: these don't have real values - just indicates correct Enum to use
@@ -1031,7 +1095,7 @@ impl Config {
         self.error_stack.push(e);
         Err(is_real_error)
     }
-
+    */
     fn get_error2(
         self: &mut Self,
         mut arrow_indent: usize,
@@ -1065,6 +1129,7 @@ impl Config {
     }
 }
 
+/*
 fn tokens_remove_head(tokens: Tokens) -> Tokens {
     if tokens.len() == 1 {
         vec![]
@@ -1072,6 +1137,7 @@ fn tokens_remove_head(tokens: Tokens) -> Tokens {
         tokens[1..].to_vec()
     }
 }
+*/
 
 fn is_integer(text: &String) -> bool {
     let mut is_valid = true;
@@ -1088,10 +1154,10 @@ fn is_integer(text: &String) -> bool {
     if !all_chars_are_numeric && !is_negative_all_other_chars_are_numeric {
         is_valid = false;
     }
-    println!(
-        "{}",
-        !all_chars_are_numeric || !is_negative_all_other_chars_are_numeric
-    );
+    //println!(
+    //    "{}",
+    //    !all_chars_are_numeric || !is_negative_all_other_chars_are_numeric
+    //);
     match text.parse::<i64>() {
         Ok(_) => (),
         Err(_) => is_valid = false,
@@ -1336,7 +1402,26 @@ mod tests {
                 "-1.7976931348623157E+308",
                 "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
             ],
+            //constant
+            ["a", "fn main() {\r\n    a;\r\n}\r\n"],
+            ["a\r\na", "fn main() {\r\n    a;\r\n    a;\r\n}\r\n"],
+            //assignment
+            [
+                "= a \"string\"",
+                "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n",
+            ],
+            ["= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"],
+            ["= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"],
+            [
+                "= a -1.7976931348623157E+308",
+                "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n",
+            ],
+            //[
+            //    "= a + 1 2",
+            //    "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            //],
         ];
+
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1367,7 +1452,7 @@ mod tests {
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
-                    dbg!(&c);
+                    //dbg!(&c);
                     assert_eq!(c.ast.output, output);
                 }
                 Err(_e) => assert!(false, "error should not exist"),

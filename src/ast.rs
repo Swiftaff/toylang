@@ -3,6 +3,8 @@ pub struct Ast {
     //first element is always root. Real elements start at index 1
     pub elements: Vec<Element>,
     pub output: String,
+    //note: parents are only used for building, ignored output.
+    //becuse of that, split outputting to be less confusing?
     pub parents: Vec<ElIndex>,
 }
 #[derive(Clone, Debug)]
@@ -14,6 +16,7 @@ pub enum ElementInfo {
     String(Value),
     Constant(Name, ReturnType),
     ConstantRef(Name, ReturnType, RefName),
+    Assignment(ReturnType),
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format),
     InbuiltFunctionCall(Name, ReturnType),
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType),
@@ -78,8 +81,8 @@ impl Ast {
         // add element to list, and add to list of children of current parent where 0 = root
         self.elements.push(element);
         let new_items_index = self.elements.len() - 1;
-        let current_parent = self.parents[self.parents.len() - 1];
-        self.elements[current_parent].1.push(new_items_index);
+        let current_parent_ref = self.get_current_parent_ref_from_parents();
+        self.elements[current_parent_ref].1.push(new_items_index);
         new_items_index
     }
 
@@ -90,9 +93,57 @@ impl Ast {
         new_items_index
     }
 
+    fn fix_any_unknown_types(self: &mut Self) {
+        //child types are later in element list
+        //so loop backwards to work from inside tree to out
+        for el_index in (0..self.elements.clone().len()).rev() {
+            let el = self.elements[el_index].clone();
+            let el_info = el.clone().0;
+
+            let el_type = self.get_elementinfo_type(el_info.clone());
+            if el_type == "Undefined".to_string() {
+                match el_info {
+                    ElementInfo::Assignment(_) => {
+                        let elided_type = self.get_elided_type_of_assignment_element(el);
+                        self.elements[el_index].0 = ElementInfo::Assignment(elided_type);
+                    }
+                    ElementInfo::Constant(name, _) => {
+                        let el_option =
+                            self.get_current_parent_element_from_element_children_search(el_index);
+                        match el_option {
+                            Some(el) => {
+                                let elided_type = self.get_elided_type_of_assignment_element(el);
+                                self.elements[el_index].0 = ElementInfo::Constant(name, elided_type)
+                            }
+                            _ => (),
+                        }
+                    }
+                    el => {
+                        dbg!(el);
+                        ()
+                    }
+                }
+            }
+        }
+        dbg!(self.elements.clone());
+    }
+
+    fn get_elided_type_of_assignment_element(self: &mut Self, el: Element) -> String {
+        let el_children = el.1;
+        let mut elided_type = "Undefined".to_string();
+        if el_children.len() > 1 {
+            let second_child_ref = el_children[1];
+            let second_child = self.elements[second_child_ref].clone();
+            elided_type = self.get_elementinfo_type(second_child.0);
+        }
+        elided_type
+    }
+
     pub fn set_output(self: &mut Self) {
         //dbg!(&self);
+        self.fix_any_unknown_types();
         self.set_output_append("fn main() {\r\n");
+        self.parents = vec![0];
         // the values of indent and outdent don't matter when outputting - only using parents.len()
         // values do matter when building the ast
         self.indent();
@@ -148,7 +199,7 @@ impl Ast {
     fn set_open_output_for_element(self: &mut Self, el_index: usize) {
         if el_index < self.elements.len() {
             let element = self.elements[el_index].clone();
-            let element_string = self.get_output_for_element(element.clone());
+            let element_string = self.get_output_for_element_index(el_index, true);
             match element.0 {
                 ElementInfo::Eol => self.set_output_append_no_indent(&element_string),
                 ElementInfo::Seol => self.set_output_append_no_indent(&element_string),
@@ -157,19 +208,79 @@ impl Ast {
         }
     }
 
-    fn get_output_for_element(self: &mut Self, element: Element) -> String {
+    fn get_current_parent_ref_from_parents(self: &mut Self) -> usize {
+        let last = self.parents.len() - 1;
+        self.parents[last]
+    }
+
+    fn get_current_parent_element_from_element_children_search(
+        self: &mut Self,
+        child_ref: usize,
+    ) -> Option<Element> {
+        let index_option = self
+            .elements
+            .iter()
+            .position(|(_, children)| children.contains(&child_ref));
+        match index_option {
+            Some(index) => Some(self.elements[index].clone()),
+            _ => None,
+        }
+    }
+
+    fn get_output_for_element_index(
+        self: &mut Self,
+        element_index: usize,
+        skip_in_case_handled_by_parent: bool,
+    ) -> String {
+        let element = self.elements[element_index].clone();
+        dbg!(element.0.clone());
+        //dbg!(element.clone(), self.parents.clone()); //            self.get_current_parent_ref_from_parents(),            self.get_current_parent_element()   );
+        let skip = "".to_string();
+
+        //skip children for certain parents who already parsed them
+        if skip_in_case_handled_by_parent {
+            match self.get_current_parent_element_from_element_children_search(element_index) {
+                Some((ElementInfo::Assignment(_), _)) => return skip,
+                _ => (),
+            }
+        }
+
         match element.0.clone() {
             ElementInfo::Root => "".to_string(),
             ElementInfo::CommentSingleLine(comment_string) => format!("{}", comment_string),
             ElementInfo::Int(val) => format!("{}", val),
             ElementInfo::Float(val) => format!("{}", val),
             ElementInfo::String(val) => format!("{}.to_string()", val),
+            ElementInfo::Constant(name, _returntype) => format!("{}", name).to_string(),
+            ElementInfo::ConstantRef(name, _typename, _reference) => {
+                format!("{}", name)
+            }
+            ElementInfo::Assignment(typename) => {
+                let children = element.1.clone();
+                if children.len() < 3 {
+                    format!("// let ?: {} = ? OUTPUT ERROR: Can't get constant or value for this assignment from : {:?}", typename, children)
+                } else {
+                    let constant_index = children[0];
+                    let value_index = children[1];
+                    let semi_index = children[2];
+                    let constant_output = self.get_output_for_element_index(constant_index, false);
+                    let value_output = self.get_output_for_element_index(value_index, false);
+                    let semi_output = self.get_output_for_element_index(semi_index, false);
+                    format!(
+                        "let {}: {} = {}{}",
+                        constant_output, typename, value_output, semi_output
+                    )
+                }
+            }
+
+            /*
             ElementInfo::Constant(name, returntype) => {
                 format!("let {}: {} = ", name, returntype).to_string()
             }
             ElementInfo::ConstantRef(name, typename, reference) => {
                 format!("let {}: {} = {}", name, typename, reference)
             }
+            */
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
@@ -187,8 +298,8 @@ impl Ast {
                             for i in 0..argnames.len() {
                                 let arg_var_num = format!("arg{}", i + 1);
                                 let arg_value_el_ref = children[i];
-                                let arg_value_el = self.elements[arg_value_el_ref.clone()].clone();
-                                let arg_output = self.get_output_for_element(arg_value_el.clone());
+                                let arg_output =
+                                    self.get_output_for_element_index(arg_value_el_ref, true);
                                 //dbg!(&arg_var_num, arg_value_el_ref, arg_value_el, &arg_output);
                                 output = output.replace(&arg_var_num, &arg_output);
                             }
@@ -221,6 +332,7 @@ impl Ast {
             ElementInfo::Int(_) => "i64".to_string(),
             ElementInfo::Float(_) => "f64".to_string(),
             ElementInfo::String(_) => "String".to_string(),
+            ElementInfo::Assignment(returntype) => returntype,
             ElementInfo::Constant(_, returntype) => returntype,
             ElementInfo::ConstantRef(_, returntype, _) => returntype,
             ElementInfo::InbuiltFunctionCall(_, returntype) => returntype,
