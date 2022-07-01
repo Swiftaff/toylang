@@ -159,55 +159,53 @@ impl Config {
         } else {
             None
         };
-        match first_char {
-            // oops what about divide - check for def functions first
-            '/' => self.parse_comment_single_line(current_token_vec),
-            '=' => {
-                if current_token_vec.len() > 1 {
-                    return self.get_error2(0, 1, ERRORS.assign);
-                }
-                self.parse_assignment(&current_token)
-            }
-            '"' => self.parse_string(&current_token),
-            '\\' => {
-                //dbg!("func_def");
-                Ok(())
-            }
-            //positive numbers
-            first_char if is_integer(&first_char.to_string()) => {
-                if is_float(&current_token) {
-                    self.parse_float(&current_token)
-                } else {
-                    self.parse_int(&current_token)
-                }
-            }
-            //negative numbers
-            '-' => match second_char {
-                Some(_digit) => {
-                    if is_float(&current_token) {
-                        self.parse_float(&current_token)
-                    } else {
-                        self.parse_int(&current_token)
+
+        match self.ast.get_inbuilt_function_index_by_name(&current_token) {
+            Some(index_of_function) => self.parse_function_call(&current_token, index_of_function),
+            _ => {
+                match first_char {
+                    '/' => self.parse_comment_single_line(current_token_vec),
+                    '=' => {
+                        if current_token_vec.len() > 1 {
+                            return self.get_error2(0, 1, ERRORS.assign);
+                        }
+                        self.parse_assignment(&current_token)
                     }
+                    '"' => self.parse_string(&current_token),
+                    '\\' => {
+                        //dbg!("func_def");
+                        Ok(())
+                    }
+                    //positive numbers
+                    first_char if is_integer(&first_char.to_string()) => {
+                        if is_float(&current_token) {
+                            self.parse_float(&current_token)
+                        } else {
+                            self.parse_int(&current_token)
+                        }
+                    }
+                    //negative numbers
+                    '-' => match second_char {
+                        Some(_digit) => {
+                            if is_float(&current_token) {
+                                self.parse_float(&current_token)
+                            } else {
+                                self.parse_int(&current_token)
+                            }
+                        }
+                        None => {
+                            return self.get_error2(0, 1, ERRORS.int_negative);
+                        }
+                    },
+                    first_char
+                        if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) =>
+                    {
+                        //dbg!("constant or constantRef");
+                        self.parse_constant(&current_token)
+                    }
+                    _ => Err(()),
                 }
-                None => {
-                    return self.get_error2(0, 1, ERRORS.int_negative);
-                }
-            },
-            first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
-                //dbg!("constant or constantRef");
-                self.parse_constant(&current_token)
             }
-            _ => match self.ast.get_inbuilt_function_index_by_name(&current_token) {
-                Some(_i) => {
-                    //println!("func_call: {}", i);
-                    Ok(())
-                }
-                _ => {
-                    //dbg!("Undefined");
-                    Ok(())
-                }
-            },
         }
     }
 
@@ -225,14 +223,10 @@ impl Config {
 
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if is_string(&current_token.clone()) {
-            if self.current_line_token == 0 {
-                self.ast.append((ElementInfo::Indent, vec![]));
-            }
+            self.indent_if_first_in_line();
             self.ast
                 .append((ElementInfo::String(current_token.clone()), vec![]));
-            if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
+            self.seol_if_last_in_line();
             Ok(())
         } else {
             //dbg!(&self.lines_of_tokens);
@@ -258,31 +252,23 @@ impl Config {
             Ok(_) => (),
             Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
         }
-        if self.current_line_token == 0 {
-            self.ast.append((ElementInfo::Indent, vec![]));
-        }
+        self.indent_if_first_in_line();
         self.ast
             .append((ElementInfo::Int(current_token.clone()), vec![]));
         dbg!(
             self.current_line_token,
             self.lines_of_tokens[self.current_line].clone()
         );
-        if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-            self.ast.append((ElementInfo::Seol, vec![]));
-        }
+        self.seol_if_last_in_line();
         Ok(())
     }
 
     fn parse_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if current_token.len() > 0 && is_float(current_token) {
-            if self.current_line_token == 0 {
-                self.ast.append((ElementInfo::Indent, vec![]));
-            }
+            self.indent_if_first_in_line();
             self.ast
                 .append((ElementInfo::Float(current_token.clone()), vec![]));
-            if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
+            self.seol_if_last_in_line();
             Ok(())
         } else {
             return self.get_error2(0, 1, ERRORS.float);
@@ -295,9 +281,7 @@ impl Config {
             Some(_ref_of_constant) => {
                 //dbg!("1.ref");
                 let typename = self.ast_get_type(&current_token);
-                if self.current_line_token == 0 {
-                    self.ast.append((ElementInfo::Indent, vec![]));
-                }
+                self.indent_if_first_in_line();
                 self.ast.append((
                     ElementInfo::ConstantRef(
                         current_token.clone(),
@@ -306,43 +290,63 @@ impl Config {
                     ),
                     vec![],
                 ));
-                if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-                    self.ast.append((ElementInfo::Seol, vec![]));
-                }
+                self.seol_if_last_in_line();
                 Ok(())
             }
             //create a new constant
             _ => {
                 //dbg!("2.const");
-
                 let typename = "Undefined".to_string();
-                if self.current_line_token == 0 {
-                    self.ast.append((ElementInfo::Indent, vec![]));
-                }
-
+                self.indent_if_first_in_line();
                 //TODO change this to inbuiltfunction?
                 let _ref_of_constant = self.ast.append((
                     ElementInfo::Constant(current_token.clone(), typename),
                     vec![],
                 ));
-                if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-                    self.ast.append((ElementInfo::Seol, vec![]));
-                }
-
+                self.seol_if_last_in_line();
                 Ok(())
             }
         }
     }
 
     fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
-        if self.current_line_token == 0 {
-            self.ast.append((ElementInfo::Indent, vec![]));
-        }
+        self.indent_if_first_in_line();
         let undefined_for_now = "Undefined".to_string();
         self.ast
             .append((ElementInfo::Assignment(undefined_for_now), vec![]));
         self.ast.indent();
         Ok(())
+    }
+
+    fn parse_function_call(
+        self: &mut Self,
+        current_token: &String,
+        index_of_function: usize,
+    ) -> Result<(), ()> {
+        self.indent_if_first_in_line();
+        let undefined_for_now = "Undefined".to_string();
+        self.ast.append((
+            ElementInfo::InbuiltFunctionCall(
+                current_token.clone(),
+                index_of_function,
+                undefined_for_now,
+            ),
+            vec![],
+        ));
+        self.ast.indent();
+        Ok(())
+    }
+
+    fn indent_if_first_in_line(self: &mut Self) {
+        if self.current_line_token == 0 {
+            self.ast.append((ElementInfo::Indent, vec![]));
+        }
+    }
+
+    fn seol_if_last_in_line(self: &mut Self) {
+        if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
+            self.ast.append((ElementInfo::Seol, vec![]));
+        }
     }
 
     /*
@@ -1402,6 +1406,10 @@ mod tests {
                 "-1.7976931348623157E+308",
                 "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
             ],
+            //internalFunctionCalls
+            ["+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"],
+            ["- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"],
+            ["/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"],
             //constant
             ["a", "fn main() {\r\n    a;\r\n}\r\n"],
             ["a\r\na", "fn main() {\r\n    a;\r\n    a;\r\n}\r\n"],
@@ -1416,9 +1424,14 @@ mod tests {
                 "= a -1.7976931348623157E+308",
                 "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n",
             ],
+            [
+                "= a + 1 2",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            ],
+            //nested function calls
             //[
-            //    "= a + 1 2",
-            //    "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            //    "= a - + 1 2 3",
+            //    "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
             //],
         ];
 
@@ -1443,6 +1456,9 @@ mod tests {
             //float negative (errors say int)
             ["-1.1.1", ERRORS.int],
             ["-1.7976931348623157E+309", ERRORS.int],
+            //internalFunctionCalls
+            //["+ 1 2.1", ERRORS.int],
+            //["- 1.1 2", ERRORS.int],
         ];
 
         for test in test_case_passes {
