@@ -10,18 +10,17 @@ pub struct Ast {
 #[derive(Clone, Debug)]
 pub enum ElementInfo {
     Root,
-    CommentSingleLine(Value),
-    Int(Value),
-    Float(Value),
-    String(Value),
-    Constant(Name, ReturnType),
-    ConstantRef(Name, ReturnType, RefName),
-    Assignment(ReturnType),
-    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format),
-    InbuiltFunctionCall(Name, ElIndex, ReturnType),
-    FunctionDef(Name, ArgNames, ArgTypes, ReturnType),
-    FunctionCall(Name),
-    Arithmetic(Name, ReturnType, Value, Value),
+    CommentSingleLine(Value),               //no children
+    Int(Value),                             //no children
+    Float(Value),                           //no children
+    String(Value),                          //no children
+    Constant(Name, ReturnType),             //1 child = value
+    ConstantRef(Name, ReturnType, RefName), //no children
+    Assignment(ReturnType),                 //2 children. constant, value
+    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //no children
+    InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
+    FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
+    FunctionCall(Name),                     //fndef argnames.len() children
     Eol,
     Seol,
     Indent,
@@ -301,7 +300,7 @@ impl Ast {
         }
     }
 
-    fn get_current_parent_ref_from_parents(self: &mut Self) -> usize {
+    pub fn get_current_parent_ref_from_parents(self: &mut Self) -> usize {
         let last = self.parents.len() - 1;
         self.parents[last]
     }
@@ -423,9 +422,6 @@ impl Ast {
             }
             ElementInfo::FunctionCall(name) => {
                 format!("{}()", name)
-            }
-            ElementInfo::Arithmetic(name, _typename, val1, val2) => {
-                format!("{} {} {}", val1, name, val2)
             }
             ElementInfo::Eol => format!("\r\n"),
             ElementInfo::Seol => format!(";\r\n"),

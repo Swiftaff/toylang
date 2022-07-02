@@ -259,7 +259,11 @@ impl Config {
             self.current_line_token,
             self.lines_of_tokens[self.current_line].clone()
         );
+        self.outdent_if_last_expected_child();
+
+        //allow seol before outdenting
         self.seol_if_last_in_line();
+
         Ok(())
     }
 
@@ -268,6 +272,7 @@ impl Config {
             self.indent_if_first_in_line();
             self.ast
                 .append((ElementInfo::Float(current_token.clone()), vec![]));
+            self.outdent_if_last_expected_child();
             self.seol_if_last_in_line();
             Ok(())
         } else {
@@ -290,6 +295,7 @@ impl Config {
                     ),
                     vec![],
                 ));
+                self.outdent_if_last_expected_child();
                 self.seol_if_last_in_line();
                 Ok(())
             }
@@ -303,6 +309,7 @@ impl Config {
                     ElementInfo::Constant(current_token.clone(), typename),
                     vec![],
                 ));
+                self.outdent_if_last_expected_child();
                 self.seol_if_last_in_line();
                 Ok(())
             }
@@ -314,6 +321,7 @@ impl Config {
         let undefined_for_now = "Undefined".to_string();
         self.ast
             .append((ElementInfo::Assignment(undefined_for_now), vec![]));
+        self.outdent_if_last_expected_child();
         self.ast.indent();
         Ok(())
     }
@@ -333,6 +341,7 @@ impl Config {
             ),
             vec![],
         ));
+        self.outdent_if_last_expected_child();
         self.ast.indent();
         Ok(())
     }
@@ -346,6 +355,46 @@ impl Config {
     fn seol_if_last_in_line(self: &mut Self) {
         if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
             self.ast.append((ElementInfo::Seol, vec![]));
+        }
+    }
+
+    fn outdent_if_last_expected_child(self: &mut Self) {
+        let mut prev_parents_len = 999999999;
+        loop {
+            if self.ast.parents.len() < 2 || self.ast.parents.len() == prev_parents_len {
+                break;
+            }
+            prev_parents_len = self.ast.parents.len();
+            let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
+            let current_parent = self.ast.elements[current_parent_ref].clone();
+            match current_parent.0 {
+                ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
+                    let fndef = self.ast.elements[fndefref].clone();
+                    match fndef.0 {
+                        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                            if current_parent.1.len() == argnames.len() {
+                                self.ast.outdent();
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+                ElementInfo::Assignment(_) => {
+                    if current_parent.1.len() == 2 {
+                        //[constant, value]
+                        self.ast.outdent();
+                    }
+                }
+                ElementInfo::Constant(_, _) => {
+                    if current_parent.1.len() == 1 {
+                        //[value]
+                        self.ast.outdent();
+                    }
+                }
+                _ => {
+                    self.ast.outdent();
+                }
+            }
         }
     }
 
@@ -1432,6 +1481,14 @@ mod tests {
             [
                 "= a - + 1 2 3",
                 "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
+            ],
+            [
+                "= a / * - + 1 2 3 4 5",
+                "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n",
+            ],
+            [
+                "= a + 1 * 3 2",
+                "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
         ];
 
