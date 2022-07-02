@@ -1429,10 +1429,10 @@ mod tests {
                 "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
             ],
             //nested function calls
-            //[
-            //    "= a - + 1 2 3",
-            //    "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
-            //],
+            [
+                "= a - + 1 2 3",
+                "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
+            ],
         ];
 
         let test_case_errors = [

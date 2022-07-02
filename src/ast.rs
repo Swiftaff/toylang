@@ -93,43 +93,62 @@ impl Ast {
         new_items_index
     }
 
+    fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
+        let mut tracked_parents: Vec<usize> = vec![0];
+        let mut children: Vec<usize> = self.elements[0].1.clone();
+        let mut depths: Vec<Vec<usize>> = vec![children.clone()];
+        println!("testy");
+        loop {
+            println!("{:?}", tracked_parents.clone());
+            let mut next_level = vec![];
+            let current_level = depths[depths.len() - 1].clone();
+            for el_ref in current_level {
+                let el = self.elements[el_ref].clone();
+                let children = el.1;
+                next_level = vec![]
+                    .iter()
+                    .chain(&next_level.clone())
+                    .chain(&children)
+                    .map(|x| x.clone())
+                    .collect();
+                tracked_parents.push(el_ref);
+            }
+            if next_level.len() > 0 {
+                depths.push(next_level.clone());
+            } else {
+                break;
+            }
+        }
+        depths
+    }
+
+    fn get_depths_flattened(self: &mut Self, depths: &Vec<Vec<usize>>) -> Vec<usize> {
+        // flattens depths from bottom (deepest) to top
+        // this is so that it can be used to traverse elements in the correct order
+        // to allow correcting the types from the deepest elements first
+        // since higher levels may rely on type of deeper elements.
+        // e.g. a higher level "+" fn with type "i64|f64" will need to be disambiguated
+        // to either i64 or f64 based on the type of it's 2 child args
+        // so the two child args are fixed first (if unknown)
+        //then "+" fn can be determined safely
+        let mut output = vec![];
+        for i in (0..depths.len()).rev() {
+            let level = &depths[i];
+            output = vec![]
+                .iter()
+                .chain(&output.clone())
+                .chain(level)
+                .map(|x| x.clone())
+                .collect();
+        }
+        output
+    }
+
     fn fix_any_unknown_types(self: &mut Self) {
-        //child types are later in element list
-        //so loop backwards to work from inside tree to out
+        let depths = self.get_depths_vec();
+        let depths_flattened = self.get_depths_flattened(&depths);
 
-        //doh - no they're not
-        //will need to loop through filtered by different type groups,
-        //in likely reverse order of them being needed by the next, such as:
-        //Int, Float, String
-        //InbuiltFunctionCall
-        //Constant
-        //ConstantRef
-        //Assignment
-
-        //or just find deepest elements, and work up to top level items in rev order?
-        //e.g.
-        //typical nested tree         this flat ast
-        //0 (root)                    |_(0,[1,2,3,8]) root
-        //|_1                         |_(1,[])
-        //|_2                         |_(2,[])
-        //|_3                         |_(3,[4,5])
-        //| |_4                       |_(4,[])
-        //| |_5                       |_(5,[6,7])
-        //|   |_6                     |_(6,[])
-        //|   |_7                     |_(7,[8])
-        //|     |_8                   |_(8,[])
-        //|_9                         |_(9,[])
-
-        /*
-        [
-            [1,2,3,8],
-            [4,5],
-            [6,7],
-            [8]
-        ]
-        */
-
-        for el_index in (0..self.elements.clone().len()).rev() {
+        for el_index in depths_flattened {
             let el = self.elements[el_index].clone();
             let el_info = el.clone().0;
 
@@ -552,5 +571,142 @@ pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
         vec![]
     } else {
         stack[..stack.len() - 1].to_vec()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    // cargo watch -x "test test_get_depths_vec"
+    // cargo watch -x "test test_get_depths_vec -- --show-output"
+    // cargo test test_get_depths_vec -- --show-output
+
+    use super::*;
+
+    #[test]
+    fn test_get_depths_vec() {
+        //get_depths_vec
+
+        //1 el
+        let mut ast1 = Ast::new();
+        let mut n = ast1.elements.len();
+        let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast1.append(el1.clone());
+        assert_eq!(ast1.get_depths_vec(), vec![[n]]);
+
+        //3 el under root
+        let mut ast2 = Ast::new();
+        n = ast2.elements.len();
+        let el21: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el22: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el23: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast2.append(el21.clone());
+        ast2.append(el22.clone());
+        ast2.append(el23.clone());
+        assert_eq!(ast2.get_depths_vec(), vec![[n, n + 1, n + 2]]);
+
+        //1 el under with 2 children, under root
+        let mut ast3 = Ast::new();
+        n = ast3.elements.len();
+        let el31: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el32: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el33: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast3.append(el31.clone());
+        ast3.indent();
+        ast3.append(el32.clone());
+        ast3.append(el33.clone());
+        assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 1, n + 2]]);
+
+        //typical nested tree         this flat ast
+        //0 (root)                    |_(0,[1,2,3,8]) root
+        //|_1 int                     |_(1,[])
+        //|_2 int                     |_(2,[])
+        //|_3 +                       |_(3,[4,5])
+        //| |_4 int                   |_(4,[])
+        //| |_5 +                     |_(5,[6,7])
+        //|   |_6 int                 |_(6,[])
+        //|   |_7 +                   |_(7,[8,9])
+        //|     |_8 int               |_(8,[])
+        //|     |_9 int               |_(9,[])
+        //|_10 i64                    |_(10,[])
+
+        /*
+        [
+            [1,2,3,10],
+            [4,5],
+            [6,7],
+            [8,9]
+        ]
+        */
+
+        //10 el in nested structure above
+        let mut ast4 = Ast::new();
+        n = ast4.elements.len();
+        let el41: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el42: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el43: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el44: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el45: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el46: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el47: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el48: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el49: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el410: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast4.append(el41.clone());
+        ast4.append(el42.clone());
+        ast4.append(el43.clone());
+        ast4.indent();
+        ast4.append(el44.clone());
+        ast4.append(el45.clone());
+        ast4.indent();
+        ast4.append(el46.clone());
+        ast4.append(el47.clone());
+        ast4.indent();
+        ast4.append(el48.clone());
+        ast4.append(el49.clone());
+        ast4.outdent();
+        ast4.outdent();
+        ast4.outdent();
+        ast4.append(el410.clone());
+        assert_eq!(
+            ast4.get_depths_vec(),
+            vec![
+                vec![n, n + 1, n + 2, n + 9],
+                vec![n + 3, n + 4],
+                vec![n + 5, n + 6],
+                vec![n + 7, n + 8]
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_depths_flattened() {
+        let mut ast = Ast::new();
+        let mut input = vec![vec![0]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![0]);
+
+        input = vec![vec![1, 2, 3]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![1, 2, 3]);
+
+        input = vec![vec![1], vec![2, 3]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![2, 3, 1]);
+
+        input = vec![vec![1, 2, 3, 10], vec![4, 5], vec![6, 7], vec![8, 9]];
+        assert_eq!(
+            ast.get_depths_flattened(&input),
+            vec![8, 9, 6, 7, 4, 5, 1, 2, 3, 10]
+        );
     }
 }
