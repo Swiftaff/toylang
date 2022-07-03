@@ -93,6 +93,7 @@ impl Config {
 
     fn run_main_loop(self: &mut Self) -> Result<(), ()> {
         // ref: https://doc.rust-lang.org/reference/tokens.html
+        // ref: https://elm-lang.org/docs/syntax
 
         match self.main_loop_over_lines_of_tokens() {
             Ok(_) => {
@@ -172,10 +173,7 @@ impl Config {
                         self.parse_assignment(&current_token)
                     }
                     '"' => self.parse_string(&current_token),
-                    '\\' => {
-                        //dbg!("func_def");
-                        Ok(())
-                    }
+                    '\\' => self.parse_function_definition(),
                     //positive numbers
                     first_char if is_integer(&first_char.to_string()) => {
                         if is_float(&current_token) {
@@ -339,6 +337,22 @@ impl Config {
                 index_of_function,
                 undefined_for_now,
             ),
+            vec![],
+        ));
+        self.outdent_if_last_expected_child();
+        self.ast.indent();
+        Ok(())
+    }
+
+    fn parse_function_definition(self: &mut Self) -> Result<(), ()> {
+        self.indent_if_first_in_line();
+        let undefined_for_now = "Undefined".to_string();
+        let name = "test".to_string();
+        let argnames = vec![];
+        let argtypes = vec![];
+        let returntype = undefined_for_now;
+        self.ast.append((
+            ElementInfo::FunctionDef(name, argnames, argtypes, returntype),
             vec![],
         ));
         self.outdent_if_last_expected_child();
@@ -1314,7 +1328,7 @@ fn strip_trailing_whitespace(input: String) -> String {
 mod tests {
 
     // cargo watch -x "test test_run"
-    // cargo watch -x "test test_is_integer -- --show-output"
+    // cargo watch -x "test test_run -- --show-output"
     // cargo watch -x "test test_is_float -- --show-output"
 
     use super::*;
@@ -1402,6 +1416,7 @@ mod tests {
     fn test_run() {
         let test_case_passes = [
             //empty file
+            /*
             ["", "fn main() {\r\n}\r\n"],
             //comment single line
             ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
@@ -1490,8 +1505,28 @@ mod tests {
                 "= a + 1 * 3 2",
                 "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
+            */
+            [
+                "= a \\ i64 i64 : arg1 => + 123 arg1",
+                "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
+            ]
         ];
 
+        for test in test_case_passes {
+            let input = test[0];
+            let output = test[1];
+            let mut c = mock_config();
+            c.file.filecontents = input.to_string();
+            match c.run_main_tasks() {
+                Ok(_) => {
+                    dbg!(&c.ast);
+                    assert_eq!(c.ast.output, output);
+                }
+                Err(_e) => assert!(false, "error should not exist"),
+            }
+        }
+
+        /*
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1518,20 +1553,6 @@ mod tests {
             //["- 1.1 2", ERRORS.int],
         ];
 
-        for test in test_case_passes {
-            let input = test[0];
-            let output = test[1];
-            let mut c = mock_config();
-            c.file.filecontents = input.to_string();
-            match c.run_main_tasks() {
-                Ok(_) => {
-                    //dbg!(&c);
-                    assert_eq!(c.ast.output, output);
-                }
-                Err(_e) => assert!(false, "error should not exist"),
-            }
-        }
-
         for test in test_case_errors {
             let input = test[0];
             let error = test[1];
@@ -1548,6 +1569,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
+        */
     }
 
     #[test]

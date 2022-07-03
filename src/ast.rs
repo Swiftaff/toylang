@@ -1,4 +1,6 @@
-#[derive(Clone, Debug)]
+use std::fmt;
+
+#[derive(Clone)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1
     pub elements: Vec<Element>,
@@ -7,6 +9,56 @@ pub struct Ast {
     //becuse of that, split outputting to be less confusing?
     pub parents: Vec<ElIndex>,
 }
+
+impl fmt::Debug for Ast {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut el_debug = "".to_string();
+        let els = self.elements.clone();
+        for el in 0..els.len() {
+            let elinfo_debug = match els[el].0.clone() {
+                ElementInfo::Root => "Root".to_string(),
+                ElementInfo::CommentSingleLine(comment) => format!("Comment: {}", comment),
+                ElementInfo::Int(int) => format!("Int: {}", int),
+                ElementInfo::Float(float) => format!("Float: {}", float),
+                ElementInfo::Constant(name, returntype) => {
+                    format!("Constant: {} ({})", name, returntype)
+                }
+                ElementInfo::ConstantRef(name, returntype, refname) => {
+                    format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
+                }
+                ElementInfo::Assignment(returntype) => format!("Assignment: ({})", returntype),
+                ElementInfo::InbuiltFunctionDef(
+                    name,
+                    _argnames,
+                    _argtypes,
+                    returntype,
+                    _format,
+                ) => {
+                    format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
+                }
+                ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
+                    format!("InbuiltFunctionCall: {} ({})", name, returntype)
+                }
+                ElementInfo::FunctionDef(name, args, _, returntype) => {
+                    format!("FunctionDef: {} #{} ({})", name, args.len(), returntype)
+                }
+                ElementInfo::FunctionCall(name) => format!("FunctionCall: {}", name),
+                ElementInfo::Eol => "Eol".to_string(),
+                ElementInfo::Seol => "Seol".to_string(),
+                ElementInfo::Indent => "Indent".to_string(),
+                _ => "other".to_string(),
+            };
+            let el_index = if el > 9 {
+                "".to_string()
+            } else {
+                " ".to_string()
+            };
+            el_debug = format!("{}{}{}: {}\r\n", el_debug, el_index, el, elinfo_debug);
+        }
+        write!(f, "Custom Debug of Ast \r\n{}", el_debug)
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum ElementInfo {
     Root,
@@ -103,7 +155,7 @@ impl Ast {
             let current_level = depths[depths.len() - 1].clone();
             for el_ref in current_level {
                 let el = self.elements[el_ref].clone();
-                let children = el.1;
+                children = el.1;
                 next_level = vec![]
                     .iter()
                     .chain(&next_level.clone())
@@ -155,26 +207,27 @@ impl Ast {
             if el_type == "Undefined".to_string() {
                 match el_info {
                     ElementInfo::Assignment(_) => {
-                        let elided_type = self.get_elided_type_of_assignment_element(el);
-                        self.elements[el_index].0 = ElementInfo::Assignment(elided_type);
+                        let infered_type = self.get_infered_type_of_assignment_element(el);
+                        self.elements[el_index].0 = ElementInfo::Assignment(infered_type);
                     }
                     ElementInfo::Constant(name, _) => {
                         let el_option =
                             self.get_current_parent_element_from_element_children_search(el_index);
                         match el_option {
                             Some(el) => {
-                                let elided_type = self.get_elided_type_of_assignment_element(el);
-                                self.elements[el_index].0 = ElementInfo::Constant(name, elided_type)
+                                let infered_type = self.get_infered_type_of_assignment_element(el);
+                                self.elements[el_index].0 =
+                                    ElementInfo::Constant(name, infered_type)
                             }
                             _ => (),
                         }
                     }
                     ElementInfo::InbuiltFunctionCall(name, fndef_index, _returntype) => {
-                        let elided_type =
-                            self.get_elided_type_of_functioncall_element(el, fndef_index);
-                        dbg!("3", elided_type.clone());
+                        let infered_type =
+                            self.get_infered_type_of_functioncall_element(el, fndef_index);
+                        dbg!("3", infered_type.clone());
                         self.elements[el_index].0 =
-                            ElementInfo::InbuiltFunctionCall(name, fndef_index, elided_type);
+                            ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
                     }
                     el => {
                         dbg!(el);
@@ -186,18 +239,18 @@ impl Ast {
         dbg!(self.elements.clone());
     }
 
-    fn get_elided_type_of_assignment_element(self: &mut Self, el: Element) -> String {
+    fn get_infered_type_of_assignment_element(self: &mut Self, el: Element) -> String {
         let el_children = el.1;
-        let mut elided_type = "Undefined".to_string();
+        let mut infered_type = "Undefined".to_string();
         if el_children.len() > 1 {
             let second_child_ref = el_children[1];
             let second_child = self.elements[second_child_ref].clone();
-            elided_type = self.get_elementinfo_type(second_child.0);
+            infered_type = self.get_elementinfo_type(second_child.0);
         }
-        elided_type
+        infered_type
     }
 
-    fn get_elided_type_of_functioncall_element(
+    fn get_infered_type_of_functioncall_element(
         self: &mut Self,
         func_call_el: Element,
         funcdef_el_index: usize,
@@ -206,29 +259,29 @@ impl Ast {
         let el_children = func_call_el.1;
         let el = self.elements[funcdef_el_index].clone();
         let elinfo = el.0;
-        let mut elided_type = "Undefined".to_string();
+        let mut infered_type = "Undefined".to_string();
         match elinfo {
-            ElementInfo::InbuiltFunctionDef(_, argnames, argtypes, returntype, _) => {
+            ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
                 //TODO could check all args match here for parser error
                 dbg!("2", returntype.clone());
                 if returntype.contains("|") {
                     dbg!("2.5", el_children.clone());
                     if el_children.len() > 0 && argtypes.len() <= el_children.len() {
-                        for argtype in argtypes {
+                        for _argtype in argtypes {
                             let first_child_ref = el_children[0];
                             let first_child = self.elements[first_child_ref].clone();
-                            elided_type = self.get_elementinfo_type(first_child.0);
-                            dbg!("2.6", elided_type.clone());
+                            infered_type = self.get_elementinfo_type(first_child.0);
+                            dbg!("2.6", infered_type.clone());
                         }
                     }
                 } else {
-                    elided_type = returntype;
+                    infered_type = returntype;
                 }
             }
             _ => (),
         }
 
-        elided_type
+        infered_type
     }
 
     pub fn set_output(self: &mut Self) {
@@ -377,7 +430,7 @@ impl Ast {
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
-            ElementInfo::InbuiltFunctionCall(name, fndef_index, _returntype) => {
+            ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {
                 //dbg!("InbuiltFunctionCall");
                 let def_option = self.get_inbuilt_function_by_name(&name);
                 match def_option {
