@@ -29,10 +29,13 @@ struct Errors {
     int_out_of_bounds: &'static str,
     int_negative: &'static str,
     float: &'static str,
+    typeerror: &'static str,
+    funcdef_args: &'static str,
+    funcdef_argtypes_first: &'static str,
     //no_valid_assignment: &'static str,
     //no_valid_integer_arithmetic: &'static str,
     //no_valid_expression: &'static str,
-    //constants_are_immutable: &'static str,
+    //constants_are_immutable: &'static str
 }
 
 const ERRORS: Errors = Errors {
@@ -43,6 +46,9 @@ const ERRORS: Errors = Errors {
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
     float: "Invalid float",
+    typeerror: "Invalid type",
+    funcdef_args: "Invalid Functional Definition - wrong number of argument types: should be 1 type for each arg, plus a return type.",
+    funcdef_argtypes_first:"Invalid Functional Definition - argument types should come before argument names.",
     //no_valid_assignment: "No valid assignment found",
     //no_valid_integer_arithmetic: "No valid integer arithmetic found",
     //no_valid_expression: "No valid expression was found",
@@ -107,8 +113,8 @@ impl Config {
                 } else {
                     self.ast.set_output();
                     println!(
-                        "{:?}\r\nToylang compiled successfully:\r\n----------\r\n{}\r\n----------\r\n",
-                        self.ast.parents, self.ast.output
+                        "\r\nToylang compiled successfully:\r\n----------\r\n{:?}\r\n----------\r\n",
+                        self.ast
                     );
                 }
             }
@@ -154,56 +160,64 @@ impl Config {
         if current_token_vec.len() == 0 {
             return Ok(());
         }
+
+        match self.ast.get_inbuilt_function_index_by_name(&current_token) {
+            Some(index_of_function) => self.parse_function_call(&current_token, index_of_function),
+            _ => match self.ast.get_inbuilt_type_index_by_name(&current_token) {
+                Some(index_of_type) => self.parse_type(index_of_type),
+                _ => self.parse_token_by_first_chars(&current_token, &current_token_vec),
+            },
+        }
+    }
+
+    fn parse_token_by_first_chars(
+        self: &mut Self,
+        current_token: &String,
+        current_token_vec: &Vec<char>,
+    ) -> Result<(), ()> {
         let first_char = current_token_vec[0];
         let second_char = if current_token_vec.len() > 1 {
             Some(current_token_vec[1])
         } else {
             None
         };
-
-        match self.ast.get_inbuilt_function_index_by_name(&current_token) {
-            Some(index_of_function) => self.parse_function_call(&current_token, index_of_function),
-            _ => {
-                match first_char {
-                    '/' => self.parse_comment_single_line(current_token_vec),
-                    '=' => {
-                        if current_token_vec.len() > 1 {
-                            return self.get_error2(0, 1, ERRORS.assign);
-                        }
-                        self.parse_assignment(&current_token)
-                    }
-                    '"' => self.parse_string(&current_token),
-                    '\\' => self.parse_function_definition(),
-                    //positive numbers
-                    first_char if is_integer(&first_char.to_string()) => {
-                        if is_float(&current_token) {
-                            self.parse_float(&current_token)
-                        } else {
-                            self.parse_int(&current_token)
-                        }
-                    }
-                    //negative numbers
-                    '-' => match second_char {
-                        Some(_digit) => {
-                            if is_float(&current_token) {
-                                self.parse_float(&current_token)
-                            } else {
-                                self.parse_int(&current_token)
-                            }
-                        }
-                        None => {
-                            return self.get_error2(0, 1, ERRORS.int_negative);
-                        }
-                    },
-                    first_char
-                        if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) =>
-                    {
-                        //dbg!("constant or constantRef");
-                        self.parse_constant(&current_token)
-                    }
-                    _ => Err(()),
+        match first_char {
+            '\\' => self.parse_function_definition_start(),
+            ':' => self.parse_function_definition_end(),
+            '/' => self.parse_comment_single_line(current_token_vec),
+            '=' => {
+                if current_token_vec.len() > 1 {
+                    return self.get_error2(0, 1, ERRORS.assign);
+                }
+                self.parse_assignment(&current_token)
+            }
+            '"' => self.parse_string(&current_token),
+            //positive numbers
+            first_char if is_integer(&first_char.to_string()) => {
+                if is_float(&current_token) {
+                    self.parse_float(&current_token)
+                } else {
+                    self.parse_int(&current_token)
                 }
             }
+            //negative numbers
+            '-' => match second_char {
+                Some(_digit) => {
+                    if is_float(&current_token) {
+                        self.parse_float(&current_token)
+                    } else {
+                        self.parse_int(&current_token)
+                    }
+                }
+                None => {
+                    return self.get_error2(0, 1, ERRORS.int_negative);
+                }
+            },
+            first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
+                //dbg!("constant or constantRef");
+                self.parse_constant(&current_token)
+            }
+            _ => Err(()),
         }
     }
 
@@ -219,11 +233,25 @@ impl Config {
         Ok(())
     }
 
+    fn parse_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
+        match self.ast.elements[index_of_type].clone() {
+            sometype => {
+                self.indent_if_first_in_line();
+                self.ast.append(sometype);
+                //self.outdent_if_last_expected_child();
+                //self.seol_if_last_in_line();
+                Ok(())
+            }
+            _ => self.get_error2(0, 1, ERRORS.typeerror),
+        }
+    }
+
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if is_string(&current_token.clone()) {
             self.indent_if_first_in_line();
             self.ast
                 .append((ElementInfo::String(current_token.clone()), vec![]));
+            self.outdent_if_last_expected_child();
             self.seol_if_last_in_line();
             Ok(())
         } else {
@@ -253,10 +281,10 @@ impl Config {
         self.indent_if_first_in_line();
         self.ast
             .append((ElementInfo::Int(current_token.clone()), vec![]));
-        dbg!(
-            self.current_line_token,
-            self.lines_of_tokens[self.current_line].clone()
-        );
+        //dbg!(
+        //    self.current_line_token,
+        //    self.lines_of_tokens[self.current_line].clone()
+        //);
         self.outdent_if_last_expected_child();
 
         //allow seol before outdenting
@@ -279,39 +307,43 @@ impl Config {
     }
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
-        match self.ast.get_constant_index_by_name(&current_token) {
-            //equals a reference to existing constant
-            Some(_ref_of_constant) => {
-                //dbg!("1.ref");
-                let typename = self.ast_get_type(&current_token);
-                self.indent_if_first_in_line();
-                self.ast.append((
-                    ElementInfo::ConstantRef(
-                        current_token.clone(),
-                        typename,
-                        current_token.clone(),
-                    ),
-                    vec![],
-                ));
-                self.outdent_if_last_expected_child();
-                self.seol_if_last_in_line();
-                Ok(())
+        if self.ast.get_exists_element_by_name(current_token) {
+            match self.ast.get_constant_index_by_name(&current_token) {
+                //equals a reference to existing constant
+                Some(_ref_of_constant) => {
+                    //dbg!("1.ref");
+                    let typename = self.ast_get_type(&current_token);
+                    self.indent_if_first_in_line();
+                    self.ast.append((
+                        ElementInfo::ConstantRef(
+                            current_token.clone(),
+                            typename,
+                            current_token.clone(),
+                        ),
+                        vec![],
+                    ));
+                    self.outdent_if_last_expected_child();
+                    self.seol_if_last_in_line();
+                }
+                //create a new constant
+                _ => (),
             }
+        } else {
             //create a new constant
-            _ => {
-                //dbg!("2.const");
-                let typename = "Undefined".to_string();
-                self.indent_if_first_in_line();
-                //TODO change this to inbuiltfunction?
-                let _ref_of_constant = self.ast.append((
-                    ElementInfo::Constant(current_token.clone(), typename),
-                    vec![],
-                ));
-                self.outdent_if_last_expected_child();
-                self.seol_if_last_in_line();
-                Ok(())
-            }
+            //dbg!("2.const");
+            let typename = "Undefined".to_string();
+            self.indent_if_first_in_line();
+            //TODO change this to inbuiltfunction?
+            let _ref_of_constant = self.ast.append((
+                ElementInfo::Constant(current_token.clone(), typename),
+                vec![],
+            ));
+            //dbg!("constant 1", self.ast.parents.clone());
+            self.outdent_if_last_expected_child();
+            //dbg!("constant 2", self.ast.parents.clone());
+            self.seol_if_last_in_line();
         }
+        Ok(())
     }
 
     fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
@@ -344,7 +376,7 @@ impl Config {
         Ok(())
     }
 
-    fn parse_function_definition(self: &mut Self) -> Result<(), ()> {
+    fn parse_function_definition_start(self: &mut Self) -> Result<(), ()> {
         self.indent_if_first_in_line();
         let undefined_for_now = "Undefined".to_string();
         let name = "test".to_string();
@@ -357,12 +389,162 @@ impl Config {
         ));
         self.outdent_if_last_expected_child();
         self.ast.indent();
+        //dbg!("test1", self.ast.parents.clone());
+        Ok(())
+    }
+
+    fn parse_function_definition_end(self: &mut Self) -> Result<(), ()> {
+        /*
+        At the point you parse a function definition end,
+        and because we don't look ahead when parsing,
+        the Ast thinks this is what has been parsed
+        ...
+        10: Assignment: (Undefined) [ 11, 12, ]
+        11: Constant: a (Undefined) [ ]
+        12: FunctionDef: ("", [], [], Undefined) [ 13, 14, 15, ]
+        13: Type: i64 [ ]
+        14: Type: i64 [ ]
+        15: Constant: arg1 (Undefined) [ ]
+
+        We need to change this to, e.g. this for a single line function...
+        10: FunctionDef(name, argtypes, argnames, returntype): [ ] (<-ready to accept 16 return statement)
+        11: Unused
+        12: Unused
+        13: Unused
+        14: Unused
+        15: Unused
+        ... ready to insert next element 16 which is the return statement
+        */
+
+        //get parent funcdef
+        let func_def_ref_option = self
+            .ast
+            .get_current_parent_ref_from_element_children_search(self.ast.elements.len() - 1);
+        match func_def_ref_option {
+            Some(func_def_ref) => {
+                //dbg!(self.ast.clone());
+                //get child refs
+                let func_def = self.ast.elements[func_def_ref].clone();
+                let children = func_def.1;
+
+                //error if count is NOT odd (argtypes + returntype + argnames)
+                if children.len() % 2 == 0 || children.len() == 0 {
+                    return self.get_error2(0, 1, ERRORS.funcdef_args);
+                }
+
+                //TODO deal with brackets later (i.e. for type signature containing argument(s) which are fns)
+
+                //error if arg types are NOT first
+                let first_child_ref = children[0];
+                let first_child = self.ast.elements[first_child_ref].clone();
+                match first_child.0 {
+                    ElementInfo::Type(_) => (),
+                    _ => return self.get_error2(0, 1, ERRORS.funcdef_argtypes_first),
+                }
+
+                match func_def.0 {
+                    ElementInfo::FunctionDef(_, _, _, _) => {
+                        //(Assignment is parent of functionDef)
+                        let assignment_ref_option = self
+                            .ast
+                            .get_current_parent_ref_from_element_children_search(func_def_ref);
+
+                        match assignment_ref_option {
+                            Some(assignment_ref) => {
+                                let assignment_element = self.ast.elements[assignment_ref].clone();
+
+                                //constant is first child of assignment
+                                let constant_ref = assignment_element.1[0];
+                                let constant = self.ast.elements[constant_ref].clone();
+                                match constant.0 {
+                                    ElementInfo::Constant(name, _) => {
+                                        //assign name to parent funcdef (from constant
+                                        let num_args = children.len() / 2;
+                                        let argtype_refs = &children[..num_args];
+                                        let mut argtypes: Vec<String> = vec![];
+                                        for a in argtype_refs {
+                                            match self.ast.elements[a.clone()].clone() {
+                                                (ElementInfo::Type(typename), _) => {
+                                                    argtypes.push(typename)
+                                                }
+                                                _ => (),
+                                            }
+                                        }
+
+                                        let returntype_ref = &children[num_args];
+                                        let returntype: String =
+                                            match self.ast.elements[returntype_ref.clone()].clone()
+                                            {
+                                                (ElementInfo::Type(typename), _) => typename,
+                                                _ => "Undefined".to_string(),
+                                            };
+
+                                        let argname_refs = &children[num_args + 1..];
+                                        let mut argnames: Vec<String> = vec![];
+                                        for a in argname_refs {
+                                            match self.ast.elements[a.clone()].clone() {
+                                                (ElementInfo::Constant(argname, _), _) => {
+                                                    argnames.push(argname)
+                                                }
+                                                _ => (),
+                                            }
+                                        }
+
+                                        //assign argtypes to parent funcdef
+                                        //assign returntype to parent funcdef
+                                        //assign argnames to parent funcdef
+                                        let new_funcdef = ElementInfo::FunctionDef(
+                                            name, argnames, argtypes, returntype,
+                                        );
+
+                                        // replace assignment with funcdef.
+                                        self.ast.elements[assignment_ref] = (new_funcdef, vec![]);
+
+                                        // replace original funcdef with unused
+                                        self.ast.elements[func_def_ref] =
+                                            (ElementInfo::Unused, vec![]);
+
+                                        // replace constant with Unused
+                                        self.ast.elements[constant_ref] =
+                                            (ElementInfo::Unused, vec![]);
+
+                                        // replace funcdef children with Unused
+                                        for child_ref in children {
+                                            self.ast.elements[child_ref] =
+                                                (ElementInfo::Unused, vec![]);
+                                        }
+
+                                        //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
+                                        dbg!(self.ast.parents.clone());
+                                        self.ast.indent_this(assignment_ref);
+                                        //self.ast.indent_this(assignment_ref);
+                                        dbg!(self.ast.parents.clone());
+                                    }
+                                    _ => (),
+                                }
+                            }
+                            _ => (),
+                        }
+                    }
+                    _ => (),
+                }
+            }
+            _ => (),
+        }
+
+        //unsure if needed
+        //self.outdent_if_last_expected_child();
         Ok(())
     }
 
     fn indent_if_first_in_line(self: &mut Self) {
+        //or if first part of the expression in a single line function (after the colon)
+        //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
         if self.current_line_token == 0 {
+            //for _n in 0..self.ast.parents.len() - 1 {
+            //    dbg!("self.ast.parents", self.ast.parents.clone());
             self.ast.append((ElementInfo::Indent, vec![]));
+            //}
         }
     }
 
@@ -386,6 +568,7 @@ impl Config {
                     let fndef = self.ast.elements[fndefref].clone();
                     match fndef.0 {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                            //self.ast.indent();
                             if current_parent.1.len() == argnames.len() {
                                 self.ast.outdent();
                             }
@@ -549,9 +732,11 @@ impl Config {
                     1
                 };
             let eof = index_to == char_vec.len() - 1;
-            if c == '\r' || c == '\n' || eof {
-                self.lines_of_chars
-                    .push(char_vec[index_from..index_to + (if eof { 1 } else { 0 })].to_vec());
+            let is_colon = c == ':'; // split line here for single line functions
+            if c == '\r' || c == '\n' || eof || is_colon {
+                self.lines_of_chars.push(
+                    char_vec[index_from..index_to + (if eof || is_colon { 1 } else { 0 })].to_vec(),
+                );
                 index_from = index_to + incr;
             }
             index_to = index_to + incr;
@@ -571,6 +756,7 @@ impl Config {
             let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
 
             let mut inside_quotes = false;
+            //let mut is_colon: bool = false;
             let mut line_of_tokens: Tokens = vec![];
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
@@ -580,10 +766,12 @@ impl Config {
                     count_quotes = count_quotes + 1;
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-                //dbg!(inside_quotes, count_quotes, &line_of_tokens);
+                //is_colon = c == ':';
+                //dbg!(c, is_colon);
                 if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
                     || eof
                     || count_quotes == 2
+                //|| is_colon
                 {
                     let token_chars = char_vec
                         [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
@@ -600,6 +788,7 @@ impl Config {
 
             self.lines_of_tokens.push(line_of_tokens);
         }
+        dbg!(self.lines_of_tokens.clone());
     }
 
     /*
@@ -1206,6 +1395,10 @@ fn tokens_remove_head(tokens: Tokens) -> Tokens {
 }
 */
 
+fn _is_type(_text: &String) -> bool {
+    true
+}
+
 fn is_integer(text: &String) -> bool {
     let mut is_valid = true;
     let all_chars_are_numeric = text.chars().into_iter().all(|c| c.is_numeric());
@@ -1505,9 +1698,15 @@ mod tests {
                 "= a + 1 * 3 2",
                 "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
+            
+            //TODO handle reserved names of i64 by adding to inbuiltfndefs
+            [
+                "= a \\ i64 i64 arg1 : + 123 arg1",
+                "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
+            ],
             */
             [
-                "= a \\ i64 i64 : arg1 => + 123 arg1",
+                "= a \\ i64 i64 arg1 : + 123 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
             ]
         ];
@@ -1519,7 +1718,7 @@ mod tests {
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
-                    dbg!(&c.ast);
+                    dbg!(&c.ast, input, output);
                     assert_eq!(c.ast.output, output);
                 }
                 Err(_e) => assert!(false, "error should not exist"),
@@ -1551,6 +1750,9 @@ mod tests {
             //internalFunctionCalls
             //["+ 1 2.1", ERRORS.int],
             //["- 1.1 2", ERRORS.int],
+            //functionDefinitions
+            ["= a \\ :", ERRORS.funcdef_args],
+            ["= a \\ i64 monkey i64  :", ERRORS.funcdef_argtypes_first],
         ];
 
         for test in test_case_errors {

@@ -14,19 +14,30 @@ impl fmt::Debug for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut el_debug = "".to_string();
         let els = self.elements.clone();
+        let parents_debug = debug_flat_usize_array(&self.parents);
         for el in 0..els.len() {
+            let children_debug = debug_flat_usize_array(&els[el].1);
+
             let elinfo_debug = match els[el].0.clone() {
-                ElementInfo::Root => "Root".to_string(),
-                ElementInfo::CommentSingleLine(comment) => format!("Comment: {}", comment),
-                ElementInfo::Int(int) => format!("Int: {}", int),
-                ElementInfo::Float(float) => format!("Float: {}", float),
+                ElementInfo::Root => format!("Root: {}", children_debug),
+                ElementInfo::CommentSingleLine(comment) => {
+                    format!("Comment: {} {}", comment, children_debug)
+                }
+                ElementInfo::Int(int) => format!("Int: {} {}", int, children_debug),
+                ElementInfo::Float(float) => format!("Float: {} {}", float, children_debug),
+                ElementInfo::String(string) => format!("String: {} {}", string, children_debug),
                 ElementInfo::Constant(name, returntype) => {
-                    format!("Constant: {} ({})", name, returntype)
+                    format!("Constant: {} ({}) {}", name, returntype, children_debug)
                 }
                 ElementInfo::ConstantRef(name, returntype, refname) => {
-                    format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
+                    format!(
+                        "ConstantRef: {} ({}) for \"{}\" {}",
+                        name, returntype, refname, children_debug
+                    )
                 }
-                ElementInfo::Assignment(returntype) => format!("Assignment: ({})", returntype),
+                ElementInfo::Assignment(returntype) => {
+                    format!("Assignment: ({}) {}", returntype, children_debug)
+                }
                 ElementInfo::InbuiltFunctionDef(
                     name,
                     _argnames,
@@ -34,19 +45,34 @@ impl fmt::Debug for Ast {
                     returntype,
                     _format,
                 ) => {
-                    format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
+                    format!(
+                        "InbuiltFunctionDef: \"{}\" ({}) {}",
+                        name, returntype, children_debug
+                    )
                 }
                 ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
-                    format!("InbuiltFunctionCall: {} ({})", name, returntype)
+                    format!(
+                        "InbuiltFunctionCall: {} ({}) {}",
+                        name, returntype, children_debug
+                    )
                 }
-                ElementInfo::FunctionDef(name, args, _, returntype) => {
-                    format!("FunctionDef: {} #{} ({})", name, args.len(), returntype)
+                ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
+                    let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
+                    format!(
+                        "FunctionDef: {} ({}) -> ({}) {}",
+                        name, args, returntype, children_debug
+                    )
                 }
-                ElementInfo::FunctionCall(name) => format!("FunctionCall: {}", name),
+                ElementInfo::FunctionCall(name) => {
+                    format!("FunctionCall: {} {}", name, children_debug)
+                }
                 ElementInfo::Eol => "Eol".to_string(),
                 ElementInfo::Seol => "Seol".to_string(),
                 ElementInfo::Indent => "Indent".to_string(),
-                _ => "other".to_string(),
+                ElementInfo::Type(name) => {
+                    format!("Type: {} {}", name, children_debug)
+                }
+                ElementInfo::Unused => "Unused".to_string(),
             };
             let el_index = if el > 9 {
                 "".to_string()
@@ -55,8 +81,21 @@ impl fmt::Debug for Ast {
             };
             el_debug = format!("{}{}{}: {}\r\n", el_debug, el_index, el, elinfo_debug);
         }
-        write!(f, "Custom Debug of Ast \r\n{}", el_debug)
+        write!(
+            f,
+            "Custom Debug of Ast [\r\nElements:\r\n{}Parents: {}\r\nOutput: \r\n{:?}\r\n]",
+            el_debug, parents_debug, self.output
+        )
     }
+}
+
+fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
+    let mut arr_debug = "[ ".to_string();
+    for string in arr {
+        arr_debug = format!("{}{}, ", arr_debug, string);
+    }
+    arr_debug = format!("{}]", arr_debug);
+    arr_debug
 }
 
 #[derive(Clone, Debug)]
@@ -73,9 +112,11 @@ pub enum ElementInfo {
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
     FunctionCall(Name),                     //fndef argnames.len() children
+    Type(Name),                             // no children
     Eol,
     Seol,
     Indent,
+    Unused,
 }
 type Value = String;
 type ElIndex = usize;
@@ -93,6 +134,13 @@ pub type ElementChildren = Vec<ElIndex>;
 
 impl Ast {
     pub fn new() -> Ast {
+        let type_primitives = vec!["i64", "f64", "string"];
+        let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
+        let types: Vec<Element> = type_primitives
+            .clone()
+            .into_iter()
+            .map(type_closure)
+            .collect();
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_closure = |prim: &str| {
             (
@@ -111,13 +159,12 @@ impl Ast {
             .into_iter()
             .map(arithmetic_closure)
             .collect();
-        //let arithmetic_operators_f64: Vec<Element> =
-        //    arithmetic_primitives.into_iter().map(f64_closure).collect();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Vec<Element> = vec![]
             .iter()
             .chain(&root)
             .chain(&arithmetic_operators)
+            .chain(&types)
             //.chain(&arithmetic_operators_f64)
             .map(|x| x.clone())
             .collect();
@@ -148,9 +195,9 @@ impl Ast {
         let mut tracked_parents: Vec<usize> = vec![0];
         let mut children: Vec<usize> = self.elements[0].1.clone();
         let mut depths: Vec<Vec<usize>> = vec![children.clone()];
-        println!("testy");
+        //println!("testy");
         loop {
-            println!("{:?}", tracked_parents.clone());
+            //println!("{:?}", tracked_parents.clone());
             let mut next_level = vec![];
             let current_level = depths[depths.len() - 1].clone();
             for el_ref in current_level {
@@ -225,18 +272,18 @@ impl Ast {
                     ElementInfo::InbuiltFunctionCall(name, fndef_index, _returntype) => {
                         let infered_type =
                             self.get_infered_type_of_functioncall_element(el, fndef_index);
-                        dbg!("3", infered_type.clone());
+                        //dbg!("3", infered_type.clone());
                         self.elements[el_index].0 =
                             ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
                     }
-                    el => {
-                        dbg!(el);
+                    _el => {
+                        //dbg!(el);
                         ()
                     }
                 }
             }
         }
-        dbg!(self.elements.clone());
+        //dbg!(self.elements.clone());
     }
 
     fn get_infered_type_of_assignment_element(self: &mut Self, el: Element) -> String {
@@ -255,7 +302,7 @@ impl Ast {
         func_call_el: Element,
         funcdef_el_index: usize,
     ) -> String {
-        dbg!("1");
+        //dbg!("1");
         let el_children = func_call_el.1;
         let el = self.elements[funcdef_el_index].clone();
         let elinfo = el.0;
@@ -263,15 +310,15 @@ impl Ast {
         match elinfo {
             ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
                 //TODO could check all args match here for parser error
-                dbg!("2", returntype.clone());
+                //dbg!("2", returntype.clone());
                 if returntype.contains("|") {
-                    dbg!("2.5", el_children.clone());
+                    //dbg!("2.5", el_children.clone());
                     if el_children.len() > 0 && argtypes.len() <= el_children.len() {
                         for _argtype in argtypes {
                             let first_child_ref = el_children[0];
                             let first_child = self.elements[first_child_ref].clone();
                             infered_type = self.get_elementinfo_type(first_child.0);
-                            dbg!("2.6", infered_type.clone());
+                            //dbg!("2.6", infered_type.clone());
                         }
                     }
                 } else {
@@ -358,16 +405,27 @@ impl Ast {
         self.parents[last]
     }
 
-    fn get_current_parent_element_from_element_children_search(
+    pub fn get_current_parent_element_from_element_children_search(
         self: &mut Self,
         child_ref: usize,
     ) -> Option<Element> {
+        let index_option = self.get_current_parent_ref_from_element_children_search(child_ref);
+        match index_option {
+            Some(index) => Some(self.elements[index].clone()),
+            _ => None,
+        }
+    }
+
+    pub fn get_current_parent_ref_from_element_children_search(
+        self: &mut Self,
+        child_ref: usize,
+    ) -> Option<usize> {
         let index_option = self
             .elements
             .iter()
             .position(|(_, children)| children.contains(&child_ref));
         match index_option {
-            Some(index) => Some(self.elements[index].clone()),
+            Some(index) => Some(index),
             _ => None,
         }
     }
@@ -378,7 +436,7 @@ impl Ast {
         skip_in_case_handled_by_parent: bool,
     ) -> String {
         let element = self.elements[element_index].clone();
-        dbg!(element.0.clone());
+        //dbg!(element.0.clone());
         //dbg!(element.clone(), self.parents.clone()); //            self.get_current_parent_ref_from_parents(),            self.get_current_parent_element()   );
         let skip = "".to_string();
 
@@ -470,8 +528,9 @@ impl Ast {
                     None => return "".to_string(),
                 }
             }
-            ElementInfo::FunctionDef(name, _argnames, _argtypes, _returntype) => {
-                format!("fn {}() ->{{ /* stuff */ }}", name)
+            ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
+                let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
+                format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
             }
             ElementInfo::FunctionCall(name) => {
                 format!("{}()", name)
@@ -479,6 +538,8 @@ impl Ast {
             ElementInfo::Eol => format!("\r\n"),
             ElementInfo::Seol => format!(";\r\n"),
             ElementInfo::Indent => self.get_indent(),
+            ElementInfo::Type(name) => format!("{}", name),
+            ElementInfo::Unused => "".to_string(),
         }
     }
 
@@ -539,12 +600,34 @@ impl Ast {
         self.parents.push(self.elements.len() - 1);
     }
 
+    pub fn indent_this(self: &mut Self, index: usize) {
+        self.parents.push(index);
+    }
+
     pub fn outdent(self: &mut Self) {
         self.parents = if self.parents.len() < 2 {
             vec![0]
         } else {
             vec_remove_tail(self.parents.clone())
         };
+    }
+
+    pub fn get_exists_element_by_name(self: &Self, name: &String) -> bool {
+        let constant_option = self.get_constant_index_by_name(name);
+        let inbuiltfn_option = self.get_inbuilt_function_index_by_name(name);
+        let fn_option = self.get_function_index_by_name(name);
+        let type_option = self.get_inbuilt_type_index_by_name(name);
+        match (constant_option, inbuiltfn_option, fn_option, type_option) {
+            (Some(_), Some(_), Some(_), Some(_)) => true,
+            _ => false,
+        }
+    }
+
+    pub fn get_inbuilt_type_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Type(n) => n == name,
+            _ => false,
+        })
     }
 
     pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
@@ -561,6 +644,13 @@ impl Ast {
             Some(index) => Some(self.elements[index].0.clone()),
             None => None,
         }
+    }
+
+    pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::FunctionDef(n, _, _, _) => n == name,
+            _ => false,
+        })
     }
 
     pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
@@ -621,6 +711,14 @@ pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
     } else {
         stack[..stack.len() - 1].to_vec()
     }
+}
+
+fn get_formatted_argname_argtype_pairs(argnames: Vec<String>, argtypes: Vec<String>) -> String {
+    let mut args = "".to_string();
+    for a in 0..argnames.len() {
+        args = format!("{}{}: {}", args, argnames[a], argtypes[a]);
+    }
+    args
 }
 
 #[cfg(test)]
