@@ -515,10 +515,10 @@ impl Config {
                                         }
 
                                         //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                        dbg!(self.ast.parents.clone());
+                                        dbg!(self.clone());
                                         self.ast.indent_this(assignment_ref);
                                         //self.ast.indent_this(assignment_ref);
-                                        dbg!(self.ast.parents.clone());
+                                        //dbg!(self.ast.parents.clone());
                                     }
                                     _ => (),
                                 }
@@ -549,8 +549,28 @@ impl Config {
     }
 
     fn seol_if_last_in_line(self: &mut Self) {
-        if self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1 {
-            self.ast.append((ElementInfo::Seol, vec![]));
+        let is_last_token_in_this_line =
+            self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1;
+
+        if is_last_token_in_this_line {
+            // also if is the last return expression of a func_def
+            // then don't add the semicolon, just the EOL
+            let parent = self.ast.get_current_parent_ref_from_parents();
+            let parent_children_el = self.ast.elements[parent].clone();
+            let parent_children = parent_children_el.1;
+            if parent_children.len() > 0 {
+                let last_child_ref = parent_children[parent_children.len() - 1];
+                let current_el = self.ast.elements[last_child_ref].clone();
+                match current_el.0 {
+                    ElementInfo::FunctionDef(_, _, _, _) => {
+                        self.ast.append((ElementInfo::Eol, vec![]));
+                        return;
+                    }
+                    _ => (),
+                }
+                dbg!(last_child_ref);
+                self.ast.append((ElementInfo::Seol, vec![]));
+            }
         }
     }
 
@@ -1609,7 +1629,7 @@ mod tests {
     fn test_run() {
         let test_case_passes = [
             //empty file
-            /*
+            
             ["", "fn main() {\r\n}\r\n"],
             //comment single line
             ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
@@ -1704,7 +1724,6 @@ mod tests {
                 "= a \\ i64 i64 arg1 : + 123 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
             ],
-            */
             [
                 "= a \\ i64 i64 arg1 : + 123 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
@@ -1725,7 +1744,7 @@ mod tests {
             }
         }
 
-        /*
+        
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1771,7 +1790,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        */
+        
     }
 
     #[test]

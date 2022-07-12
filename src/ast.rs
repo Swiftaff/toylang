@@ -350,9 +350,12 @@ impl Ast {
                 self.outdent();
                 // push current end tag to output
                 let end_tag = stack[0];
+
                 self.set_close_output_for_element(end_tag);
                 // removed the outdent marker earlier, now remove the end tag indicator
                 stack = vec_remove_head(stack);
+                // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
+                // since it needs to be treated as the return statement, so remove it if there is one
             } else {
                 // push current to output
                 self.set_open_output_for_element(current_item);
@@ -570,13 +573,24 @@ impl Ast {
     */
 
     fn set_close_output_for_element(self: &mut Self, el_index: usize) {
+        //let next_tag_is_semicolon = false;
         if el_index < self.elements.len() {
             let element = self.elements[el_index].clone();
             let element_string = match element.0 {
-                _ => "",
+                ElementInfo::FunctionDef(_, _, _, _) => {
+                    //if self.elements.len() > el_index + 1 {
+                    //    let next_element = self.elements[el_index + 1].clone();
+                    //    dbg!(next_element);
+                    //    //next_tag_is_semicolon = true;
+                    //}
+
+                    format!("\r\n{}}}", self.get_indent())
+                }
+                _ => "".to_string(),
             };
-            self.set_output_append(element_string);
+            self.set_output_append(&element_string);
         }
+        //next_tag_is_semicolon
     }
 
     fn set_output_append(self: &mut Self, append_string: &str) {
@@ -593,6 +607,11 @@ impl Ast {
     }
 
     fn get_indent(self: &Self) -> String {
+        //format!(
+        //    "{:?}{}",
+        //    self.parents,
+        //    " ".repeat(4 * (self.parents.len() - 1))
+        //)
         " ".repeat(4 * (self.parents.len() - 1))
     }
 
