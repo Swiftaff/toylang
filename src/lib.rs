@@ -29,7 +29,7 @@ struct Errors {
     int_out_of_bounds: &'static str,
     int_negative: &'static str,
     float: &'static str,
-    typeerror: &'static str,
+    //typeerror: &'static str,
     funcdef_args: &'static str,
     funcdef_argtypes_first: &'static str,
     //no_valid_assignment: &'static str,
@@ -46,7 +46,7 @@ const ERRORS: Errors = Errors {
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
     float: "Invalid float",
-    typeerror: "Invalid type",
+    //typeerror: "Invalid type",
     funcdef_args: "Invalid Functional Definition - wrong number of argument types: should be 1 type for each arg, plus a return type.",
     funcdef_argtypes_first:"Invalid Functional Definition - argument types should come before argument names.",
     //no_valid_assignment: "No valid assignment found",
@@ -110,6 +110,7 @@ impl Config {
                         println!("{}", error);
                     }
                     println!("----------\r\n");
+                    dbg!(self.ast.clone());
                 } else {
                     self.ast.set_output();
                     println!(
@@ -124,6 +125,7 @@ impl Config {
                     println!("{}", error);
                 }
                 println!("----------\r\n");
+                dbg!(self.ast.clone());
             }
         };
         Ok(())
@@ -214,7 +216,7 @@ impl Config {
                 }
             },
             first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
-                //dbg!("constant or constantRef");
+                //dbg!("constant or constantRef", first_char);
                 self.parse_constant(&current_token)
             }
             _ => Err(()),
@@ -241,8 +243,7 @@ impl Config {
                 //self.outdent_if_last_expected_child();
                 //self.seol_if_last_in_line();
                 Ok(())
-            }
-            _ => self.get_error2(0, 1, ERRORS.typeerror),
+            } //_ => self.get_error2(0, 1, ERRORS.typeerror),
         }
     }
 
@@ -307,6 +308,7 @@ impl Config {
     }
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        //dbg!(current_token);
         if self.ast.get_exists_element_by_name(current_token) {
             match self.ast.get_constant_index_by_name(&current_token) {
                 //equals a reference to existing constant
@@ -334,10 +336,28 @@ impl Config {
             let typename = "Undefined".to_string();
             self.indent_if_first_in_line();
             //TODO change this to inbuiltfunction?
-            let _ref_of_constant = self.ast.append((
-                ElementInfo::Constant(current_token.clone(), typename),
-                vec![],
-            ));
+
+            let parent_ref = self.ast.get_current_parent_ref_from_parents();
+            let parent = self.ast.elements[parent_ref].clone();
+            match parent.0 {
+                ElementInfo::FunctionDefWIP => {
+                    self.ast.append((
+                        ElementInfo::Arg(
+                            current_token.clone(),
+                            parent_ref,
+                            "Undefined".to_string(),
+                        ),
+                        vec![],
+                    ));
+                }
+                _ => {
+                    self.ast.append((
+                        ElementInfo::Constant(current_token.clone(), typename),
+                        vec![],
+                    ));
+                }
+            }
+
             //dbg!("constant 1", self.ast.parents.clone());
             self.outdent_if_last_expected_child();
             //dbg!("constant 2", self.ast.parents.clone());
@@ -378,18 +398,9 @@ impl Config {
 
     fn parse_function_definition_start(self: &mut Self) -> Result<(), ()> {
         self.indent_if_first_in_line();
-        let undefined_for_now = "Undefined".to_string();
-        let name = "test".to_string();
-        let argnames = vec![];
-        let argtypes = vec![];
-        let returntype = undefined_for_now;
-        self.ast.append((
-            ElementInfo::FunctionDef(name, argnames, argtypes, returntype),
-            vec![],
-        ));
+        self.ast.append((ElementInfo::FunctionDefWIP, vec![]));
         self.outdent_if_last_expected_child();
         self.ast.indent();
-        //dbg!("test1", self.ast.parents.clone());
         Ok(())
     }
 
@@ -407,9 +418,9 @@ impl Config {
         15: Constant: arg1 (Undefined) [ ]
 
         We need to change this to, e.g. this for a single line function...
-        10: FunctionDef(name, argtypes, argnames, returntype): [ ] (<-ready to accept 16 return statement)
+        10: Unused
         11: Unused
-        12: Unused
+        12: FunctionDef(name, argtypes, argnames, returntype): [ ] (<-ready to accept 16 return statement)
         13: Unused
         14: Unused
         15: Unused
@@ -420,13 +431,13 @@ impl Config {
         let func_def_ref_option = self
             .ast
             .get_current_parent_ref_from_element_children_search(self.ast.elements.len() - 1);
+        //dbg!(self.clone(), func_def_ref_option);
         match func_def_ref_option {
             Some(func_def_ref) => {
-                //dbg!(self.ast.clone());
                 //get child refs
                 let func_def = self.ast.elements[func_def_ref].clone();
                 let children = func_def.1;
-
+                dbg!(children.clone());
                 //error if count is NOT odd (argtypes + returntype + argnames)
                 if children.len() % 2 == 0 || children.len() == 0 {
                     return self.get_error2(0, 1, ERRORS.funcdef_args);
@@ -436,6 +447,7 @@ impl Config {
 
                 //error if arg types are NOT first
                 let first_child_ref = children[0];
+
                 let first_child = self.ast.elements[first_child_ref].clone();
                 match first_child.0 {
                     ElementInfo::Type(_) => (),
@@ -443,8 +455,8 @@ impl Config {
                 }
 
                 match func_def.0 {
-                    ElementInfo::FunctionDef(_, _, _, _) => {
-                        //(Assignment is parent of functionDef)
+                    ElementInfo::FunctionDefWIP => {
+                        //(Assignment is parent of functionDefWIP)
                         let assignment_ref_option = self
                             .ast
                             .get_current_parent_ref_from_element_children_search(func_def_ref);
@@ -483,7 +495,7 @@ impl Config {
                                         let mut argnames: Vec<String> = vec![];
                                         for a in argname_refs {
                                             match self.ast.elements[a.clone()].clone() {
-                                                (ElementInfo::Constant(argname, _), _) => {
+                                                (ElementInfo::Arg(argname, _, _), _) => {
                                                     argnames.push(argname)
                                                 }
                                                 _ => (),
@@ -497,25 +509,43 @@ impl Config {
                                             name, argnames, argtypes, returntype,
                                         );
 
-                                        // replace assignment with funcdef.
-                                        self.ast.elements[assignment_ref] = (new_funcdef, vec![]);
-
-                                        // replace original funcdef with unused
-                                        self.ast.elements[func_def_ref] =
+                                        // replace assignment with unused
+                                        self.ast.elements[assignment_ref] =
                                             (ElementInfo::Unused, vec![]);
+
+                                        // replace parents child reference to the assignment
+                                        // with the func_def_ref
+                                        let parent_of_assignment_ref_option = self
+                                            .ast
+                                            .get_current_parent_ref_from_element_children_search(
+                                                assignment_ref,
+                                            );
+                                        match parent_of_assignment_ref_option {
+                                            Some(index) => {
+                                                self.ast.replace_element_child(
+                                                    index,
+                                                    assignment_ref,
+                                                    func_def_ref,
+                                                );
+                                            }
+                                            _ => (),
+                                        }
+
+                                        // replace original funcdefWIP with funcdef
+                                        self.ast.elements[func_def_ref] = (new_funcdef, vec![]);
 
                                         // replace constant with Unused
                                         self.ast.elements[constant_ref] =
                                             (ElementInfo::Unused, vec![]);
 
                                         // replace funcdef children with Unused
-                                        for child_ref in children {
-                                            self.ast.elements[child_ref] =
-                                                (ElementInfo::Unused, vec![]);
-                                        }
+                                        //for child_ref in children {
+                                        //    self.ast.elements[child_ref] =
+                                        //        (ElementInfo::Unused, vec![]);
+                                        //}
 
                                         //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                        dbg!(self.clone());
+                                        //dbg!(self.clone());
                                         self.ast.indent_this(assignment_ref);
                                         //self.ast.indent_this(assignment_ref);
                                         //dbg!(self.ast.parents.clone());
@@ -568,49 +598,131 @@ impl Config {
                     }
                     _ => (),
                 }
-                dbg!(last_child_ref);
+                //dbg!(last_child_ref);
                 self.ast.append((ElementInfo::Seol, vec![]));
             }
         }
     }
 
     fn outdent_if_last_expected_child(self: &mut Self) {
+        dbg!(
+            "outdent?",
+            self.ast.elements.len(),
+            self.ast.get_last_element()
+        );
         let mut prev_parents_len = 999999999;
         loop {
+            //dbg!("loop", self.ast.parents.clone());
             if self.ast.parents.len() < 2 || self.ast.parents.len() == prev_parents_len {
                 break;
             }
             prev_parents_len = self.ast.parents.len();
             let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
             let current_parent = self.ast.elements[current_parent_ref].clone();
+            //dbg!(current_parent.0.clone(), self.ast.clone());
             match current_parent.0 {
+                ElementInfo::Root => (),
+                ElementInfo::CommentSingleLine(_) => (),
+                ElementInfo::Int(_) => (),
+                ElementInfo::Float(_) => (),
+                ElementInfo::String(_) => (),
+                ElementInfo::Arg(_, _, _) => (),
+                ElementInfo::Constant(_, _) => {
+                    dbg!("Constant");
+                    if current_parent.1.len() > 0 {
+                        dbg!("Constant outdent");
+                        self.ast.outdent();
+                    }
+                }
+                ElementInfo::ConstantRef(_, _, _) => (),
+                ElementInfo::Assignment(_) => {
+                    dbg!("Assignment");
+                    if current_parent.1.len() > 1 {
+                        dbg!("Assignment outdent");
+                        self.ast.outdent();
+                    }
+                }
+                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
                 ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
+                    dbg!("InbuiltFunctionCall");
                     let fndef = self.ast.elements[fndefref].clone();
                     match fndef.0 {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
-                            //self.ast.indent();
                             if current_parent.1.len() == argnames.len() {
+                                dbg!("InbuiltFunctionCall outdent");
                                 self.ast.outdent();
                             }
                         }
                         _ => (),
                     }
                 }
-                ElementInfo::Assignment(_) => {
-                    if current_parent.1.len() == 2 {
-                        //[constant, value]
+                ElementInfo::FunctionDefWIP => {
+                    dbg!("FunctionDefWIP");
+                    // outdent if a return expression
+                    match self.ast.get_last_element().0 {
+                        ElementInfo::Int(_) => {
+                            dbg!("FunctionDef outdent Int");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::Float(_) => {
+                            dbg!("FunctionDef outdent Float");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::String(_) => {
+                            dbg!("FunctionDef outdent String");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::Constant(_, _) => {
+                            dbg!("FunctionDef outdent Constant");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::ConstantRef(_, _, _) => {
+                            dbg!("FunctionDef outdent ConstantRef");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::InbuiltFunctionCall(_, _, _) => {
+                            dbg!("FunctionDef outdent InbuiltFunctionCall");
+                            self.ast.outdent();
+                        }
+                        ElementInfo::FunctionCall(_) => {
+                            dbg!("FunctionDef outdent FunctionCall");
+                            self.ast.outdent();
+                        }
+                        _ => (),
+                    }
+                }
+                ElementInfo::FunctionDef(_, argnames, _, _) => {
+                    dbg!("FunctionDef", self.ast.elements.len());
+                    if current_parent.1.len() == argnames.len() {
+                        // outdent if children count matches arg count
+                        dbg!("FunctionDef outdent enough args");
                         self.ast.outdent();
                     }
                 }
-                ElementInfo::Constant(_, _) => {
-                    if current_parent.1.len() == 1 {
-                        //[value]
-                        self.ast.outdent();
+                ElementInfo::FunctionCall(name) => {
+                    dbg!("FunctionCall");
+                    let fn_index = self.ast.get_function_index_by_name(&name);
+                    match fn_index {
+                        Some(index) => {
+                            let fndef = self.ast.elements[index].clone();
+                            match fndef.0 {
+                                ElementInfo::FunctionDef(_, argnames, _, _) => {
+                                    if fndef.1.len() == argnames.len() {
+                                        dbg!("FunctionCall outdent enough args");
+                                        self.ast.outdent();
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
+                        _ => (), // something went wrong
                     }
                 }
-                _ => {
-                    self.ast.outdent();
-                }
+                ElementInfo::Type(_) => (),
+                ElementInfo::Eol => (),
+                ElementInfo::Seol => (),
+                ElementInfo::Indent => (),
+                ElementInfo::Unused => (),
             }
         }
     }
@@ -808,7 +920,7 @@ impl Config {
 
             self.lines_of_tokens.push(line_of_tokens);
         }
-        dbg!(self.lines_of_tokens.clone());
+        //dbg!(self.lines_of_tokens.clone());
     }
 
     /*
@@ -1628,8 +1740,8 @@ mod tests {
     #[test]
     fn test_run() {
         let test_case_passes = [
+            /*
             //empty file
-            
             ["", "fn main() {\r\n}\r\n"],
             //comment single line
             ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
@@ -1718,16 +1830,35 @@ mod tests {
                 "= a + 1 * 3 2",
                 "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
-            
+
             //TODO handle reserved names of i64 by adding to inbuiltfndefs
+            
+            [
+                "= a \\ i64 : 123",
+                "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
+            ],
             [
                 "= a \\ i64 i64 arg1 : + 123 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
             ],
             [
-                "= a \\ i64 i64 arg1 : + 123 arg1",
+                "= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
+            ],*/
+            [
+                "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n= x + arg1 arg2\r\n+ x arg3",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
+            ],
+            /*
+            [
+                // interesting bug
+                "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n + arg1 + arg2 arg3",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
+            ],
+            [
+                "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg2 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
-            ]
+            ]*/
         ];
 
         for test in test_case_passes {
@@ -1737,14 +1868,14 @@ mod tests {
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
-                    dbg!(&c.ast, input, output);
+                    //dbg!(&c.ast, input, output);
                     assert_eq!(c.ast.output, output);
                 }
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
 
-        
+        /*
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1790,7 +1921,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        
+        */
     }
 
     #[test]

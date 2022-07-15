@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 #[derive(Clone)]
 pub struct Ast {
@@ -26,6 +26,9 @@ impl fmt::Debug for Ast {
                 ElementInfo::Int(int) => format!("Int: {} {}", int, children_debug),
                 ElementInfo::Float(float) => format!("Float: {} {}", float, children_debug),
                 ElementInfo::String(string) => format!("String: {} {}", string, children_debug),
+                ElementInfo::Arg(name, scope, returntype) => {
+                    format!("Arg: {} scope:{} ({})", name, scope, returntype)
+                }
                 ElementInfo::Constant(name, returntype) => {
                     format!("Constant: {} ({}) {}", name, returntype, children_debug)
                 }
@@ -56,6 +59,7 @@ impl fmt::Debug for Ast {
                         name, returntype, children_debug
                     )
                 }
+                ElementInfo::FunctionDefWIP => format!("FunctionDefWIP {}", children_debug),
                 ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
                     let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
                     format!(
@@ -105,19 +109,22 @@ pub enum ElementInfo {
     Int(Value),                             //no children
     Float(Value),                           //no children
     String(Value),                          //no children
+    Arg(Name, Scope, ReturnType),           //no children
     Constant(Name, ReturnType),             //1 child = value
     ConstantRef(Name, ReturnType, RefName), //no children
     Assignment(ReturnType),                 //2 children. constant, value
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //no children
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
+    FunctionDefWIP,
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
-    FunctionCall(Name),                     //fndef argnames.len() children
-    Type(Name),                             // no children
+    FunctionCall(Name),                                //fndef argnames.len() children
+    Type(Name),                                        // no children
     Eol,
     Seol,
     Indent,
     Unused,
 }
+
 type Value = String;
 type ElIndex = usize;
 type ReturnType = String;
@@ -126,6 +133,7 @@ type RefName = String;
 type ArgNames = Vec<String>;
 type ArgTypes = Vec<String>;
 type Format = String;
+type Scope = ElIndex;
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
 // to save double handling parent/child refs in two places
@@ -403,6 +411,11 @@ impl Ast {
         }
     }
 
+    pub fn get_current_parent_element_from_parents(self: &mut Self) -> Element {
+        let parent_ref = self.get_current_parent_ref_from_parents();
+        self.elements[parent_ref].clone()
+    }
+
     pub fn get_current_parent_ref_from_parents(self: &mut Self) -> usize {
         let last = self.parents.len() - 1;
         self.parents[last]
@@ -417,6 +430,23 @@ impl Ast {
             Some(index) => Some(self.elements[index].clone()),
             _ => None,
         }
+    }
+
+    pub fn replace_element_child(self: &mut Self, element_ref: usize, from: usize, to: usize) {
+        let closure = |el_ref: usize| {
+            if el_ref == from {
+                to
+            } else {
+                el_ref
+            }
+        };
+        let children: Vec<usize> = self.elements[element_ref]
+            .1
+            .clone()
+            .into_iter()
+            .map(closure)
+            .collect();
+        self.elements[element_ref].1 = children;
     }
 
     pub fn get_current_parent_ref_from_element_children_search(
@@ -457,6 +487,7 @@ impl Ast {
             ElementInfo::Int(val) => format!("{}", val),
             ElementInfo::Float(val) => format!("{}", val),
             ElementInfo::String(val) => format!("{}.to_string()", val),
+            ElementInfo::Arg(name, scope, _returntype) => format!("{}", name).to_string(),
             ElementInfo::Constant(name, _returntype) => format!("{}", name).to_string(),
             ElementInfo::ConstantRef(name, _typename, _reference) => {
                 format!("{}", name)
@@ -531,6 +562,7 @@ impl Ast {
                     None => return "".to_string(),
                 }
             }
+            ElementInfo::FunctionDefWIP => "".to_string(),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
                 let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
                 format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
@@ -714,6 +746,10 @@ impl Ast {
             None => None,
         }
     }
+
+    pub fn get_last_element(self: &Self) -> Element {
+        self.elements[self.elements.len() - 1].clone()
+    }
 }
 
 fn vec_remove_head(stack: Vec<usize>) -> Vec<usize> {
@@ -735,7 +771,12 @@ pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
 fn get_formatted_argname_argtype_pairs(argnames: Vec<String>, argtypes: Vec<String>) -> String {
     let mut args = "".to_string();
     for a in 0..argnames.len() {
-        args = format!("{}{}: {}", args, argnames[a], argtypes[a]);
+        let comma = if a + 1 == argnames.len() {
+            "".to_string()
+        } else {
+            ", ".to_string()
+        };
+        args = format!("{}{}: {}{}", args, argnames[a], argtypes[a], comma);
     }
     args
 }
@@ -748,6 +789,36 @@ mod tests {
     // cargo test test_get_depths_vec -- --show-output
 
     use super::*;
+
+    #[test]
+    fn test_get_formatted_argname_argtype_pairs() {
+        let test_case_passes: Vec<Vec<Vec<String>>> = vec![
+            vec![
+                vec!["arg1".to_string()],
+                vec!["i64".to_string()],
+                vec!["arg1: i64".to_string()],
+            ],
+            vec![
+                vec!["arg1".to_string(), "arg2".to_string()],
+                vec!["i64".to_string(), "f64".to_string()],
+                vec!["arg1: i64, arg2: f64".to_string()],
+            ],
+            vec![
+                vec!["arg1".to_string(), "arg2".to_string(), "arg3".to_string()],
+                vec!["i64".to_string(), "f64".to_string(), "String".to_string()],
+                vec!["arg1: i64, arg2: f64, arg3: String".to_string()],
+            ],
+        ];
+        for test in test_case_passes {
+            let argnames = &test[0];
+            let argtypes = &test[1];
+            let output = &test[2][0];
+            assert_eq!(
+                get_formatted_argname_argtype_pairs(argnames.clone(), argtypes.clone()),
+                output.clone()
+            );
+        }
+    }
 
     #[test]
     fn test_get_depths_vec() {
