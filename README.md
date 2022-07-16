@@ -75,10 +75,10 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 
 ```
 // single line comments
-= integer 123
-= float 123.45
-= reference a
-= string "string"
+= an_integer 123
+= a_float 123.45
+= a_reference a
+= a_string "string"
 
 // basic arithmetic built in functions
 = addition + 1 2
