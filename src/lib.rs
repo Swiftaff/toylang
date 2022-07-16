@@ -675,7 +675,7 @@ impl Config {
             prev_parents_len = self.ast.parents.len();
             let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
             let current_parent = self.ast.elements[current_parent_ref].clone();
-            dbg!("---", self.ast.clone());
+            //dbg!("---", self.ast.clone());
             match current_parent.0 {
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
@@ -686,7 +686,7 @@ impl Config {
                 ElementInfo::Constant(_, _) => {
                     //dbg!("Constant");
                     if current_parent.1.len() > 0 {
-                        dbg!("Constant outdent", self.ast.parents.clone(),);
+                        //dbg!("Constant outdent", self.ast.parents.clone(),);
                         self.ast.outdent();
                     }
                 }
@@ -694,7 +694,7 @@ impl Config {
                 ElementInfo::Assignment(_) => {
                     //dbg!("Assignment");
                     if current_parent.1.len() > 1 {
-                        dbg!("Assignment outdent", self.ast.parents.clone(),);
+                        //dbg!("Assignment outdent", self.ast.parents.clone(),);
                         self.ast.outdent();
                     }
                 }
@@ -707,7 +707,7 @@ impl Config {
                             // current assumption is inbuiltfunctionCalls expect a fixed number
                             // of children to match args.
                             if current_parent.1.len() == argnames.len() {
-                                dbg!("InbuiltFunctionCall outdent", self.ast.parents.clone(),);
+                                //dbg!("InbuiltFunctionCall outdent", self.ast.parents.clone(),);
                                 self.ast.outdent();
                             }
                         }
@@ -726,23 +726,23 @@ impl Config {
 
                     match (previous_element.0, self.ast.get_last_element().0) {
                         (ElementInfo::Indent, ElementInfo::Int(_)) => {
-                            dbg!("FunctionDef outdent Int", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Int", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Float(_)) => {
-                            dbg!("FunctionDef outdent Float", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Float", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::String(_)) => {
-                            dbg!("FunctionDef outdent String", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent String", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Constant(_, _)) => {
-                            dbg!("FunctionDef outdent Constant", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Constant", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::ConstantRef(_, _, _)) => {
-                            dbg!("FunctionDef outdent ConstantRef", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent ConstantRef", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::InbuiltFunctionCall(_, fndefref, _)) => {
@@ -753,10 +753,10 @@ impl Config {
                                     // current assumption is inbuiltFunctionCalls expect a fixed number
                                     // of children to match args
                                     if fndef.1.len() == argnames.len() {
-                                        dbg!(
-                                            "FunctionDef outdent InbuiltFunctionCall enough args",
-                                            self.ast.parents.clone(),
-                                        );
+                                        //dbg!(
+                                        //    "FunctionDef outdent InbuiltFunctionCall enough args",
+                                        //    self.ast.parents.clone(),
+                                        //);
                                         self.ast.outdent();
                                     }
                                 }
@@ -774,10 +774,10 @@ impl Config {
                                             // current assumption is functionCalls expect a fixed number
                                             // of children to match args
                                             if fndef.1.len() == argnames.len() {
-                                                dbg!(
-                                                    "FunctionDef outdent FunctionCall enough args",
-                                                    self.ast.parents.clone(),
-                                                );
+                                                //dbg!(
+                                                //    "FunctionDef outdent FunctionCall enough args",
+                                                //    self.ast.parents.clone(),
+                                                //);
                                                 self.ast.outdent();
                                             }
                                         }
@@ -799,7 +799,7 @@ impl Config {
                             match fndef.0 {
                                 ElementInfo::FunctionDef(_, argnames, _, _) => {
                                     if fndef.1.len() == argnames.len() {
-                                        dbg!("FunctionCall outdent enough args");
+                                        //dbg!("FunctionCall outdent enough args");
                                         self.ast.outdent();
                                     }
                                 }

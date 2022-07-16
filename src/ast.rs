@@ -203,17 +203,20 @@ impl Ast {
     }
 
     fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
+        // collect a vec of all children
+        // in reverse order
+        // and from deepest in the 'tree'
+        // to highest
         let mut tracked_parents: Vec<usize> = vec![0];
-        let mut children: Vec<usize> = self.elements[0].1.clone();
-        let mut depths: Vec<Vec<usize>> = vec![children.clone()];
-        //println!("testy");
+        let mut children: Vec<usize> = self.elements[0].1.iter().map(|x| x.clone()).rev().collect();
+        let mut depths: Vec<Vec<usize>> = vec![children];
         loop {
             //println!("{:?}", tracked_parents.clone());
             let mut next_level = vec![];
             let current_level = depths[depths.len() - 1].clone();
             for el_ref in current_level {
                 let el = self.elements[el_ref].clone();
-                children = el.1;
+                children = el.1.iter().map(|x| x.clone()).rev().collect();
                 next_level = vec![]
                     .iter()
                     .chain(&next_level.clone())
@@ -227,6 +230,7 @@ impl Ast {
             } else {
                 break;
             }
+            //println!("{:?}", tracked_parents.clone());
         }
         depths
     }
@@ -239,7 +243,7 @@ impl Ast {
         // e.g. a higher level "+" fn with type "i64|f64" will need to be disambiguated
         // to either i64 or f64 based on the type of it's 2 child args
         // so the two child args are fixed first (if unknown)
-        //then "+" fn can be determined safely
+        // then "+" fn can be determined safely
         let mut output = vec![];
         for i in (0..depths.len()).rev() {
             let level = &depths[i];
@@ -256,7 +260,7 @@ impl Ast {
     fn fix_any_unknown_types(self: &mut Self) {
         let depths = self.get_depths_vec();
         let depths_flattened = self.get_depths_flattened(&depths);
-
+        dbg!(depths_flattened.clone());
         for el_index in depths_flattened {
             let el = self.elements[el_index].clone();
             let el_info = el.clone().0;
@@ -619,7 +623,7 @@ impl Ast {
                     //    //next_tag_is_semicolon = true;
                     //}
 
-                    format!("\r\n{}}}", self.get_indent())
+                    format!("\r\n{}}}\r\n", self.get_indent())
                 }
                 _ => "".to_string(),
             };
