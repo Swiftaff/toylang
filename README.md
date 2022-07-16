@@ -77,7 +77,7 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 // single line comments
 = an_integer 123
 = a_float 123.45
-= a_reference a
+= a_reference an_integer
 = a_string "string"
 
 // basic arithmetic built in functions
