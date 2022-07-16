@@ -309,60 +309,76 @@ impl Config {
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
         //dbg!(current_token);
-        if self.ast.get_exists_element_by_name(current_token) {
-            match self.ast.get_constant_index_by_name(&current_token) {
+        let el_option = self.ast.get_existing_element_by_name(current_token);
+        match el_option {
+            Some((ElementInfo::Constant(_, returntype), _)) => {
                 //equals a reference to existing constant
-                Some(_ref_of_constant) => {
-                    //dbg!("1.ref");
-                    let typename = self.ast_get_type(&current_token);
-                    self.indent_if_first_in_line();
-                    self.ast.append((
-                        ElementInfo::ConstantRef(
-                            current_token.clone(),
-                            typename,
-                            current_token.clone(),
-                        ),
-                        vec![],
-                    ));
-                    self.outdent_if_last_expected_child();
-                    self.seol_if_last_in_line();
-                }
+                //Some(_ref_of_constant) => {
+                //dbg!("1.ref");
+                //let typename = self.ast_get_type(&current_token);
+                self.indent_if_first_in_line();
+                self.ast.append((
+                    ElementInfo::ConstantRef(
+                        current_token.clone(),
+                        returntype, //typename,
+                        current_token.clone(),
+                    ),
+                    vec![],
+                ));
+                self.outdent_if_last_expected_child();
+                self.seol_if_last_in_line();
+                //}
                 //create a new constant
-                _ => (),
+                //_ => (),
             }
-        } else {
-            //create a new constant
-            //dbg!("2.const");
-            let typename = "Undefined".to_string();
-            self.indent_if_first_in_line();
-            //TODO change this to inbuiltfunction?
-
-            let parent_ref = self.ast.get_current_parent_ref_from_parents();
-            let parent = self.ast.elements[parent_ref].clone();
-            match parent.0 {
-                ElementInfo::FunctionDefWIP => {
-                    self.ast.append((
-                        ElementInfo::Arg(
-                            current_token.clone(),
-                            parent_ref,
-                            "Undefined".to_string(),
-                        ),
-                        vec![],
-                    ));
-                }
-                _ => {
-                    self.ast.append((
-                        ElementInfo::Constant(current_token.clone(), typename),
-                        vec![],
-                    ));
-                }
+            Some((ElementInfo::Arg(_, _, returntype), _)) => {
+                self.indent_if_first_in_line();
+                self.ast.append((
+                    ElementInfo::ConstantRef(
+                        current_token.clone(),
+                        returntype,
+                        current_token.clone(),
+                    ),
+                    vec![],
+                ));
+                self.outdent_if_last_expected_child();
+                self.seol_if_last_in_line();
             }
+            _ => {
+                //create a new constant
+                //dbg!("2.const");
+                let typename = "Undefined".to_string();
+                self.indent_if_first_in_line();
+                //TODO change this to inbuiltfunction?
 
-            //dbg!("constant 1", self.ast.parents.clone());
-            self.outdent_if_last_expected_child();
-            //dbg!("constant 2", self.ast.parents.clone());
-            self.seol_if_last_in_line();
+                let parent_ref = self.ast.get_current_parent_ref_from_parents();
+                let parent = self.ast.elements[parent_ref].clone();
+                match parent.0 {
+                    ElementInfo::FunctionDefWIP => {
+                        self.ast.append((
+                            ElementInfo::Arg(
+                                current_token.clone(),
+                                parent_ref,
+                                "Undefined".to_string(),
+                            ),
+                            vec![],
+                        ));
+                    }
+                    _ => {
+                        self.ast.append((
+                            ElementInfo::Constant(current_token.clone(), typename),
+                            vec![],
+                        ));
+                    }
+                }
+
+                //dbg!("constant 1", self.ast.parents.clone());
+                self.outdent_if_last_expected_child();
+                //dbg!("constant 2", self.ast.parents.clone());
+                self.seol_if_last_in_line();
+            }
         }
+
         Ok(())
     }
 
@@ -399,7 +415,7 @@ impl Config {
     fn parse_function_definition_start(self: &mut Self) -> Result<(), ()> {
         self.indent_if_first_in_line();
         self.ast.append((ElementInfo::FunctionDefWIP, vec![]));
-        self.outdent_if_last_expected_child();
+        //self.outdent_if_last_expected_child();
         self.ast.indent();
         Ok(())
     }
@@ -437,7 +453,7 @@ impl Config {
                 //get child refs
                 let func_def = self.ast.elements[func_def_ref].clone();
                 let children = func_def.1;
-                dbg!(children.clone());
+                //dbg!(children.clone());
                 //error if count is NOT odd (argtypes + returntype + argnames)
                 if children.len() % 2 == 0 || children.len() == 0 {
                     return self.get_error2(0, 1, ERRORS.funcdef_args);
@@ -546,7 +562,9 @@ impl Config {
 
                                         //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
                                         //dbg!(self.clone());
-                                        self.ast.indent_this(assignment_ref);
+                                        self.ast.outdent();
+                                        self.ast.outdent();
+                                        self.ast.indent_this(func_def_ref);
                                         //self.ast.indent_this(assignment_ref);
                                         //dbg!(self.ast.parents.clone());
                                     }
@@ -563,7 +581,7 @@ impl Config {
         }
 
         //unsure if needed
-        //self.outdent_if_last_expected_child();
+        self.outdent_if_last_expected_child();
         Ok(())
     }
 
@@ -605,11 +623,6 @@ impl Config {
     }
 
     fn outdent_if_last_expected_child(self: &mut Self) {
-        dbg!(
-            "outdent?",
-            self.ast.elements.len(),
-            self.ast.get_last_element()
-        );
         let mut prev_parents_len = 999999999;
         loop {
             //dbg!("loop", self.ast.parents.clone());
@@ -619,7 +632,7 @@ impl Config {
             prev_parents_len = self.ast.parents.len();
             let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
             let current_parent = self.ast.elements[current_parent_ref].clone();
-            //dbg!(current_parent.0.clone(), self.ast.clone());
+            dbg!("---", self.ast.clone());
             match current_parent.0 {
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
@@ -628,79 +641,114 @@ impl Config {
                 ElementInfo::String(_) => (),
                 ElementInfo::Arg(_, _, _) => (),
                 ElementInfo::Constant(_, _) => {
-                    dbg!("Constant");
+                    //dbg!("Constant");
                     if current_parent.1.len() > 0 {
-                        dbg!("Constant outdent");
+                        dbg!("Constant outdent", self.ast.parents.clone(),);
                         self.ast.outdent();
                     }
                 }
                 ElementInfo::ConstantRef(_, _, _) => (),
                 ElementInfo::Assignment(_) => {
-                    dbg!("Assignment");
+                    //dbg!("Assignment");
                     if current_parent.1.len() > 1 {
-                        dbg!("Assignment outdent");
+                        dbg!("Assignment outdent", self.ast.parents.clone(),);
                         self.ast.outdent();
                     }
                 }
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
                 ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
-                    dbg!("InbuiltFunctionCall");
+                    //dbg!("InbuiltFunctionCall");
                     let fndef = self.ast.elements[fndefref].clone();
                     match fndef.0 {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                            // current assumption is inbuiltfunctionCalls expect a fixed number
+                            // of children to match args.
                             if current_parent.1.len() == argnames.len() {
-                                dbg!("InbuiltFunctionCall outdent");
+                                dbg!("InbuiltFunctionCall outdent", self.ast.parents.clone(),);
                                 self.ast.outdent();
                             }
                         }
                         _ => (),
                     }
                 }
-                ElementInfo::FunctionDefWIP => {
-                    dbg!("FunctionDefWIP");
+                ElementInfo::FunctionDefWIP => (),
+                ElementInfo::FunctionDef(_, argnames, _, _) => {
+                    //dbg!("FunctionDef");
                     // outdent if a return expression
-                    match self.ast.get_last_element().0 {
-                        ElementInfo::Int(_) => {
-                            dbg!("FunctionDef outdent Int");
+                    // i.e. if previous element is an indent
+                    let previous_element = self.ast.elements[self.ast.elements.len() - 2].clone(); //should be safe to subtract 2 since there should always be a root
+
+                    // then the following are the first element in the row
+                    // and they are all return expressions
+
+                    match (previous_element.0, self.ast.get_last_element().0) {
+                        (ElementInfo::Indent, ElementInfo::Int(_)) => {
+                            dbg!("FunctionDef outdent Int", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
-                        ElementInfo::Float(_) => {
-                            dbg!("FunctionDef outdent Float");
+                        (ElementInfo::Indent, ElementInfo::Float(_)) => {
+                            dbg!("FunctionDef outdent Float", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
-                        ElementInfo::String(_) => {
-                            dbg!("FunctionDef outdent String");
+                        (ElementInfo::Indent, ElementInfo::String(_)) => {
+                            dbg!("FunctionDef outdent String", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
-                        ElementInfo::Constant(_, _) => {
-                            dbg!("FunctionDef outdent Constant");
+                        (ElementInfo::Indent, ElementInfo::Constant(_, _)) => {
+                            dbg!("FunctionDef outdent Constant", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
-                        ElementInfo::ConstantRef(_, _, _) => {
-                            dbg!("FunctionDef outdent ConstantRef");
+                        (ElementInfo::Indent, ElementInfo::ConstantRef(_, _, _)) => {
+                            dbg!("FunctionDef outdent ConstantRef", self.ast.parents.clone(),);
                             self.ast.outdent();
                         }
-                        ElementInfo::InbuiltFunctionCall(_, _, _) => {
-                            dbg!("FunctionDef outdent InbuiltFunctionCall");
-                            self.ast.outdent();
+                        (ElementInfo::Indent, ElementInfo::InbuiltFunctionCall(_, fndefref, _)) => {
+                            //dbg!("InbuiltFunctionCall");
+                            let fndef = self.ast.elements[fndefref].clone();
+                            match fndef.0 {
+                                ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                                    // current assumption is inbuiltFunctionCalls expect a fixed number
+                                    // of children to match args
+                                    if fndef.1.len() == argnames.len() {
+                                        dbg!(
+                                            "FunctionDef outdent InbuiltFunctionCall enough args",
+                                            self.ast.parents.clone(),
+                                        );
+                                        self.ast.outdent();
+                                    }
+                                }
+                                _ => (),
+                            }
                         }
-                        ElementInfo::FunctionCall(_) => {
-                            dbg!("FunctionDef outdent FunctionCall");
-                            self.ast.outdent();
+                        (ElementInfo::Indent, ElementInfo::FunctionCall(name)) => {
+                            //dbg!("FunctionCall");
+                            let fn_index = self.ast.get_function_index_by_name(&name);
+                            match fn_index {
+                                Some(index) => {
+                                    let fndef = self.ast.elements[index].clone();
+                                    match fndef.0 {
+                                        ElementInfo::FunctionDef(_, argnames, _, _) => {
+                                            // current assumption is functionCalls expect a fixed number
+                                            // of children to match args
+                                            if fndef.1.len() == argnames.len() {
+                                                dbg!(
+                                                    "FunctionDef outdent FunctionCall enough args",
+                                                    self.ast.parents.clone(),
+                                                );
+                                                self.ast.outdent();
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
+                                _ => (), // something went wrong
+                            }
                         }
                         _ => (),
                     }
                 }
-                ElementInfo::FunctionDef(_, argnames, _, _) => {
-                    dbg!("FunctionDef", self.ast.elements.len());
-                    if current_parent.1.len() == argnames.len() {
-                        // outdent if children count matches arg count
-                        dbg!("FunctionDef outdent enough args");
-                        self.ast.outdent();
-                    }
-                }
                 ElementInfo::FunctionCall(name) => {
-                    dbg!("FunctionCall");
+                    //dbg!("FunctionCall");
                     let fn_index = self.ast.get_function_index_by_name(&name);
                     match fn_index {
                         Some(index) => {

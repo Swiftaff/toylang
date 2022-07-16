@@ -17,67 +17,7 @@ impl fmt::Debug for Ast {
         let parents_debug = debug_flat_usize_array(&self.parents);
         for el in 0..els.len() {
             let children_debug = debug_flat_usize_array(&els[el].1);
-
-            let elinfo_debug = match els[el].0.clone() {
-                ElementInfo::Root => format!("Root: {}", children_debug),
-                ElementInfo::CommentSingleLine(comment) => {
-                    format!("Comment: {} {}", comment, children_debug)
-                }
-                ElementInfo::Int(int) => format!("Int: {} {}", int, children_debug),
-                ElementInfo::Float(float) => format!("Float: {} {}", float, children_debug),
-                ElementInfo::String(string) => format!("String: {} {}", string, children_debug),
-                ElementInfo::Arg(name, scope, returntype) => {
-                    format!("Arg: {} scope:{} ({})", name, scope, returntype)
-                }
-                ElementInfo::Constant(name, returntype) => {
-                    format!("Constant: {} ({}) {}", name, returntype, children_debug)
-                }
-                ElementInfo::ConstantRef(name, returntype, refname) => {
-                    format!(
-                        "ConstantRef: {} ({}) for \"{}\" {}",
-                        name, returntype, refname, children_debug
-                    )
-                }
-                ElementInfo::Assignment(returntype) => {
-                    format!("Assignment: ({}) {}", returntype, children_debug)
-                }
-                ElementInfo::InbuiltFunctionDef(
-                    name,
-                    _argnames,
-                    _argtypes,
-                    returntype,
-                    _format,
-                ) => {
-                    format!(
-                        "InbuiltFunctionDef: \"{}\" ({}) {}",
-                        name, returntype, children_debug
-                    )
-                }
-                ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
-                    format!(
-                        "InbuiltFunctionCall: {} ({}) {}",
-                        name, returntype, children_debug
-                    )
-                }
-                ElementInfo::FunctionDefWIP => format!("FunctionDefWIP {}", children_debug),
-                ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                    let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
-                    format!(
-                        "FunctionDef: {} ({}) -> ({}) {}",
-                        name, args, returntype, children_debug
-                    )
-                }
-                ElementInfo::FunctionCall(name) => {
-                    format!("FunctionCall: {} {}", name, children_debug)
-                }
-                ElementInfo::Eol => "Eol".to_string(),
-                ElementInfo::Seol => "Seol".to_string(),
-                ElementInfo::Indent => "Indent".to_string(),
-                ElementInfo::Type(name) => {
-                    format!("Type: {} {}", name, children_debug)
-                }
-                ElementInfo::Unused => "Unused".to_string(),
-            };
+            let elinfo_debug = format!("{:?} {}", els[el].0, children_debug);
             let el_index = if el > 9 {
                 "".to_string()
             } else {
@@ -102,7 +42,56 @@ fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
     arr_debug
 }
 
-#[derive(Clone, Debug)]
+impl fmt::Debug for ElementInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let el_debug = match self.clone() {
+            ElementInfo::Root => format!("Root"),
+            ElementInfo::CommentSingleLine(comment) => {
+                format!("Comment: {}", comment)
+            }
+            ElementInfo::Int(int) => format!("Int: {}", int),
+            ElementInfo::Float(float) => format!("Float: {}", float),
+            ElementInfo::String(string) => format!("String: {}", string),
+            ElementInfo::Arg(name, scope, returntype) => {
+                format!("Arg: {} scope:{} ({})", name, scope, returntype)
+            }
+            ElementInfo::Constant(name, returntype) => {
+                format!("Constant: {} ({})", name, returntype)
+            }
+            ElementInfo::ConstantRef(name, returntype, refname) => {
+                format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
+            }
+            ElementInfo::Assignment(returntype) => {
+                format!("Assignment: ({})", returntype)
+            }
+            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
+                format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
+            }
+            ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
+                format!("InbuiltFunctionCall: {} ({})", name, returntype)
+            }
+            ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
+            ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
+                let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
+                format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
+            }
+            ElementInfo::FunctionCall(name) => {
+                format!("FunctionCall: {}", name)
+            }
+            ElementInfo::Eol => "Eol".to_string(),
+            ElementInfo::Seol => "Seol".to_string(),
+            ElementInfo::Indent => "Indent".to_string(),
+            ElementInfo::Type(name) => {
+                format!("Type: {}", name)
+            }
+            ElementInfo::Unused => "Unused".to_string(),
+        };
+        write!(f, "{}", el_debug)
+    }
+}
+
+#[derive(Clone)]
+
 pub enum ElementInfo {
     Root,
     CommentSingleLine(Value),               //no children
@@ -137,6 +126,20 @@ type Scope = ElIndex;
 // no need to track parents in Element
 // should only ever be one per Element so can search for it each time
 // to save double handling parent/child refs in two places
+
+/*
+//this is not defined in the current crate because tuples are always foreign
+impl fmt::Debug for Element {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let children_debug = debug_flat_usize_array(&self.1);
+        let elinfo_debug = format!("{:?} {}", self.0, children_debug);
+        let el_debug = format!("{}\r\n", elinfo_debug);
+
+        write!(f, "{}", el_debug)
+    }
+}
+*/
+
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
 
@@ -663,15 +666,40 @@ impl Ast {
         };
     }
 
-    pub fn get_exists_element_by_name(self: &Self, name: &String) -> bool {
+    pub fn get_existing_element_by_name(self: &Self, name: &String) -> Option<Element> {
         let constant_option = self.get_constant_index_by_name(name);
         let inbuiltfn_option = self.get_inbuilt_function_index_by_name(name);
         let fn_option = self.get_function_index_by_name(name);
         let type_option = self.get_inbuilt_type_index_by_name(name);
-        match (constant_option, inbuiltfn_option, fn_option, type_option) {
-            (Some(_), Some(_), Some(_), Some(_)) => true,
-            _ => false,
+        let arg_option = self.get_arg_index_by_name(name);
+        match constant_option {
+            Some(index) => return Some(self.elements[index].clone()),
+            _ => (),
         }
+        match inbuiltfn_option {
+            Some(index) => return Some(self.elements[index].clone()),
+            _ => (),
+        }
+        match fn_option {
+            Some(index) => return Some(self.elements[index].clone()),
+            _ => (),
+        }
+        match type_option {
+            Some(index) => return Some(self.elements[index].clone()),
+            _ => (),
+        }
+        match arg_option {
+            Some(index) => return Some(self.elements[index].clone()),
+            _ => (),
+        }
+        None
+    }
+
+    pub fn get_arg_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Arg(n, _, _) => n == name,
+            _ => false,
+        })
     }
 
     pub fn get_inbuilt_type_index_by_name(self: &Self, name: &String) -> Option<usize> {
