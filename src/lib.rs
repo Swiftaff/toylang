@@ -599,24 +599,67 @@ impl Config {
     fn seol_if_last_in_line(self: &mut Self) {
         let is_last_token_in_this_line =
             self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1;
+        let mut is_end_of_return_statement_of_a_func_def: bool = false;
 
         if is_last_token_in_this_line {
-            // also if is the last return expression of a func_def
-            // then don't add the semicolon, just the EOL
-            let parent = self.ast.get_current_parent_ref_from_parents();
-            let parent_children_el = self.ast.elements[parent].clone();
-            let parent_children = parent_children_el.1;
-            if parent_children.len() > 0 {
-                let last_child_ref = parent_children[parent_children.len() - 1];
-                let current_el = self.ast.elements[last_child_ref].clone();
-                match current_el.0 {
-                    ElementInfo::FunctionDef(_, _, _, _) => {
-                        self.ast.append((ElementInfo::Eol, vec![]));
-                        return;
+            for el_index in (0..self.ast.elements.len()).rev() {
+                let el = self.ast.elements[el_index].clone();
+                match el.0 {
+                    ElementInfo::Indent => {
+                        // get start of current line
+
+                        if el_index != self.ast.elements.len() - 1 {
+                            let first_element_after_indent_ref = el_index + 1;
+                            let parent_of_first_el_option = self
+                                .ast
+                                .get_current_parent_element_from_element_children_search(
+                                    first_element_after_indent_ref,
+                                );
+                            match parent_of_first_el_option {
+                                Some((ElementInfo::FunctionDef(_, _, _, _), _)) => {
+                                    // confirm this line is a statement from a func def
+
+                                    let first_element_after_indent_el =
+                                        self.ast.elements[first_element_after_indent_ref].clone();
+                                    match first_element_after_indent_el.0 {
+                                        // confirm this statement is a return statement
+                                        // i.e. must be one of these types
+                                        ElementInfo::Int(_) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::Float(_) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::String(_) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::Constant(_, _) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::ConstantRef(_, _, _) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::InbuiltFunctionCall(_, _, _) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        ElementInfo::FunctionCall(_) => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
+                                        _ => (),
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
                     }
                     _ => (),
                 }
-                //dbg!(last_child_ref);
+            }
+
+            // if is the last return expression of a func_def
+            // then don't add the semicolon, just the EOL
+            if !is_end_of_return_statement_of_a_func_def {
+                //self.ast.append((ElementInfo::Eol, vec![]));
                 self.ast.append((ElementInfo::Seol, vec![]));
             }
         }
