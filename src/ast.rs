@@ -1,4 +1,4 @@
-use std::{fmt, sync::Arc};
+use std::fmt;
 
 #[derive(Clone)]
 pub struct Ast {
@@ -176,7 +176,6 @@ impl Ast {
             .chain(&root)
             .chain(&arithmetic_operators)
             .chain(&types)
-            //.chain(&arithmetic_operators_f64)
             .map(|x| x.clone())
             .collect();
         Ast {
@@ -384,20 +383,15 @@ impl Ast {
                     _ => (),
                 }
 
-                //let does_indent = self.elements[current_item].2;
                 if current_item < self.elements.len() && current_item_children.len() > 0 {
-                    //if does_indent {
                     // prepend with current item end tag indicator - so we know to close it at after the outdent
                     stack.splice(0..0, vec![current_item]);
                     // prepend with 0 (marker for outdent)
                     stack.splice(0..0, vec![0]);
-                    //}
                     // prepend with children
                     stack.splice(0..0, self.elements[current_item].1.clone());
                     // and increase indent
-                    //if does_indent {
                     self.indent();
-                    //}
                 }
             }
         }
@@ -517,15 +511,6 @@ impl Ast {
                     output
                 }
             }
-
-            /*
-            ElementInfo::Constant(name, returntype) => {
-                format!("let {}: {} = ", name, returntype).to_string()
-            }
-            ElementInfo::ConstantRef(name, typename, reference) => {
-                format!("let {}: {} = {}", name, typename, reference)
-            }
-            */
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
                 format!("fn {}() ->{{ /* stuff */ }}", name)
             }
@@ -537,7 +522,6 @@ impl Ast {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
                             let children = element.1.clone();
                             //dbg!(&argnames, &children);
-                            //if children.len() == argnames.len() {
                             let mut output = format;
                             //dbg!(&output);
                             for i in 0..argnames.len() {
@@ -559,10 +543,7 @@ impl Ast {
                                     _ => (),
                                 }
                             }
-
                             return output;
-                            //}
-                            //return "".to_string();
                         }
                         _ => return "".to_string(),
                     },
@@ -598,46 +579,20 @@ impl Ast {
         }
     }
 
-    /*
-    fn get_single_line_expression_from_children(self: &mut Self, children: Vec<usize>) -> String {
-        let mut expression = "".to_string();
-        for i in 0..children.len() {
-            let child_ref = children[i];
-            let child_element = self.elements[child_ref].clone();
-            let child_output = self.get_output_for_element(child_element);
-            expression = format!("{}{}", expression, child_output);
-        }
-        expression
-    }
-    */
-
     fn set_close_output_for_element(self: &mut Self, el_index: usize) {
-        //let next_tag_is_semicolon = false;
         if el_index < self.elements.len() {
             let element = self.elements[el_index].clone();
             let element_string = match element.0 {
                 ElementInfo::FunctionDef(_, _, _, _) => {
-                    //if self.elements.len() > el_index + 1 {
-                    //    let next_element = self.elements[el_index + 1].clone();
-                    //    dbg!(next_element);
-                    //    //next_tag_is_semicolon = true;
-                    //}
-
                     format!("\r\n{}}}\r\n", self.get_indent())
                 }
                 _ => "".to_string(),
             };
             self.set_output_append(&element_string);
         }
-        //next_tag_is_semicolon
     }
 
     fn set_output_append(self: &mut Self, append_string: &str) {
-        //let indent = if does_indent {
-        //    self.get_indent()
-        //} else {
-        //    "".to_string()
-        //};
         self.output = format!("{}{}", self.output, append_string);
     }
 
@@ -646,11 +601,6 @@ impl Ast {
     }
 
     fn get_indent(self: &Self) -> String {
-        //format!(
-        //    "{:?}{}",
-        //    self.parents,
-        //    " ".repeat(4 * (self.parents.len() - 1))
-        //)
         " ".repeat(4 * (self.parents.len() - 1))
     }
 

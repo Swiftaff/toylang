@@ -7,7 +7,6 @@ use std::error::Error;
 
 type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
-//type FullOrValidationError = bool;
 
 #[derive(Clone, Debug)]
 pub struct Config {
@@ -240,10 +239,8 @@ impl Config {
             sometype => {
                 self.indent_if_first_in_line();
                 self.ast.append(sometype);
-                //self.outdent_if_last_expected_child();
-                //self.seol_if_last_in_line();
                 Ok(())
-            } //_ => self.get_error2(0, 1, ERRORS.typeerror),
+            }
         }
     }
 
@@ -282,10 +279,6 @@ impl Config {
         self.indent_if_first_in_line();
         self.ast
             .append((ElementInfo::Int(current_token.clone()), vec![]));
-        //dbg!(
-        //    self.current_line_token,
-        //    self.lines_of_tokens[self.current_line].clone()
-        //);
         self.outdent_if_last_expected_child();
 
         //allow seol before outdenting
@@ -312,42 +305,54 @@ impl Config {
         let el_option = self.ast.get_existing_element_by_name(current_token);
         match el_option {
             Some((ElementInfo::Constant(_, returntype), _)) => {
-                //equals a reference to existing constant
-                //Some(_ref_of_constant) => {
-                //dbg!("1.ref");
-                //let typename = self.ast_get_type(&current_token);
-                self.indent_if_first_in_line();
-                self.ast.append((
-                    ElementInfo::ConstantRef(
-                        current_token.clone(),
-                        returntype, //typename,
-                        current_token.clone(),
-                    ),
-                    vec![],
-                ));
-                self.outdent_if_last_expected_child();
-                self.seol_if_last_in_line();
-                //}
-                //create a new constant
-                //_ => (),
-            }
+                self.create_constant_ref(current_token, returntype);
+            return Ok(())
+        },
             Some((ElementInfo::Arg(_, _, returntype), _)) => {
-                self.indent_if_first_in_line();
-                self.ast.append((
-                    ElementInfo::ConstantRef(
-                        current_token.clone(),
-                        returntype,
-                        current_token.clone(),
-                    ),
-                    vec![],
-                ));
-                self.outdent_if_last_expected_child();
-                self.seol_if_last_in_line();
-            }
-            _ => {
-                //create a new constant
-                //dbg!("2.const");
-                let typename = "Undefined".to_string();
+                self.create_constant_ref(current_token, returntype);
+                return Ok(())
+            },
+            //explicitly listing other types rather than using _ to not overlook new types in future
+            Some((ElementInfo::Root, _)) => (),
+            Some((ElementInfo::CommentSingleLine(_), _)) => (),
+            Some((ElementInfo::Int(_), _)) => (),
+            Some((ElementInfo::Float(_), _)) => (),
+            Some((ElementInfo::String(_), _)) => (),
+            Some((ElementInfo::ConstantRef(_,_ ,_ ), _)) => (),
+            Some((ElementInfo::Assignment(_), _)) => (),
+            Some((ElementInfo::InbuiltFunctionDef(_,_ ,_ ,_ ,_ ), _)) => (),
+            Some((ElementInfo::InbuiltFunctionCall(_,_ ,_ ), _)) => (),//TODO
+            Some((ElementInfo::FunctionDefWIP, _)) => (),
+            Some((ElementInfo::FunctionDef(_,_,_,_), _)) => (),
+            Some((ElementInfo::FunctionCall(_), _)) => (),//TODO
+            Some((ElementInfo::Type(_), _)) => (),
+            Some((ElementInfo::Eol, _)) => (),
+            Some((ElementInfo::Seol, _)) => (),
+            Some((ElementInfo::Indent, _)) => (),
+            Some((ElementInfo::Unused, _)) => (),
+            None => (),
+        }
+        
+        self.create_new_constant(current_token);
+        Ok(())
+    }
+
+    fn create_constant_ref(self: &mut Self, current_token: &String, returntype: String) {
+        self.indent_if_first_in_line();
+        self.ast.append((
+            ElementInfo::ConstantRef(
+                current_token.clone(),
+                returntype, //typename,
+                current_token.clone(),
+            ),
+            vec![],
+        ));
+        self.outdent_if_last_expected_child();
+        self.seol_if_last_in_line();
+    }
+
+    fn create_new_constant(self: &mut Self, current_token: &String){
+        let typename = "Undefined".to_string();
                 self.indent_if_first_in_line();
                 //TODO change this to inbuiltfunction?
 
@@ -376,10 +381,6 @@ impl Config {
                 self.outdent_if_last_expected_child();
                 //dbg!("constant 2", self.ast.parents.clone());
                 self.seol_if_last_in_line();
-            }
-        }
-
-        Ok(())
     }
 
     fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
@@ -565,7 +566,6 @@ impl Config {
                                         self.ast.outdent();
                                         self.ast.outdent();
                                         self.ast.indent_this(func_def_ref);
-                                        //self.ast.indent_this(assignment_ref);
                                         //dbg!(self.ast.parents.clone());
                                     }
                                     _ => (),
@@ -589,10 +589,7 @@ impl Config {
         //or if first part of the expression in a single line function (after the colon)
         //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
         if self.current_line_token == 0 {
-            //for _n in 0..self.ast.parents.len() - 1 {
-            //    dbg!("self.ast.parents", self.ast.parents.clone());
             self.ast.append((ElementInfo::Indent, vec![]));
-            //}
         }
     }
 
@@ -818,130 +815,6 @@ impl Config {
         }
     }
 
-    /*
-    fn check_one_or_more_succeeds(
-        self: &mut Self,
-        tokens: Tokens,
-    ) -> Result<Tokens, FullOrValidationError> {
-        match self.check_one_succeeds("ast_set_comment_single_line", &tokens, None, true) {
-            Ok(_) => return Ok(tokens),
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        match self.check_one_succeeds("ast_set_int", &tokens, None, true) {
-            Ok(_) => {
-                self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(tokens);
-            }
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        match self.check_one_succeeds("ast_set_float", &tokens, None, true) {
-            Ok(_) => {
-                self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(tokens);
-            }
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        match self.check_one_succeeds("ast_set_string", &tokens, None, true) {
-            Ok(_) => {
-                self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(tokens);
-            }
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        match self.check_one_succeeds("ast_set_constant", &tokens, None, true) {
-            Ok(_) => {
-                self.ast.append((ElementInfo::Seol, vec![]));
-                return Ok(tokens);
-            }
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, None, true) {
-            Ok(_) => return Ok(tokens),
-            Err(false) => return Err(false),
-            Err(true) => (),
-        }
-        self.get_error_ok(0, 1, ERRORS.no_valid_expression, true)
-    }
-
-    fn check_one_or_more_succeeds_for_returntypes(
-        self: &mut Self,
-        tokens: Tokens,
-        returntype: String,
-    ) -> Result<Tokens, ()> {
-        //dbg!(&returntype);
-        if returntype.contains(&"i64".to_string()) {
-            //dbg!("i64");
-            match self.check_one_succeeds("ast_set_int", &tokens, None, false) {
-                Ok(remaining_tokens) => {
-                    //dbg!("ok i64");
-                    return Ok(remaining_tokens);
-                }
-                _ => (),
-            }
-        }
-        if returntype.contains(&"f64".to_string()) {
-            match self.check_one_succeeds("ast_set_float", &tokens, None, false) {
-                Ok(remaining_tokens) => return Ok(remaining_tokens),
-                _ => (),
-            }
-        }
-        if returntype.contains(&"String".to_string()) {
-            match self.check_one_succeeds("ast_set_string", &tokens, None, false) {
-                Ok(remaining_tokens) => return Ok(remaining_tokens),
-                _ => (),
-            }
-        }
-        match self.check_one_succeeds("ast_set_inbuilt_function", &tokens, Some(returntype), false)
-        {
-            Ok(remaining_tokens) => return Ok(remaining_tokens),
-            _ => (),
-        }
-        self.get_error(0, 1, ERRORS.no_valid_expression)
-    }
-
-    fn check_one_succeeds(
-        self: &mut Self,
-        function_name: &str,
-        tokens: &Tokens,
-        returntype: Option<String>,
-        singleline: bool,
-    ) -> Result<Tokens, FullOrValidationError> {
-        let mut _succeeded = false;
-        let mut clone = self.clone();
-        let result = match function_name {
-            "ast_set_comment_single_line" => clone.ast_set_comment_single_line(tokens),
-            "ast_set_int" => clone.ast_set_int(tokens, singleline),
-            "ast_set_float" => clone.ast_set_float(tokens, singleline),
-            "ast_set_string" => clone.ast_set_string(tokens, singleline),
-            "ast_set_constant" => clone.ast_set_constant(tokens),
-            "ast_set_inbuilt_function" => clone.ast_set_inbuilt_function(tokens, returntype),
-            _ => {
-                return Ok(tokens.clone());
-            }
-        };
-        dbg!(&clone.error_stack);
-        match result {
-            Ok(vec_string) => {
-                self.set_all_from_clone(clone);
-                Ok(vec_string)
-            }
-            Err(false) => {
-                self.set_all_from_clone(clone);
-                Err(false)
-            }
-            Err(true) => {
-                //self.set_all_from_clone(clone);
-                Err(true)
-            }
-        }
-    }
-    */
-
     fn set_lines_of_chars(self: &mut Self) {
         let mut index_from = 0;
         let mut index_to = 0;
@@ -979,7 +852,6 @@ impl Config {
             let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
 
             let mut inside_quotes = false;
-            //let mut is_colon: bool = false;
             let mut line_of_tokens: Tokens = vec![];
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
@@ -989,12 +861,9 @@ impl Config {
                     count_quotes = count_quotes + 1;
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-                //is_colon = c == ':';
-                //dbg!(c, is_colon);
                 if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
                     || eof
                     || count_quotes == 2
-                //|| is_colon
                 {
                     let token_chars = char_vec
                         [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
@@ -1013,442 +882,6 @@ impl Config {
         }
         //dbg!(self.lines_of_tokens.clone());
     }
-
-    /*
-    fn set_all_from_clone(self: &mut Self, to_clone: Config) -> () {
-        // wokraround - can't just do 'self = clone.clone();' due to &mut derferencing ??
-        self.file = to_clone.file;
-        self.lines_of_chars = to_clone.lines_of_chars;
-        self.lines_of_tokens = to_clone.lines_of_tokens;
-        self.output = to_clone.output;
-        self.current_line = to_clone.current_line;
-        self.error_stack = to_clone.error_stack;
-        self.ast = to_clone.ast;
-    }
-
-    fn ast_set_comment_single_line(
-        self: &mut Self,
-        tokens: &Tokens,
-    ) -> Result<Tokens, FullOrValidationError> {
-        let first_token_chars = tokens[0].chars().collect::<Vec<char>>();
-        if first_token_chars.len() > 1 && first_token_chars[0] == '/' && first_token_chars[1] == '/'
-        {
-            let val = concatenate_vec_strings(tokens);
-            self.ast.append((ElementInfo::Indent, vec![]));
-            self.ast
-                .append((ElementInfo::CommentSingleLine(val), vec![]));
-            self.ast.append((ElementInfo::Eol, vec![]));
-            Ok(vec![])
-            //let validation_error = None;
-            //Ok(validation_error)
-        } else {
-            self.get_error_ok(0, 1, ERRORS.comment_single_line, true)
-            //self.get_error(0, 1, ERRORS.no_valid_comment_single_line)
-        }
-    }
-
-    fn ast_set_int(
-        self: &mut Self,
-        tokens: &Tokens,
-        singleline: bool,
-    ) -> Result<Tokens, FullOrValidationError> {
-        //dbg!("set_int");
-        if tokens.len() == 0 || tokens[0].len() == 0 {
-            dbg!(is_integer(&tokens[0]));
-            return self.get_error_ok(0, 1, ERRORS.int, true);
-        }
-        let first_token_vec: &Vec<char> = &tokens[0].chars().collect();
-        let first_char = first_token_vec[0];
-        dbg!(
-            "1",
-            &first_char,
-            is_integer(&first_char.to_string()),
-            is_integer(&tokens[0])
-        );
-        if is_integer(&first_char.to_string()) && !is_integer(&tokens[0]) {
-            return self.get_error_ok(
-                0,
-                1,
-                "not a valid int: starts with a digit, but contains non-digits",
-                false,
-            );
-        }
-        if !is_integer(&tokens[0]) {
-            return self.get_error_ok(0, 1, ERRORS.int, true);
-        }
-        let val = tokens[0].clone();
-        if singleline {
-            self.ast.append((ElementInfo::Indent, vec![]));
-        }
-        let _x = self.ast.append((ElementInfo::Int(val), vec![]));
-        //dbg!(self.ast.elements[x].clone());
-        if singleline {
-            self.ast.append((ElementInfo::Seol, vec![]));
-        }
-        return Ok(tokens_remove_head(tokens.clone()));
-    }
-
-    fn ast_set_float(
-        self: &mut Self,
-        tokens: &Tokens,
-        singleline: bool,
-    ) -> Result<Tokens, FullOrValidationError> {
-        if tokens.len() > 0 && is_float(&tokens[0].to_string()) {
-            let val = tokens[0].clone();
-            if singleline {
-                self.ast.append((ElementInfo::Indent, vec![]));
-            }
-            self.ast.append((ElementInfo::Float(val), vec![]));
-            if singleline {
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
-            Ok(tokens_remove_head(tokens.clone()))
-            //let validation_error = None;
-            //Ok(validation_error)
-        } else {
-            self.get_error_ok(0, 1, ERRORS.float, true)
-            //self.get_error(0, 1, ERRORS.no_valid_float)
-        }
-    }
-
-    fn ast_set_string(
-        self: &mut Self,
-        tokens: &Tokens,
-        singleline: bool,
-    ) -> Result<Tokens, FullOrValidationError> {
-        if tokens.len() > 0 && is_string(&tokens[0].to_string()) {
-            let val = tokens[0].clone();
-            if singleline {
-                self.ast.append((ElementInfo::Indent, vec![]));
-            }
-            self.ast.append((ElementInfo::String(val), vec![]));
-            if singleline {
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
-            Ok(tokens_remove_head(tokens.clone()))
-            //let validation_error = None;
-            //Ok(validation_error)
-        } else {
-            self.get_error_ok(0, 1, ERRORS.string, true)
-            //self.get_error(0, 1, ERRORS.no_valid_string)
-        }
-    }
-
-    fn ast_set_constant(self: &mut Self, tokens: &Tokens) -> Result<Tokens, FullOrValidationError> {
-        if tokens.len() > 2 && tokens[0] == "=".to_string() {
-            //dbg!("ast_set_constant");
-            let name = tokens[1].clone();
-            let typename = self.ast_get_type(&tokens[2].clone());
-            let val = tokens[2].clone();
-
-            //let validation_error = None;
-            match self.ast.get_constant_index_by_name(&val) {
-                //equals a reference to existing constant
-                Some(_ref_of_constant) => {
-                    //dbg!("1");
-                    self.ast.append((ElementInfo::Indent, vec![]));
-                    self.ast
-                        .append((ElementInfo::ConstantRef(name, typename, val), vec![]));
-                    let mut ret_tokens = tokens_remove_head(tokens.clone());
-                    ret_tokens = tokens_remove_head(ret_tokens);
-                    Ok(tokens_remove_head(ret_tokens))
-                    //Ok(validation_error)
-                }
-                //create a new constant, with no value assigned yet
-                _ => {
-                    //dbg!("2");
-                    self.ast.append((ElementInfo::Indent, vec![]));
-                    let ref_of_value_option = self.ast_set_ref_by_type(&val);
-                    match ref_of_value_option {
-                        Some(ref_of_value) => {
-                            //dbg!("3");
-
-                            let ref_of_constant = self.ast.append((
-                                ElementInfo::Constant(name, typename.clone()),
-                                vec![ref_of_value],
-                            ));
-                            //self.ast.parents = vec_remove_tail(self.ast.parents.clone());
-                            self.ast.append((ElementInfo::Seol, vec![]));
-
-                            //remove 3 tokens
-                            // "=", name of constant, first part of value
-                            // e.g. remove "= const_name +" from "= const_name + 2 3"
-                            // leaving just 2 3 as the args for the function (if it was a function)
-                            // or nothing if "+" was instead just an int (then no more tokens left)
-                            let mut remaining_tokens = tokens_remove_head(tokens.clone());
-                            remaining_tokens = tokens_remove_head(remaining_tokens);
-                            remaining_tokens = tokens_remove_head(remaining_tokens);
-
-                            let element_from_ref = self.ast.elements[ref_of_value].clone();
-                            //dbg!(element_from_ref.clone());
-                            match element_from_ref.0 {
-                                ElementInfo::InbuiltFunctionCall(name, _) => {
-                                    let function_def_for_this_call_option =
-                                        self.ast.get_inbuilt_function_by_name(&name);
-                                    //dbg!(function_def_for_this_call_option.clone());
-                                    //dbg!(&self.ast.parents);
-                                    match function_def_for_this_call_option {
-                                        Some(ElementInfo::InbuiltFunctionDef(
-                                            _,
-                                            _,
-                                            arg_types,
-                                            return_type,
-                                            _,
-                                        )) => {
-                                            //penguin
-
-                                            self.ast.parents.push(ref_of_value); //[self.parents.len() - 1];
-
-                                            for _argtype in arg_types {
-                                                //dbg!(argtype);
-                                                //dbg!(&self.ast.parents);
-                                                match self
-                                                    .check_one_or_more_succeeds_for_returntypes(
-                                                        remaining_tokens,
-                                                        return_type.clone(),
-                                                    ) {
-                                                    Ok(returned_tokens) => {
-                                                        //dbg!("return_type", return_type.clone());
-                                                        remaining_tokens = returned_tokens;
-
-                                                        // TODO also fix the type if it happens to be optional, like i64/f64
-
-                                                        //ref_of_constant = constant
-                                                        //ref_of_value = functionCall
-
-                                                        //get type from first child of function
-                                                        if return_type.contains("|") {
-                                                            let el_of_fn = self.ast.elements
-                                                                [ref_of_value]
-                                                                .clone();
-                                                            let ref_of_first_child = el_of_fn.1[0];
-                                                            let el_of_first_child = self
-                                                                .ast
-                                                                .elements[ref_of_first_child]
-                                                                .clone();
-                                                            let first_child_type =
-                                                                self.ast.get_elementinfo_type(
-                                                                    el_of_first_child.0,
-                                                                );
-                                                            let previously_saved_function =
-                                                                self.ast.elements[ref_of_value]
-                                                                    .clone();
-                                                            match previously_saved_function {
-                                                                (
-                                                                    ElementInfo::Constant(
-                                                                        fn_name,
-                                                                        _,
-                                                                    ),
-                                                                    fn_children,
-                                                                ) => {
-                                                                    let new_function_with_corrected_type = (
-                                                                        ElementInfo::InbuiltFunctionCall(
-                                                                            fn_name,
-                                                                            first_child_type
-                                                                                .clone(),
-                                                                        ),
-                                                                        fn_children,
-                                                                    );
-                                                                    self.ast.elements[ref_of_value] =
-                                                                            new_function_with_corrected_type.clone();
-                                                                    //dbg!("b", new_function_with_corrected_type);
-                                                                    ()
-                                                                }
-                                                                _ => {
-                                                                    //dbg!("c");
-                                                                    ()
-                                                                }
-                                                            }
-
-                                                            //then fix constant
-
-                                                            let previously_saved_constant =
-                                                                self.ast.elements[ref_of_constant]
-                                                                    .clone();
-                                                            match previously_saved_constant {
-                                                                (
-                                                                    ElementInfo::Constant(
-                                                                        constant_name,
-                                                                        _,
-                                                                    ),
-                                                                    constant_children,
-                                                                ) => {
-                                                                    let new_constant_with_corrected_type = (
-                                                                        ElementInfo::Constant(
-                                                                            constant_name,
-                                                                            first_child_type
-                                                                                .clone(),
-                                                                        ),
-                                                                        constant_children,
-                                                                    );
-                                                                    self.ast.elements[ref_of_constant] =
-                                                                    new_constant_with_corrected_type.clone();
-                                                                    //dbg!("b", new_constant_with_corrected_type);
-                                                                    ()
-                                                                }
-                                                                _ => {
-                                                                    //dbg!("c");
-                                                                    ()
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                    Err(_e) => {
-                                                        //return self.get_error(
-                                                        //    0,
-                                                        //    1,
-                                                        //    ERRORS.no_valid_assignment,
-                                                        //)
-                                                        return self.get_error_ok(
-                                                            0,
-                                                            1,
-                                                            ERRORS.no_valid_assignment,
-                                                            true,
-                                                        );
-                                                    }
-                                                }
-                                            }
-                                            //self.ast.parents =
-                                            //    vec_remove_head(self.ast.parents.clone());
-                                            //self.ast.append((ElementInfo::Seol, vec![]));
-                                        }
-                                        _ => (),
-                                    }
-                                    ////dbg!(&self.ast);
-                                }
-                                _ => (),
-                            }
-
-                            // also fix the type if it happens to be optional, like i64/f64
-
-                            // then deal with recursive nested arguments
-                            // while ret_tokens.len() > 0 {}
-
-                            Ok(remaining_tokens)
-                            //Ok(validation_error
-                        }
-                        None => {
-                            //dbg!("4");
-                            return self.get_error_ok(0, 1, ERRORS.no_valid_assignment, true);
-                            //return self.get_error(0, 1, ERRORS.no_valid_assignment);
-                        }
-                    }
-                }
-            }
-        } else {
-            return self.get_error_ok(0, 1, ERRORS.no_valid_assignment, true);
-            //return self.get_error(0, 1, ERRORS.no_valid_assignment);
-        }
-    }
-
-    fn ast_set_ref_by_type(self: &mut Self, val: &String) -> Option<usize> {
-        match self.ast_get_enumtype_of_elementinfo(&val) {
-            None => None,
-            Some(ElementInfo::InbuiltFunctionDef(
-                name,
-                _argnames,
-                _argtypes,
-                return_type,
-                _format,
-            )) => {
-                //dbg!(return_type.clone());
-                let elinfo = ElementInfo::InbuiltFunctionCall(name, return_type);
-                let child_refs = vec![];
-                Some(self.ast.append_as_ref((elinfo, child_refs)))
-            }
-            Some(elinfo) => Some(self.ast.append_as_ref((elinfo, vec![]))),
-        }
-    }
-
-    fn ast_set_inbuilt_function(
-        self: &mut Self,
-        tokens: &Tokens,
-        required_return_type_option: Option<String>,
-    ) -> Result<Tokens, FullOrValidationError> {
-        if tokens.len() > 0 {
-            //dbg!(tokens);
-            let inbuilt_function_option = match required_return_type_option {
-                Some(required_return_type) => self
-                    .ast
-                    .get_inbuilt_function_by_name_and_returntype(&tokens[0], &required_return_type),
-                None => self.ast.get_inbuilt_function_by_name(&tokens[0]),
-            };
-            match inbuilt_function_option {
-                Some(ElementInfo::InbuiltFunctionDef(
-                    _name,
-                    argnames,
-                    argtypes,
-                    returntype,
-                    format,
-                )) => {
-                    if argnames.len() != tokens.len() - 1 {
-                        return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
-                        //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-                    }
-
-                    //dbg!("yes", &name, &argnames, &argtypes, &returntype);
-                    let mut types_match = true;
-                    for i in 0..argtypes.len() {
-                        let argtype = argtypes[i].clone();
-                        let tokentype = self.ast_get_type(&tokens[i + 1]);
-
-                        if argtype.contains("|") {
-                            if !argtype.contains(&tokentype) {
-                                types_match = false;
-                            }
-                        } else if argtype != tokentype {
-                            types_match = false;
-                        }
-                        /*dbg!(
-                            &argtype,
-                            &tokens[i + 1],
-                            &tokentype,
-                            argtype.contains("|"),
-                            argtype.contains(&tokentype),
-                            types_match
-                        );*/
-                    }
-                    if !types_match {
-                        return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
-                        //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-                    }
-
-                    let mut output = format;
-                    for i in 0..argnames.len() {
-                        let argname = argnames[i].clone();
-                        output = output.replace(&argname, &tokens[i + 1]);
-                    }
-
-                    let mut final_returntype = returntype.clone();
-                    if returntype.contains("|") {
-                        final_returntype = argtypes[0].clone();
-                    }
-
-                    self.ast.append((ElementInfo::Indent, vec![]));
-                    //dbg!("###########################");
-                    self.ast.append((
-                        ElementInfo::InbuiltFunctionCall(output, final_returntype),
-                        vec![],
-                    ));
-                    //self.ast.parents = vec_remove_tail(self.ast.parents.clone());
-                    //self.ast.append((ElementInfo::Seol, vec![]));
-
-                    //let validation_error = None;
-                    let mut ret_tokens = tokens_remove_head(tokens.clone());
-                    ret_tokens = tokens_remove_head(ret_tokens);
-                    return Ok(tokens_remove_head(ret_tokens));
-                    //Ok(validation_error
-                }
-                _ => {}
-            }
-            return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
-            //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-        } else {
-            return self.get_error_ok(0, 1, ERRORS.no_valid_integer_arithmetic, true);
-            //return self.get_error(0, 1, ERRORS.no_valid_integer_arithmetic);
-        }
-    }
-    */
 
     fn ast_get_type(self: &Self, text: &String) -> String {
         //dbg!("ast_get_type");
@@ -1481,100 +914,6 @@ impl Config {
         return_type
     }
 
-    /*
-    fn ast_get_enumtype_of_elementinfo(self: &Self, text: &String) -> Option<ElementInfo> {
-        //dbg!("ast_get_enum_of_element");
-        //note: these don't have real values - just indicates correct Enum to use
-        let mut return_type = None;
-        if is_integer(text) {
-            return_type = Some(ElementInfo::Int(text.clone()));
-        }
-        if is_float(text) {
-            return_type = Some(ElementInfo::Float(text.clone()));
-        }
-        if is_string(text) {
-            return_type = Some(ElementInfo::String(text.clone()));
-        }
-        match self.ast.get_inbuilt_function_by_name(text) {
-            Some(ElementInfo::InbuiltFunctionDef(
-                name,
-                argnames,
-                argtypes,
-                return_type,
-                format,
-            )) => {
-                //dbg!("ast_get_type - 1", &return_type);
-                return Some(ElementInfo::InbuiltFunctionDef(
-                    name,
-                    argnames,
-                    argtypes,
-                    return_type,
-                    format,
-                ));
-            }
-            _ => {
-                //dbg!("ast_get_type - 2");
-                ()
-            }
-        }
-        match self.ast.get_constant_by_name(text) {
-            Some(ElementInfo::Constant(name, typename)) => {
-                return Some(ElementInfo::Constant(name, typename))
-            }
-            Some(ElementInfo::ConstantRef(name, typename, refname)) => {
-                return Some(ElementInfo::ConstantRef(name, typename, refname))
-            }
-            _ => (),
-        }
-        // allow for Function Return Type
-        return_type
-    }
-
-    fn get_error(
-        self: &mut Self,
-        arrow_indent: usize,
-        arrow_len: usize,
-        error: &str,
-    ) -> Result<Tokens, ()> {
-        let e = format!(
-            "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
-            self.file.filename,
-            self.current_line + 1,
-            self.lines_of_chars[self.current_line]
-                .iter()
-                .cloned()
-                .collect::<String>(),
-            " ".repeat(arrow_indent),
-            "^".repeat(arrow_len),
-            error,
-        );
-        self.error_stack.push(e);
-        Err(())
-    }
-
-    fn get_error_ok(
-        self: &mut Self,
-        arrow_indent: usize,
-        arrow_len: usize,
-        error: &str,
-        is_real_error: bool,
-    ) -> Result<Tokens, FullOrValidationError> {
-        let e = format!(
-            "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
-            self.file.filename,
-            self.current_line + 1,
-            self.lines_of_chars[self.current_line]
-                .iter()
-                .cloned()
-                .collect::<String>(),
-            " ".repeat(arrow_indent),
-            "^".repeat(arrow_len),
-            error,
-        );
-        self.error_stack.push(e);
-        Err(is_real_error)
-    }
-    */
     fn get_error2(
         self: &mut Self,
         mut arrow_indent: usize,
@@ -1608,16 +947,6 @@ impl Config {
     }
 }
 
-/*
-fn tokens_remove_head(tokens: Tokens) -> Tokens {
-    if tokens.len() == 1 {
-        vec![]
-    } else {
-        tokens[1..].to_vec()
-    }
-}
-*/
-
 fn _is_type(_text: &String) -> bool {
     true
 }
@@ -1637,10 +966,7 @@ fn is_integer(text: &String) -> bool {
     if !all_chars_are_numeric && !is_negative_all_other_chars_are_numeric {
         is_valid = false;
     }
-    //println!(
-    //    "{}",
-    //    !all_chars_are_numeric || !is_negative_all_other_chars_are_numeric
-    //);
+
     match text.parse::<i64>() {
         Ok(_) => (),
         Err(_) => is_valid = false,
@@ -1831,7 +1157,6 @@ mod tests {
     #[test]
     fn test_run() {
         let test_case_passes = [
-            /*
             //empty file
             ["", "fn main() {\r\n}\r\n"],
             //comment single line
@@ -1921,7 +1246,6 @@ mod tests {
                 "= a + 1 * 3 2",
                 "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
-
             //TODO handle reserved names of i64 by adding to inbuiltfndefs
             
             [
@@ -1935,12 +1259,13 @@ mod tests {
             [
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
-            ],*/
+            ],
+            /*
             [
                 "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n= x + arg1 arg2\r\n+ x arg3",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
             ],
-            /*
+
             [
                 // interesting bug
                 "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n + arg1 + arg2 arg3",
@@ -1949,7 +1274,8 @@ mod tests {
             [
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg2 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
-            ]*/
+            ]
+            */
         ];
 
         for test in test_case_passes {
@@ -1965,7 +1291,6 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-
         /*
         let test_case_errors = [
             //empty file
