@@ -34,7 +34,7 @@ struct Errors {
     //no_valid_assignment: &'static str,
     //no_valid_integer_arithmetic: &'static str,
     //no_valid_expression: &'static str,
-    //constants_are_immutable: &'static str
+    constants_are_immutable: &'static str
 }
 
 const ERRORS: Errors = Errors {
@@ -51,7 +51,7 @@ const ERRORS: Errors = Errors {
     //no_valid_assignment: "No valid assignment found",
     //no_valid_integer_arithmetic: "No valid integer arithmetic found",
     //no_valid_expression: "No valid expression was found",
-    //constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
+    constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
 impl Config {
@@ -302,35 +302,56 @@ impl Config {
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
         //dbg!(current_token);
         let el_option = self.ast.get_existing_element_by_name(current_token);
-        match el_option {
-            Some((ElementInfo::Constant(_, returntype), _)) => {
-                self.create_constant_ref(current_token, returntype);
-                return Ok(());
-            }
-            Some((ElementInfo::Arg(_, _, returntype), _)) => {
-                self.create_constant_ref(current_token, returntype);
-                return Ok(());
-            }
-            // explicitly listing other types rather than using _ to not overlook new types in future
-            Some((ElementInfo::Root, _)) => (),
-            Some((ElementInfo::CommentSingleLine(_), _)) => (),
-            Some((ElementInfo::Int(_), _)) => (),
-            Some((ElementInfo::Float(_), _)) => (),
-            Some((ElementInfo::String(_), _)) => (),
-            Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
-            Some((ElementInfo::Assignment(_), _)) => (),
-            Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
-            Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (), //TODO
-            Some((ElementInfo::FunctionDefWIP, _)) => (),
-            Some((ElementInfo::FunctionDef(_, _, _, _), _)) => (),
-            Some((ElementInfo::FunctionCall(_, _), _)) => (), //TODO
-            Some((ElementInfo::Type(_), _)) => (),
-            Some((ElementInfo::Eol, _)) => (),
-            Some((ElementInfo::Seol, _)) => (),
-            Some((ElementInfo::Indent, _)) => (),
-            Some((ElementInfo::Unused, _)) => (),
-            None => (),
-        }
+        match el_option.clone() {
+            Some(el) =>{
+
+                //check if constant already exists
+                let parent = self.ast.get_current_parent_element_from_parents();
+                match parent.0 {
+                    ElementInfo::Assignment(_) =>{
+                        let parent_assignment_has_no_children = parent.1.len() == 0;
+                        if parent_assignment_has_no_children {
+                            // then this constant is the first child of the assignment
+                            // so it is the name of the constant (and not the value if it were the second child),
+                            // and since constants are immutable it can't have the same name as a pre-existing constant
+                            // so it is invalid!
+                            return self.get_error2(0, 1, ERRORS.constants_are_immutable)
+                        }
+                    },
+                    _ =>()
+                }
+                match el_option {
+                    Some((ElementInfo::Constant(_, returntype), _)) => {
+                        self.create_constant_ref(current_token, returntype);
+                        return Ok(());
+                    }
+                    Some((ElementInfo::Arg(_, _, returntype), _)) => {
+                        self.create_constant_ref(current_token, returntype);
+                        return Ok(());
+                    }
+                    // explicitly listing other types rather than using _ to not overlook new types in future
+                    Some((ElementInfo::Root, _)) => (),
+                    Some((ElementInfo::CommentSingleLine(_), _)) => (),
+                    Some((ElementInfo::Int(_), _)) => (),
+                    Some((ElementInfo::Float(_), _)) => (),
+                    Some((ElementInfo::String(_), _)) => (),
+                    Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
+                    Some((ElementInfo::Assignment(_), _)) => (),
+                    Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
+                    Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (), //TODO
+                    Some((ElementInfo::FunctionDefWIP, _)) => (),
+                    Some((ElementInfo::FunctionDef(_, _, _, _), _)) => (),
+                    Some((ElementInfo::FunctionCall(_, _), _)) => (), //TODO
+                    Some((ElementInfo::Type(_), _)) => (),
+                    Some((ElementInfo::Eol, _)) => (),
+                    Some((ElementInfo::Seol, _)) => (),
+                    Some((ElementInfo::Indent, _)) => (),
+                    Some((ElementInfo::Unused, _)) => (),
+                    None => (),
+                }
+            },
+            None=>()
+        }      
 
         self.create_new_constant_or_arg(current_token);
         Ok(())
@@ -1248,6 +1269,11 @@ mod tests {
                 "= a + 1 2",
                 "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
             ],
+            //assignment func call with references
+            [
+                "= a + 1 2\r\n= b - 3 a",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
+            ],
             //nested function calls
             [
                 "= a - + 1 2 3",
@@ -1351,6 +1377,8 @@ mod tests {
             //functionDefinitions
             //["= a \\ :", ERRORS.funcdef_args],
             //["= a \\ i64 monkey i64  :", ERRORS.funcdef_argtypes_first],
+            //constants are immutable
+            ["= a 123\r\n= a 234", ERRORS.constants_are_immutable],
         ];
 
         for test in test_case_errors {
