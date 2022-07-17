@@ -157,10 +157,10 @@ impl Ast {
             (
                 ElementInfo::InbuiltFunctionDef(
                     prim.to_string(),
-                    vec!["arg1".to_string(), "arg2".to_string()],
+                    vec!["arg~1".to_string(), "arg~2".to_string()],
                     vec!["i64|f64".to_string(), "i64|f64".to_string()],
                     "i64|f64".to_string(),
-                    format!("arg1 {} arg2", prim).to_string(),
+                    format!("arg~1 {} arg~2", prim).to_string(),
                 ),
                 vec![],
             )
@@ -598,12 +598,12 @@ impl Ast {
                             let mut output = format;
                             //dbg!(&output);
                             for i in 0..argnames.len() {
-                                let arg_var_num = format!("arg{}", i + 1);
+                                let arg_var_num = format!("arg~{}", i + 1);
                                 let arg_value_el_ref = children[i];
                                 let arg_output =
                                     self.get_output_for_element_index(arg_value_el_ref, true);
-                                //dbg!(&arg_var_num, arg_value_el_ref, arg_value_el, &arg_output);
                                 output = output.replace(&arg_var_num, &arg_output);
+                                //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,output.clone());
                             }
                             if children.len() > 0 && children.len() == (argnames.len() + 1) {
                                 let last_child =
