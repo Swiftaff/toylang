@@ -118,14 +118,14 @@ fn main() {
 ```
 // single line functions
 // one i64 argument, returns i64
-= function_name : i64 i64 \ arg1 => + 123 arg1
-//                ^         ^       ^_return expression
-//                 \         \_ argument names
+= function_name \ i64 i64 arg1 : + 123 arg1
+//                ^       ^      ^_return expression
+//                 \       \_ argument names
 //                  \_argument types, return type last
 
 // multi line functions
 // two i64 arguments, returns i64
-= multiline_fn_name : i64 i64 i64 \ arg1 arg2 =>
+= multiline_fn_name \ i64 i64 i64 arg1 arg2 :
 = x + arg1 123
 = y - x arg2
 = z * y 10
