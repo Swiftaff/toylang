@@ -61,8 +61,8 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::ConstantRef(name, returntype, refname) => {
                 format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
             }
-            ElementInfo::Assignment(returntype) => {
-                format!("Assignment: ({})", returntype)
+            ElementInfo::Assignment => {
+                format!("Assignment")
             }
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
                 format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
@@ -99,9 +99,9 @@ pub enum ElementInfo {
     Float(Value),                           //no children
     String(Value),                          //no children
     Arg(Name, Scope, ReturnType),           //no children
-    Constant(Name, ReturnType),             //no children, value is from assignment 2nd child
+    Constant(Name, ReturnType),             //1 child, value
     ConstantRef(Name, ReturnType, RefName), //no children
-    Assignment(ReturnType),                 //2 children. constant, value
+    Assignment,                             //1 child, constant
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //no children
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
     FunctionDefWIP,                         //no children
@@ -261,89 +261,138 @@ impl Ast {
         let depths_flattened = self.get_depths_flattened(&depths);
         //dbg!(depths_flattened.clone());
         for el_index in depths_flattened {
-            let el = self.elements[el_index].clone();
-            let el_info = el.clone().0;
-
-            let el_type = self.get_elementinfo_type(el_info.clone());
-            if el_type == "Undefined".to_string() {
-                match el_info {
-                    ElementInfo::Arg(name, scope, _) => {
-                        let infered_type = self.get_infered_type_of_arg_element(el_index);
-                        self.elements[el_index].0 = ElementInfo::Arg(name, scope, infered_type)
-                    }
-                    ElementInfo::Constant(name, _) => {
-                        let infered_type = self.get_infered_type_of_constant_element(el_index);
-                        self.elements[el_index].0 = ElementInfo::Constant(name, infered_type);
-                    }
-                    ElementInfo::ConstantRef(name, _, refname) => {
-                        let infered_type =
-                            self.get_infered_type_of_constantref_element(refname.clone());
-                        self.elements[el_index].0 =
-                            ElementInfo::ConstantRef(name, infered_type, refname);
-                    }
-                    ElementInfo::Assignment(_) => {
-                        let infered_type = self.get_infered_type_of_assignment_element(el);
-                        self.elements[el_index].0 = ElementInfo::Assignment(infered_type);
-                    }
-                    ElementInfo::InbuiltFunctionCall(name, fndef_index, _) => {
-                        let infered_type =
-                            self.get_infered_type_of_inbuiltfunctioncall_element(el, fndef_index);
-                        self.elements[el_index].0 =
-                            ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
-                    }
-                    ElementInfo::FunctionCall(name, _) => {
-                        let infered_type =
-                            self.get_infered_type_of_functioncall_element(name.clone());
-                        self.elements[el_index].0 = ElementInfo::FunctionCall(name, infered_type);
-                    }
-                    // explicitly listing other types rather than using _ to not overlook new types in future
-                    ElementInfo::Root => (),
-                    ElementInfo::CommentSingleLine(_) => (),
-                    ElementInfo::Int(_) => (),
-                    ElementInfo::Float(_) => (),
-                    ElementInfo::String(_) => (),
-                    ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-                    ElementInfo::FunctionDefWIP => (),
-                    ElementInfo::FunctionDef(_, _, _, _) => (),
-                    ElementInfo::Type(_) => (),
-                    ElementInfo::Eol => (),
-                    ElementInfo::Seol => (),
-                    ElementInfo::Indent => (),
-                    ElementInfo::Unused => (),
-                }
-                //dbg!(el_index, self.elements[el_index].clone().0);
-            }
+            self.elements[el_index].0 = self.get_updated_elementinfo_with_infered_type(el_index);
         }
         //dbg!(self.elements.clone());
     }
 
-    fn get_infered_type_of_arg_element(self: &mut Self, el_index: usize) -> String {
-        let mut infered_type = "Undefined".to_string();
-        let parent_funcdef_option =
-            self.get_current_parent_element_from_element_children_search(el_index);
-        match parent_funcdef_option {
-            Some(parent_funcdef) => match parent_funcdef.0 {
-                ElementInfo::FunctionDef(_, _, _, returntype) => {
-                    infered_type = returntype;
+    fn get_updated_elementinfo_with_infered_type(self: &mut Self, el_index: usize) -> ElementInfo {
+        let el = self.elements[el_index].clone();
+        let el_type = self.get_elementinfo_type(el.0.clone());
+        if el_type == "Undefined".to_string() {
+            let infered_type = self.get_infered_type_of_any_element(el_index);
+            match el.0 {
+                ElementInfo::Arg(name, scope, _) => {
+                    return ElementInfo::Arg(name, scope, infered_type);
                 }
-                _ => (),
-            },
+                ElementInfo::Constant(name, _) => {
+                    return ElementInfo::Constant(name, infered_type);
+                }
+                ElementInfo::ConstantRef(name, _, refname) => {
+                    return ElementInfo::ConstantRef(name, infered_type, refname);
+                }
+                ElementInfo::Assignment => {
+                    return ElementInfo::Assignment;
+                }
+                ElementInfo::InbuiltFunctionCall(name, fndef_index, _) => {
+                    return ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
+                }
+                ElementInfo::FunctionCall(name, _) => {
+                    return ElementInfo::FunctionCall(name, infered_type);
+                }
+                // explicitly listing other types rather than using _ to not overlook new types in future.
+                // These either have no type or are predefined and can't be infered
+                ElementInfo::Root => (),
+                ElementInfo::CommentSingleLine(_) => (),
+                ElementInfo::Int(_) => (),
+                ElementInfo::Float(_) => (),
+                ElementInfo::String(_) => (),
+                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+                ElementInfo::FunctionDefWIP => (),
+                ElementInfo::FunctionDef(_, _, _, _) => (),
+                ElementInfo::Type(_) => (),
+                ElementInfo::Eol => (),
+                ElementInfo::Seol => (),
+                ElementInfo::Indent => (),
+                ElementInfo::Unused => (),
+            }
+            //dbg!(el_index, self.elements[el_index].clone().0);
+        }
+        el.0
+    }
+
+    fn get_infered_type_of_any_element(self: &mut Self, el_index: usize) -> String {
+        let el = self.elements[el_index].clone();
+        let el_info = el.0.clone();
+        match el_info.clone() {
+            ElementInfo::Arg(_, _, _) => {
+                return self.get_infered_type_of_arg_element(el_info, el_index);
+            }
+            ElementInfo::Constant(_, _) => {
+                return self.get_infered_type_of_constant_element(el);
+            }
+            ElementInfo::ConstantRef(_, _, refname) => {
+                return self.get_infered_type_of_constantref_element(refname.clone());
+            }
+            ElementInfo::InbuiltFunctionCall(_, fndef_index, _) => {
+                return self.get_infered_type_of_inbuiltfunctioncall_element(el, fndef_index);
+            }
+            ElementInfo::FunctionCall(name, _) => {
+                return self.get_infered_type_of_functioncall_element(name.clone());
+            }
+            // explicitly listing other types rather than using _ to not overlook new types in future
+            ElementInfo::Root => {}
+            ElementInfo::CommentSingleLine(_) => (),
+            ElementInfo::Int(_) => (),
+            ElementInfo::Float(_) => (),
+            ElementInfo::String(_) => (),
+            ElementInfo::Assignment => (),
+            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+            ElementInfo::FunctionDefWIP => (),
+            ElementInfo::FunctionDef(_, _, _, _) => (),
+            ElementInfo::Type(_) => (),
+            ElementInfo::Eol => (),
+            ElementInfo::Seol => (),
+            ElementInfo::Indent => (),
+            ElementInfo::Unused => (),
+        }
+        self.get_elementinfo_type(el_info)
+    }
+
+    fn get_infered_type_of_arg_element(
+        self: &mut Self,
+        el_info: ElementInfo,
+        el_index: usize,
+    ) -> String {
+        let mut infered_type = "Undefined".to_string();
+        match el_info {
+            ElementInfo::Arg(name, _, _) => {
+                // get type of this arg, from the argtypes of parent funcdef
+                let parent_funcdef_option =
+                    self.get_current_parent_element_from_element_children_search(el_index);
+                match parent_funcdef_option {
+                    Some(parent_funcdef) => match parent_funcdef.0 {
+                        ElementInfo::FunctionDef(_, argnames, argtypes, _) => {
+                            let index_option = argnames.iter().position(|argname| argname == &name);
+                            match index_option {
+                                Some(index) => {
+                                    if argtypes.len() > index {
+                                        infered_type = argtypes[index].clone();
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
+                        _ => (),
+                    },
+                    _ => (),
+                }
+            }
             _ => (),
         }
+
         infered_type
     }
 
-    fn get_infered_type_of_constant_element(self: &mut Self, elref: usize) -> String {
-        //TODO constant and assignment are basically the same - remove one of them
+    fn get_infered_type_of_constant_element(self: &mut Self, el: Element) -> String {
         let mut infered_type = "Undefined".to_string();
-        let parent_option = self.get_current_parent_element_from_element_children_search(elref);
-        match parent_option {
-            Some(el) => match el.0 {
-                ElementInfo::Assignment(_) => {
-                    infered_type = self.get_infered_type_of_assignment_element(el);
+        match el.0 {
+            ElementInfo::Constant(_, _) => {
+                if el.1.len() > 0 {
+                    let child_ref = el.1[0];
+                    infered_type = self.get_infered_type_of_any_element(child_ref);
                 }
-                _ => (),
-            },
+            }
             _ => (),
         }
         infered_type
@@ -355,17 +404,6 @@ impl Ast {
         match constant_option {
             Some(ElementInfo::Constant(_, returntype)) => infered_type = returntype,
             _ => (),
-        }
-        infered_type
-    }
-
-    fn get_infered_type_of_assignment_element(self: &mut Self, el: Element) -> String {
-        let mut infered_type = "Undefined".to_string();
-        let el_children = el.1;
-        if el_children.len() > 1 {
-            let second_child_ref = el_children[1];
-            let second_child = self.elements[second_child_ref].clone();
-            infered_type = self.get_elementinfo_type(second_child.0);
         }
         infered_type
     }
@@ -419,8 +457,9 @@ impl Ast {
 
     pub fn set_output(self: &mut Self) {
         //dbg!(&self);
-        self.fix_any_unknown_types();
-
+        for _i in 0..10 {
+            self.fix_any_unknown_types();
+        }
         self.set_output_append("fn main() {\r\n");
         self.parents = vec![0];
         // the values of indent and outdent don't matter when outputting - only using parents.len()
@@ -550,7 +589,7 @@ impl Ast {
         //skip children for certain parents who already parsed them
         if skip_in_case_handled_by_parent {
             match self.get_current_parent_element_from_element_children_search(element_index) {
-                Some((ElementInfo::Assignment(_), _)) => return skip,
+                Some((ElementInfo::Assignment, _)) => return skip,
                 _ => (),
             }
         }
@@ -566,22 +605,22 @@ impl Ast {
             ElementInfo::ConstantRef(name, _typename, _reference) => {
                 format!("{}", name)
             }
-            ElementInfo::Assignment(typename) => {
+            ElementInfo::Assignment => {
+                let mut returntype = "Undefined".to_string();
                 let children = element.1.clone();
-                if children.len() < 2 {
-                    format!("// let ?: {} = ? OUTPUT ERROR: Can't get constant or value for this assignment from : {:?}", typename, children)
+                if children.len() < 1 {
+                    format!("// let ?: ? = ? OUTPUT ERROR: Can't get constant for this assignment from : {:?}", children)
                 } else {
                     let constant_index = children[0];
                     let constant_output = self.get_output_for_element_index(constant_index, false);
-                    let mut output = format!("let {}: {} = ", constant_output, typename);
-                    if children.len() > 1 {
-                        for child_index in 1..children.len() {
-                            let child_ref = children[child_index];
-                            let child_output = self.get_output_for_element_index(child_ref, false);
-                            output = format!("{}{}", output, child_output);
+                    let constant = self.elements[constant_index].clone();
+                    match constant.0 {
+                        ElementInfo::Constant(_, r) => {
+                            returntype = r;
                         }
+                        _ => (),
                     }
-                    output
+                    format!("let {}: {} = ", constant_output, returntype)
                 }
             }
             ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
@@ -645,7 +684,7 @@ impl Ast {
             ElementInfo::Int(_) => "i64".to_string(),
             ElementInfo::Float(_) => "f64".to_string(),
             ElementInfo::String(_) => "String".to_string(),
-            ElementInfo::Assignment(returntype) => returntype,
+            ElementInfo::Assignment => undefined,
             ElementInfo::Constant(_, returntype) => returntype,
             ElementInfo::ConstantRef(_, returntype, _) => returntype,
             ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype,

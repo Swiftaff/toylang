@@ -34,7 +34,7 @@ struct Errors {
     //no_valid_assignment: &'static str,
     //no_valid_integer_arithmetic: &'static str,
     //no_valid_expression: &'static str,
-    constants_are_immutable: &'static str
+    constants_are_immutable: &'static str,
 }
 
 const ERRORS: Errors = Errors {
@@ -104,12 +104,12 @@ impl Config {
             Ok(_) => {
                 ////dbg!(&self.ast);
                 if self.error_stack.len() > 0 {
+                    dbg!(self.ast.clone());
                     println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
                     for error in self.error_stack.clone() {
                         println!("{}", error);
                     }
                     println!("----------\r\n");
-                    dbg!(self.ast.clone());
                 } else {
                     self.ast.set_output();
                     println!(
@@ -119,12 +119,12 @@ impl Config {
                 }
             }
             Err(_) => {
+                dbg!(self.ast.clone());
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
                 for error in self.error_stack.clone() {
                     println!("{}", error);
                 }
                 println!("----------\r\n");
-                dbg!(self.ast.clone());
             }
         };
         Ok(())
@@ -303,22 +303,21 @@ impl Config {
         //dbg!(current_token);
         let el_option = self.ast.get_existing_element_by_name(current_token);
         match el_option.clone() {
-            Some(el) =>{
-
+            Some(_) => {
                 //check if constant already exists
                 let parent = self.ast.get_current_parent_element_from_parents();
                 match parent.0 {
-                    ElementInfo::Assignment(_) =>{
+                    ElementInfo::Assignment => {
                         let parent_assignment_has_no_children = parent.1.len() == 0;
                         if parent_assignment_has_no_children {
                             // then this constant is the first child of the assignment
                             // so it is the name of the constant (and not the value if it were the second child),
                             // and since constants are immutable it can't have the same name as a pre-existing constant
                             // so it is invalid!
-                            return self.get_error2(0, 1, ERRORS.constants_are_immutable)
+                            return self.get_error2(0, 1, ERRORS.constants_are_immutable);
                         }
-                    },
-                    _ =>()
+                    }
+                    _ => (),
                 }
                 match el_option {
                     Some((ElementInfo::Constant(_, returntype), _)) => {
@@ -336,7 +335,7 @@ impl Config {
                     Some((ElementInfo::Float(_), _)) => (),
                     Some((ElementInfo::String(_), _)) => (),
                     Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
-                    Some((ElementInfo::Assignment(_), _)) => (),
+                    Some((ElementInfo::Assignment, _)) => (),
                     Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
                     Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (), //TODO
                     Some((ElementInfo::FunctionDefWIP, _)) => (),
@@ -349,9 +348,9 @@ impl Config {
                     Some((ElementInfo::Unused, _)) => (),
                     None => (),
                 }
-            },
-            None=>()
-        }      
+            }
+            None => (),
+        }
 
         self.create_new_constant_or_arg(current_token);
         Ok(())
@@ -360,11 +359,7 @@ impl Config {
     fn create_constant_ref(self: &mut Self, current_token: &String, returntype: String) {
         self.indent_if_first_in_line();
         self.ast.append((
-            ElementInfo::ConstantRef(
-                current_token.clone(),
-                returntype, //typename,
-                current_token.clone(),
-            ),
+            ElementInfo::ConstantRef(current_token.clone(), returntype, current_token.clone()),
             vec![],
         ));
         self.outdent_if_last_expected_child();
@@ -390,6 +385,8 @@ impl Config {
                     ElementInfo::Constant(current_token.clone(), typename),
                     vec![],
                 ));
+                //self.outdent_if_last_expected_child();
+                self.ast.indent();
             }
         }
 
@@ -401,9 +398,7 @@ impl Config {
 
     fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
         self.indent_if_first_in_line();
-        let undefined_for_now = "Undefined".to_string();
-        self.ast
-            .append((ElementInfo::Assignment(undefined_for_now), vec![]));
+        self.ast.append((ElementInfo::Assignment, vec![]));
         self.outdent_if_last_expected_child();
         self.ast.indent();
         Ok(())
@@ -489,112 +484,129 @@ impl Config {
 
                 match func_def.0 {
                     ElementInfo::FunctionDefWIP => {
-                        //(Assignment is parent of functionDefWIP)
-                        let assignment_ref_option = self
+                        //Constant is parent of functionDefWIP
+                        let constant_ref_option = self
                             .ast
                             .get_current_parent_ref_from_element_children_search(func_def_ref);
 
-                        match assignment_ref_option {
-                            Some(assignment_ref) => {
-                                let assignment_element = self.ast.elements[assignment_ref].clone();
-
-                                //constant is first child of assignment
-                                let constant_ref = assignment_element.1[0];
+                        match constant_ref_option {
+                            Some(constant_ref) => {
                                 let constant = self.ast.elements[constant_ref].clone();
-                                match constant.0 {
-                                    ElementInfo::Constant(name, _) => {
-                                        //assign name to parent funcdef (from constant
-                                        let num_args = children.len() / 2;
-                                        let argtype_refs = &children[..num_args];
-                                        let mut argtypes: Vec<String> = vec![];
-                                        for a in argtype_refs {
-                                            match self.ast.elements[a.clone()].clone() {
-                                                (ElementInfo::Type(typename), _) => {
-                                                    argtypes.push(typename)
+
+                                //assignment is parent of constant
+                                let assignment_ref_option = self
+                                    .ast
+                                    .get_current_parent_ref_from_element_children_search(
+                                        constant_ref,
+                                    );
+
+                                match assignment_ref_option {
+                                    Some(assignment_ref) => {
+                                        //let constant_ref = assignment_element.1[0];
+
+                                        match constant.0 {
+                                            ElementInfo::Constant(name, _) => {
+                                                //assign name to parent funcdef (from constant
+                                                let num_args = children.len() / 2;
+                                                let argtype_refs = &children[..num_args];
+                                                let mut argtypes: Vec<String> = vec![];
+                                                for a in argtype_refs {
+                                                    match self.ast.elements[a.clone()].clone() {
+                                                        (ElementInfo::Type(typename), _) => {
+                                                            argtypes.push(typename)
+                                                        }
+                                                        _ => (),
+                                                    }
                                                 }
-                                                _ => (),
-                                            }
-                                        }
 
-                                        let returntype_ref = &children[num_args];
-                                        let returntype: String =
-                                            match self.ast.elements[returntype_ref.clone()].clone()
-                                            {
-                                                (ElementInfo::Type(typename), _) => typename,
-                                                _ => "Undefined".to_string(),
-                                            };
+                                                let returntype_ref = &children[num_args];
+                                                let returntype: String = match self.ast.elements
+                                                    [returntype_ref.clone()]
+                                                .clone()
+                                                {
+                                                    (ElementInfo::Type(typename), _) => typename,
+                                                    _ => "Undefined".to_string(),
+                                                };
 
-                                        //get argnames from Arg tokens
-                                        //but also update Arg tokens returntypes at same time
-                                        //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
-                                        let argname_refs = &children[num_args + 1..];
-                                        let mut argnames: Vec<String> = vec![];
-                                        for i in 0..argname_refs.len() {
-                                            let a = argname_refs[i];
-                                            match self.ast.elements[a.clone()].clone() {
-                                                (ElementInfo::Arg(argname, scope, _), _) => {
-                                                    argnames.push(argname.clone());
-                                                    let returntype = argtypes[i].clone();
-                                                    let updated_arg_token = ElementInfo::Arg(
-                                                        argname.clone(),
-                                                        scope,
-                                                        returntype,
-                                                    );
-                                                    self.ast.elements[a.clone()].0 =
-                                                        updated_arg_token;
+                                                //get argnames from Arg tokens
+                                                //but also update Arg tokens returntypes at same time
+                                                //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
+                                                let argname_refs = &children[num_args + 1..];
+                                                let mut argnames: Vec<String> = vec![];
+                                                for i in 0..argname_refs.len() {
+                                                    let a = argname_refs[i];
+                                                    match self.ast.elements[a.clone()].clone() {
+                                                        (
+                                                            ElementInfo::Arg(argname, scope, _),
+                                                            _,
+                                                        ) => {
+                                                            argnames.push(argname.clone());
+                                                            let returntype = argtypes[i].clone();
+                                                            let updated_arg_token =
+                                                                ElementInfo::Arg(
+                                                                    argname.clone(),
+                                                                    scope,
+                                                                    returntype,
+                                                                );
+                                                            self.ast.elements[a.clone()].0 =
+                                                                updated_arg_token;
+                                                        }
+                                                        _ => (),
+                                                    }
                                                 }
-                                                _ => (),
-                                            }
-                                        }
 
-                                        //assign argtypes to parent funcdef
-                                        //assign returntype to parent funcdef
-                                        //assign argnames to parent funcdef
-                                        let new_funcdef = ElementInfo::FunctionDef(
-                                            name, argnames, argtypes, returntype,
-                                        );
-
-                                        // replace assignment with unused
-                                        self.ast.elements[assignment_ref] =
-                                            (ElementInfo::Unused, vec![]);
-
-                                        // replace parents child reference to the assignment
-                                        // with the func_def_ref
-                                        let parent_of_assignment_ref_option = self
-                                            .ast
-                                            .get_current_parent_ref_from_element_children_search(
-                                                assignment_ref,
-                                            );
-                                        match parent_of_assignment_ref_option {
-                                            Some(index) => {
-                                                self.ast.replace_element_child(
-                                                    index,
-                                                    assignment_ref,
-                                                    func_def_ref,
+                                                //assign argtypes to parent funcdef
+                                                //assign returntype to parent funcdef
+                                                //assign argnames to parent funcdef
+                                                let new_funcdef = ElementInfo::FunctionDef(
+                                                    name, argnames, argtypes, returntype,
                                                 );
+
+                                                // replace assignment with unused
+                                                self.ast.elements[assignment_ref] =
+                                                    (ElementInfo::Unused, vec![]);
+
+                                                // replace parents child reference to the assignment
+                                                // with the func_def_ref
+                                                let parent_of_assignment_ref_option = self
+                                                    .ast
+                                                    .get_current_parent_ref_from_element_children_search(
+                                                        assignment_ref,
+                                                    );
+                                                match parent_of_assignment_ref_option {
+                                                    Some(index) => {
+                                                        self.ast.replace_element_child(
+                                                            index,
+                                                            assignment_ref,
+                                                            func_def_ref,
+                                                        );
+                                                    }
+                                                    _ => (),
+                                                }
+
+                                                // replace original funcdefWIP with funcdef
+                                                self.ast.elements[func_def_ref] =
+                                                    (new_funcdef, vec![]);
+
+                                                // replace constant with Unused
+                                                self.ast.elements[constant_ref] =
+                                                    (ElementInfo::Unused, vec![]);
+
+                                                // replace funcdef children with Unused
+                                                //for child_ref in children {
+                                                //    self.ast.elements[child_ref] =
+                                                //        (ElementInfo::Unused, vec![]);
+                                                //}
+
+                                                //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
+                                                //dbg!(self.clone());
+                                                self.ast.outdent();
+                                                self.ast.outdent();
+                                                self.ast.indent_this(func_def_ref);
+                                                //dbg!(self.ast.parents.clone());
                                             }
                                             _ => (),
                                         }
-
-                                        // replace original funcdefWIP with funcdef
-                                        self.ast.elements[func_def_ref] = (new_funcdef, vec![]);
-
-                                        // replace constant with Unused
-                                        self.ast.elements[constant_ref] =
-                                            (ElementInfo::Unused, vec![]);
-
-                                        // replace funcdef children with Unused
-                                        //for child_ref in children {
-                                        //    self.ast.elements[child_ref] =
-                                        //        (ElementInfo::Unused, vec![]);
-                                        //}
-
-                                        //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                        //dbg!(self.clone());
-                                        self.ast.outdent();
-                                        self.ast.outdent();
-                                        self.ast.indent_this(func_def_ref);
-                                        //dbg!(self.ast.parents.clone());
                                     }
                                     _ => (),
                                 }
@@ -607,8 +619,6 @@ impl Config {
             }
             _ => (),
         }
-
-        //unsure if needed
         self.outdent_if_last_expected_child();
         Ok(())
     }
@@ -674,7 +684,7 @@ impl Config {
                                         ElementInfo::Root => (),
                                         ElementInfo::CommentSingleLine(_) => (),
                                         ElementInfo::Arg(_, _, _) => (),
-                                        ElementInfo::Assignment(_) => (),
+                                        ElementInfo::Assignment => (),
                                         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
                                         ElementInfo::FunctionDefWIP => (),
                                         ElementInfo::FunctionDef(_, _, _, _) => (),
@@ -721,9 +731,9 @@ impl Config {
                         self.ast.outdent();
                     }
                 }
-                ElementInfo::Assignment(_) => {
+                ElementInfo::Assignment => {
                     //dbg!("Assignment");
-                    if current_parent.1.len() > 1 {
+                    if current_parent.1.len() > 0 {
                         //dbg!("Assignment outdent", self.ast.parents.clone(),);
                         self.ast.outdent();
                     }
@@ -873,12 +883,21 @@ impl Config {
             // split line at colon for single line functions (after args, before body of function)
             // except if part of a comment in which case ignore
             let this_line_so_far = char_vec[index_from..index_to].to_vec();
-            let is_a_comment_line = this_line_so_far.len() > 1 && this_line_so_far[0]=='/' && this_line_so_far[1]=='/';
+            let is_a_comment_line = this_line_so_far.len() > 1
+                && this_line_so_far[0] == '/'
+                && this_line_so_far[1] == '/';
             let is_colon_for_singlelinefunction = c == ':' && !is_a_comment_line;
 
             if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
-                    char_vec[index_from..index_to + (if eof || is_colon_for_singlelinefunction { 1 } else { 0 })].to_vec(),
+                    char_vec[index_from
+                        ..index_to
+                            + (if eof || is_colon_for_singlelinefunction {
+                                1
+                            } else {
+                                0
+                            })]
+                        .to_vec(),
                 );
                 index_from = index_to + incr;
             }
@@ -1241,19 +1260,48 @@ mod tests {
             ["- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"],
             ["/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"],
             //basic arithmetic, assignment, type inference
-            ["= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"],
-            ["= a + 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n"],
-            ["= a - 1 2", "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n"],
-            ["= a - 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n"],
-            ["= a * 1 2", "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n"],
-            ["= a * 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n"],
-            ["= a / 1 2", "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n"],
-            ["= a / 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n"],
-            ["= a % 1 2", "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n"],
-            ["= a % 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n"],
+            [
+                "= a + 1 2",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            ],
+            [
+                "= a + 1.1 2.2",
+                "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n",
+            ],
+            [
+                "= a - 1 2",
+                "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n",
+            ],
+            [
+                "= a - 1.1 2.2",
+                "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n",
+            ],
+            [
+                "= a * 1 2",
+                "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n",
+            ],
+            [
+                "= a * 1.1 2.2",
+                "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n",
+            ],
+            [
+                "= a / 1 2",
+                "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n",
+            ],
+            [
+                "= a / 1.1 2.2",
+                "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n",
+            ],
+            [
+                "= a % 1 2",
+                "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n",
+            ],
+            [
+                "= a % 1.1 2.2",
+                "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n",
+            ],
             //constant
             ["a", "fn main() {\r\n    a;\r\n}\r\n"],
-            ["a\r\na", "fn main() {\r\n    a;\r\n    a;\r\n}\r\n"],
             //assignment
             [
                 "= a \"string\"",
@@ -1288,7 +1336,7 @@ mod tests {
                 "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
             ],
             //TODO handle reserved names of i64 by adding to inbuiltfndefs
-            
+
             //function definitions
             //function definitions - single line
             [
@@ -1318,6 +1366,20 @@ mod tests {
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
             ],
+            //function definitions - multiline, several semicolon statements, with final return statement
+            //TOFIX
+            [
+                "= a \\ i64 i64 i64 arg1 arg2 :\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
+            ],
+            //function definitions - pass functions as arguments
+            //arg1 is a function that takes i64 returns i64, arg2 is an i64
+            //the function body calls arg1 with arg2 as its argument, returning which returns i64
+            //TODO
+            //[
+            //    "= a \\ (i64 i64) i64 i64 arg1 arg2 :\r\n arg1 arg2",
+            //    "fn main() {\r\n    fn a(arg1: ???, arg2: i64) -> i64 {\r\n        arg1(arg2)}\r\n}\r\n",
+            //],
             //type inference
             //type inference - assignment to constantrefs
             [
@@ -1349,7 +1411,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        
+
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1397,7 +1459,6 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        
     }
 
     #[test]
