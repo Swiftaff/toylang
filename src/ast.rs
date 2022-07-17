@@ -203,11 +203,11 @@ impl Ast {
 
     fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
         // collect a vec of all children
-        // in reverse order
-        // and from deepest in the 'tree'
-        // to highest
+        // from deepest block in the 'tree' to highest
+        // (ordered top to bottom for block at same level)
+        // and reverse order within each block
         let mut tracked_parents: Vec<usize> = vec![0];
-        let mut children: Vec<usize> = self.elements[0].1.iter().map(|x| x.clone()).rev().collect();
+        let mut children: Vec<usize> = self.elements[0].1.clone();
         let mut depths: Vec<Vec<usize>> = vec![children];
         loop {
             //println!("{:?}", tracked_parents.clone());

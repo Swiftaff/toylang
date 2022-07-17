@@ -1,7 +1,7 @@
 // TODO make most function arguments refs
 mod ast;
 mod file;
-use ast::{Ast, Element, ElementInfo};
+use ast::{Ast, ElementInfo};
 use file::File;
 use std::error::Error;
 
@@ -138,7 +138,6 @@ impl Config {
                 self.current_line = line;
                 self.current_line_token = 0;
                 self.parse_current_line()?;
-                //println!("end of line: {}\r\n", line);
             }
         }
         Ok(())
@@ -849,10 +848,16 @@ impl Config {
                     1
                 };
             let eof = index_to == char_vec.len() - 1;
-            let is_colon = c == ':'; // split line here for single line functions
-            if c == '\r' || c == '\n' || eof || is_colon {
+
+            // split line at colon for single line functions (after args, before body of function)
+            // except if part of a comment in which case ignore
+            let this_line_so_far = char_vec[index_from..index_to].to_vec();
+            let is_a_comment_line = this_line_so_far.len() > 1 && this_line_so_far[0]=='/' && this_line_so_far[1]=='/';
+            let is_colon_for_singlelinefunction = c == ':' && !is_a_comment_line;
+
+            if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
-                    char_vec[index_from..index_to + (if eof || is_colon { 1 } else { 0 })].to_vec(),
+                    char_vec[index_from..index_to + (if eof || is_colon_for_singlelinefunction { 1 } else { 0 })].to_vec(),
                 );
                 index_from = index_to + incr;
             }
@@ -1063,6 +1068,10 @@ mod tests {
     // cargo watch -x "test test_run -- --show-output"
     // cargo watch -x "test test_is_float -- --show-output"
 
+    // cd target/debug
+    // cargo build
+    // toylang ../../src/test.toy
+
     use super::*;
     use ast::Element;
 
@@ -1155,6 +1164,11 @@ mod tests {
                 "    //    comment    ",
                 "fn main() {\r\n    //    comment\r\n}\r\n",
             ],
+            //single line function no longer breaks comments
+            [
+                "//= a \\ i64 : 123",
+                "fn main() {\r\n    //= a \\ i64 : 123\r\n}\r\n",
+            ],
             //string
             [
                 "\"string\"",
@@ -1205,6 +1219,17 @@ mod tests {
             ["+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"],
             ["- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"],
             ["/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"],
+            //basic arithmetic, assignment, type inference
+            ["= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"],
+            ["= a + 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n"],
+            ["= a - 1 2", "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n"],
+            ["= a - 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n"],
+            ["= a * 1 2", "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n"],
+            ["= a * 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n"],
+            ["= a / 1 2", "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n"],
+            ["= a / 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n"],
+            ["= a % 1 2", "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n"],
+            ["= a % 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n"],
             //constant
             ["a", "fn main() {\r\n    a;\r\n}\r\n"],
             ["a\r\na", "fn main() {\r\n    a;\r\n    a;\r\n}\r\n"],
@@ -1238,6 +1263,8 @@ mod tests {
             ],
             //TODO handle reserved names of i64 by adding to inbuiltfndefs
             
+            //function definitions
+            //function definitions - single line
             [
                 "= a \\ i64 : 123",
                 "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
@@ -1246,6 +1273,7 @@ mod tests {
                 "= a \\ i64 i64 arg1 : + 123 arg1",
                 "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
             ],
+            //function definitions - multiline
             [
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
@@ -1254,13 +1282,31 @@ mod tests {
                 "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n= x + arg1 arg2\r\n+ x arg3",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
             ],
+            //function definitions - multiline, nested function calls
             [
                 "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n + arg1 + arg2 arg3",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
             ],
+            //function definitions - multiline, constant assignment, nested function calls
             [
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
+            ],
+            //type inference
+            //type inference - assignment to constantrefs
+            [
+                "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+                "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+            ],
+            //type inference - assignment to function call
+            [
+                "= a + 1 2",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            ],
+            //type inference - assignment to constantrefs of function call
+            [
+                "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
             ]
         ];
 
@@ -1277,7 +1323,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        /*
+        
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1303,8 +1349,8 @@ mod tests {
             //["+ 1 2.1", ERRORS.int],
             //["- 1.1 2", ERRORS.int],
             //functionDefinitions
-            ["= a \\ :", ERRORS.funcdef_args],
-            ["= a \\ i64 monkey i64  :", ERRORS.funcdef_argtypes_first],
+            //["= a \\ :", ERRORS.funcdef_args],
+            //["= a \\ i64 monkey i64  :", ERRORS.funcdef_argtypes_first],
         ];
 
         for test in test_case_errors {
@@ -1323,7 +1369,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-        */
+        
     }
 
     #[test]
