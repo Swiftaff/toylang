@@ -337,10 +337,13 @@ impl Config {
                     Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
                     Some((ElementInfo::Assignment, _)) => (),
                     Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
-                    Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (), //TODO
+                    Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
                     Some((ElementInfo::FunctionDefWIP, _)) => (),
-                    Some((ElementInfo::FunctionDef(_, _, _, _), _)) => (),
-                    Some((ElementInfo::FunctionCall(_, _), _)) => (), //TODO
+                    Some((ElementInfo::FunctionDef(_, argnames, _, returntype), _)) => {
+                        self.create_function_call(current_token, argnames.len(), returntype);
+                        return Ok(());
+                    }
+                    Some((ElementInfo::FunctionCall(_, _), _)) => (),
                     Some((ElementInfo::Type(_), _)) => (),
                     Some((ElementInfo::Eol, _)) => (),
                     Some((ElementInfo::Seol, _)) => (),
@@ -393,6 +396,23 @@ impl Config {
         //dbg!("constant 1", self.ast.parents.clone());
         self.outdent_if_last_expected_child();
         //dbg!("constant 2", self.ast.parents.clone());
+        self.seol_if_last_in_line();
+    }
+
+    fn create_function_call(
+        self: &mut Self,
+        current_token: &String,
+        args: usize,
+        returntype: String,
+    ) {
+        self.indent_if_first_in_line();
+        self.ast.append((
+            ElementInfo::FunctionCall(current_token.clone(), returntype),
+            vec![],
+        ));
+        if args > 0 {
+            self.ast.indent();
+        }
         self.seol_if_last_in_line();
     }
 
@@ -697,6 +717,7 @@ impl Config {
                                 }
                                 _ => (),
                             }
+                            break;
                         }
                     }
                     _ => (),
@@ -766,21 +787,26 @@ impl Config {
                         (ElementInfo::Indent, ElementInfo::Int(_)) => {
                             //dbg!("FunctionDef outdent Int", self.ast.parents.clone(),);
                             self.ast.outdent();
+                            self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Float(_)) => {
                             //dbg!("FunctionDef outdent Float", self.ast.parents.clone(),);
+                            self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::String(_)) => {
                             //dbg!("FunctionDef outdent String", self.ast.parents.clone(),);
                             self.ast.outdent();
+                            self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Constant(_, _)) => {
                             //dbg!("FunctionDef outdent Constant", self.ast.parents.clone(),);
                             self.ast.outdent();
+                            self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::ConstantRef(_, _, _)) => {
                             //dbg!("FunctionDef outdent ConstantRef", self.ast.parents.clone(),);
+                            self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::InbuiltFunctionCall(_, fndefref, _)) => {
@@ -797,6 +823,8 @@ impl Config {
                                         //);
                                         self.ast.outdent();
                                     }
+                                    self.ast.outdent();
+                                    self.ast.outdent();
                                 }
                                 _ => (),
                             }
@@ -818,6 +846,8 @@ impl Config {
                                                 //);
                                                 self.ast.outdent();
                                             }
+                                            self.ast.outdent();
+                                            self.ast.outdent();
                                         }
                                         _ => (),
                                     }
@@ -829,15 +859,16 @@ impl Config {
                     }
                 }
                 ElementInfo::FunctionCall(name, _) => {
-                    //dbg!("FunctionCall");
                     let fn_index = self.ast.get_function_index_by_name(&name);
                     match fn_index {
                         Some(index) => {
                             let fndef = self.ast.elements[index].clone();
                             match fndef.0 {
                                 ElementInfo::FunctionDef(_, argnames, _, _) => {
-                                    if fndef.1.len() == argnames.len() {
-                                        //dbg!("FunctionCall outdent enough args");
+                                    if current_parent.1.len() > 0
+                                        && current_parent.1.len() == argnames.len()
+                                    {
+                                        self.ast.outdent();
                                         self.ast.outdent();
                                     }
                                 }
@@ -1317,12 +1348,12 @@ mod tests {
                 "= a + 1 2",
                 "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
             ],
-            //assignment func call with references
+            //assignment internalFunctionCalls with references
             [
                 "= a + 1 2\r\n= b - 3 a",
                 "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
             ],
-            //nested function calls
+            //nested internalFunctionCalls
             [
                 "= a - + 1 2 3",
                 "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
@@ -1395,7 +1426,23 @@ mod tests {
             [
                 "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
                 "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+            ],
+            //function calls - zero arguments
+            [
+                "//define function\r\n= a \\ i64 :\r\n123\r\n\r\n//call function\r\na",
+                "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
+            ],
+            //function calls - one argument
+            [
+                "//define function\r\n= a \\ i64 i64 arg1 :\r\narg1\r\n\r\n//call function\r\na 123",
+                "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
+            ],
+            //function calls - two arguments, where one is an evaluated internal function call
+            [
+                "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
+                "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
             ]
+            
         ];
 
         for test in test_case_passes {

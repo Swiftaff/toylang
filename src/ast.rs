@@ -590,6 +590,7 @@ impl Ast {
         if skip_in_case_handled_by_parent {
             match self.get_current_parent_element_from_element_children_search(element_index) {
                 Some((ElementInfo::Assignment, _)) => return skip,
+                Some((ElementInfo::FunctionCall(_, _), _)) => return skip,
                 _ => (),
             }
         }
@@ -668,7 +669,19 @@ impl Ast {
                 format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, _returntype) => {
-                format!("{}()", name)
+                let arguments = element.1.clone();
+                let mut args = "".to_string();
+                for i in 0..arguments.len() {
+                    let arg_el_ref = arguments[i];
+                    let arg = self.get_output_for_element_index(arg_el_ref, false);
+                    let comma = if i == arguments.len() - 1 {
+                        "".to_string()
+                    } else {
+                        ", ".to_string()
+                    };
+                    args = format!("{}{}{}", args, arg, comma);
+                }
+                format!("{}({})", name, args)
             }
             ElementInfo::Eol => format!("\r\n"),
             ElementInfo::Seol => format!(";\r\n"),

@@ -135,6 +135,9 @@ fn main() {
 // the return value of the function
 z
 
+// function calls
+function_name 123
+multiline_fn_name + 123 456 789
 ```
 
 </td><td>
@@ -158,6 +161,10 @@ fn main() {
         // the return value of the function
         z
     }
+
+    // function calls
+    function_name(123);
+    multiline_fn_name(123 + 456, 789);
 }
 ```
 
