@@ -135,8 +135,8 @@ fn main() {
 // the return value of the function
 z
 
-// use brackets to pass a function as an argument
-// first argument in brackets defines a single argument which is a function
+// use parenthesis to pass a function as an argument - becomes a &dyn Fn
+// first argument in parenthesis defines a single argument which is a function
 // which takes an i64 and returns an i64
 // second argument is an i64
 // and function returns an i64
@@ -148,7 +148,9 @@ arg1 arg2
 // function calls
 function_name 123
 multiline_fn_name + 123 456 789
-take_fn_as_first_parameter function_name 321
+
+// also when passing a function as a parameter - must wrap it in parenthesis so it doesn't evaluate
+take_fn_as_first_parameter (function_name) 321
 ```
 
 </td><td>
@@ -173,11 +175,7 @@ fn main() {
         z
     }
 
-    // use brackets to pass a function as an argument
-    // first argument in brackets defines a single argument which is a function
-    // which takes an i64 and returns an i64
-    // second argument is an i64
-    // and function returns an i64
+    // use parenthesis to pass a function as an argument - becomes a &dyn Fn
     fn take_fn_as_first_parameter(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {
         arg1(arg2)
     }
