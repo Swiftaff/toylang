@@ -1,7 +1,7 @@
 // TODO make most function arguments refs
 mod ast;
 mod file;
-use ast::{Ast, ElementInfo};
+use ast::{Ast, Element, ElementInfo};
 use file::File;
 use std::error::Error;
 
@@ -104,7 +104,7 @@ impl Config {
             Ok(_) => {
                 ////dbg!(&self.ast);
                 if self.error_stack.len() > 0 {
-                    dbg!(self.ast.clone());
+                    println!("{:?}", self.ast.clone());
                     println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
                     for error in self.error_stack.clone() {
                         println!("{}", error);
@@ -119,7 +119,7 @@ impl Config {
                 }
             }
             Err(_) => {
-                dbg!(self.ast.clone());
+                println!("{:?}", self.ast.clone());
                 println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
                 for error in self.error_stack.clone() {
                     println!("{}", error);
@@ -162,7 +162,26 @@ impl Config {
         }
 
         match self.ast.get_inbuilt_function_index_by_name(&current_token) {
-            Some(index_of_function) => self.parse_function_call(&current_token, index_of_function),
+            Some(index_of_function) => {
+                //dbg!(&current_token);
+                let func = self.ast.elements[index_of_function].clone();
+                match func.0 {
+                    ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+                        self.parse_inbuilt_function_call(&current_token, index_of_function)
+                    }
+                    ElementInfo::FunctionDef(_, _, _, _) => {
+                        self.parse_function_call(&current_token, index_of_function)
+                    }
+                    ElementInfo::Arg(_, _, returntype) => {
+                        if returntype.contains("&dyn Fn") {
+                            self.parse_function_call(&current_token, index_of_function)
+                        } else {
+                            self.parse_token_by_first_chars(&current_token, &current_token_vec)
+                        }
+                    }
+                    _ => self.parse_token_by_first_chars(&current_token, &current_token_vec),
+                }
+            }
             _ => match self.ast.get_inbuilt_type_index_by_name(&current_token) {
                 Some(index_of_type) => self.parse_type(index_of_type),
                 _ => self.parse_token_by_first_chars(&current_token, &current_token_vec),
@@ -184,6 +203,8 @@ impl Config {
         match first_char {
             '\\' => self.parse_function_definition_start(),
             ':' => self.parse_function_definition_end(),
+            '(' => self.parse_functiontypesig_or_functionreference_start(),
+            ')' => self.parse_functiontypesig_or_functionreference_end(),
             '/' => self.parse_comment_single_line(current_token_vec),
             '=' => {
                 if current_token_vec.len() > 1 {
@@ -325,7 +346,19 @@ impl Config {
                         return Ok(());
                     }
                     Some((ElementInfo::Arg(_, _, returntype), _)) => {
-                        self.create_constant_ref(current_token, returntype);
+                        //dbg!("Arg", &returntype);
+                        if returntype.contains("&dyn Fn") {
+                            let args = self.get_args_from_dyn_fn(returntype.clone());
+                            self.ast.append((
+                                ElementInfo::FunctionCall(current_token.clone(), returntype),
+                                vec![],
+                            ));
+                            if args > 0 {
+                                self.ast.indent();
+                            }
+                        } else {
+                            self.create_constant_ref(current_token, returntype);
+                        }
                         return Ok(());
                     }
                     // explicitly listing other types rather than using _ to not overlook new types in future
@@ -344,6 +377,7 @@ impl Config {
                         return Ok(());
                     }
                     Some((ElementInfo::FunctionCall(_, _), _)) => (),
+                    Some((ElementInfo::Parens, _)) => (),
                     Some((ElementInfo::Type(_), _)) => (),
                     Some((ElementInfo::Eol, _)) => (),
                     Some((ElementInfo::Seol, _)) => (),
@@ -357,6 +391,13 @@ impl Config {
 
         self.create_new_constant_or_arg(current_token);
         Ok(())
+    }
+
+    fn get_args_from_dyn_fn(self: &Self, string: String) -> usize {
+        string.matches(",").count() + (!string.contains("()") as usize)
+        //0 args, e.g. "&dyn Fn() -> i64"         = 0 commas + 0 does match ()
+        //1 args, e.g. "&dyn Fn(i64) -> i64"      = 0 commas + 1 does not match ()
+        //2 args, e.g. "&dyn Fn(i64, i64) -> i64" = 1 comma  + 1 does not match ()
     }
 
     fn create_constant_ref(self: &mut Self, current_token: &String, returntype: String) {
@@ -405,13 +446,40 @@ impl Config {
         args: usize,
         returntype: String,
     ) {
+        //dbg!("FunctionCall", &current_token);
         self.indent_if_first_in_line();
-        self.ast.append((
-            ElementInfo::FunctionCall(current_token.clone(), returntype),
-            vec![],
-        ));
-        if args > 0 {
-            self.ast.indent();
+
+        let parent = self.ast.get_current_parent_element_from_parents();
+        //dbg!("penguin",parent.clone());
+        match parent.0 {
+            ElementInfo::Parens => {
+                // if parent is parens, then this is just a function reference
+                // don't treat it like a functionCall,
+                // just change the parent to be a ConstantRef
+
+                let parent_ref = self.ast.get_current_parent_ref_from_parents();
+                let new_constant_ref: Element = (
+                    ElementInfo::ConstantRef(
+                        current_token.clone(),
+                        returntype,
+                        current_token.clone(),
+                    ),
+                    [].to_vec(),
+                );
+                self.ast.elements[parent_ref] = new_constant_ref;
+                //self.ast.outdent();
+            }
+            _ => {
+                //else it is a function call...
+
+                self.ast.append((
+                    ElementInfo::FunctionCall(current_token.clone(), returntype),
+                    vec![],
+                ));
+                if args > 0 {
+                    self.ast.indent();
+                }
+            }
         }
         self.seol_if_last_in_line();
     }
@@ -424,19 +492,33 @@ impl Config {
         Ok(())
     }
 
+    fn parse_inbuilt_function_call(
+        self: &mut Self,
+        current_token: &String,
+        index_of_function: usize,
+    ) -> Result<(), ()> {
+        self.indent_if_first_in_line();
+        let el = self.ast.elements[index_of_function].clone();
+        let returntype = self.ast.get_elementinfo_type(el.0);
+        self.ast.append((
+            ElementInfo::InbuiltFunctionCall(current_token.clone(), index_of_function, returntype),
+            vec![],
+        ));
+        self.outdent_if_last_expected_child();
+        self.ast.indent();
+        Ok(())
+    }
+
     fn parse_function_call(
         self: &mut Self,
         current_token: &String,
         index_of_function: usize,
     ) -> Result<(), ()> {
         self.indent_if_first_in_line();
-        let undefined_for_now = "Undefined".to_string();
+        let el = self.ast.elements[index_of_function].clone();
+        let returntype = self.ast.get_elementinfo_type(el.0);
         self.ast.append((
-            ElementInfo::InbuiltFunctionCall(
-                current_token.clone(),
-                index_of_function,
-                undefined_for_now,
-            ),
+            ElementInfo::FunctionCall(current_token.clone(), returntype),
             vec![],
         ));
         self.outdent_if_last_expected_child();
@@ -499,6 +581,7 @@ impl Config {
                 let first_child = self.ast.elements[first_child_ref].clone();
                 match first_child.0 {
                     ElementInfo::Type(_) => (),
+                    ElementInfo::Parens => (),
                     _ => return self.get_error2(0, 1, ERRORS.funcdef_argtypes_first),
                 }
 
@@ -534,6 +617,57 @@ impl Config {
                                                     match self.ast.elements[a.clone()].clone() {
                                                         (ElementInfo::Type(typename), _) => {
                                                             argtypes.push(typename)
+                                                        }
+                                                        (ElementInfo::Parens, paren_children) => {
+                                                            if paren_children.len() > 0 {
+                                                                let paren_returntype_ref =
+                                                                    paren_children
+                                                                        [paren_children.len() - 1];
+                                                                let paren_returntype_el = self
+                                                                    .ast
+                                                                    .elements[paren_returntype_ref]
+                                                                    .clone();
+                                                                let paren_returntype =
+                                                                    self.ast.get_elementinfo_type(
+                                                                        paren_returntype_el.0,
+                                                                    );
+                                                                let paren_main_types =
+                                                                    &paren_children[0
+                                                                        ..paren_children.len() - 1];
+                                                                let mut main_types = "".to_string();
+                                                                for i in 0..paren_main_types.len() {
+                                                                    let main_type_ref =
+                                                                        paren_main_types[i];
+                                                                    let main_type_el = self
+                                                                        .ast
+                                                                        .elements[main_type_ref]
+                                                                        .clone();
+                                                                    //dbg!(main_type_el.clone());
+                                                                    let main_type = self
+                                                                        .ast
+                                                                        .get_elementinfo_type(
+                                                                            main_type_el.0,
+                                                                        );
+                                                                    let comma = if i + 1
+                                                                        == paren_main_types.len()
+                                                                    {
+                                                                        "".to_string()
+                                                                    } else {
+                                                                        ", ".to_string()
+                                                                    };
+                                                                    main_types = format!(
+                                                                        "{}{}{}",
+                                                                        main_types,
+                                                                        comma,
+                                                                        main_type
+                                                                    );
+                                                                }
+                                                                let fn_type_signature = format!(
+                                                                    "&dyn Fn({}) -> {}",
+                                                                    main_types, paren_returntype
+                                                                );
+                                                                argtypes.push(fn_type_signature)
+                                                            }
                                                         }
                                                         _ => (),
                                                     }
@@ -582,6 +716,9 @@ impl Config {
                                                     name, argnames, argtypes, returntype,
                                                 );
 
+                                                let assignment_el =
+                                                    self.ast.elements[assignment_ref].clone();
+                                                //dbg!(assignment_el);
                                                 // replace assignment with unused
                                                 self.ast.elements[assignment_ref] =
                                                     (ElementInfo::Unused, vec![]);
@@ -608,6 +745,9 @@ impl Config {
                                                 self.ast.elements[func_def_ref] =
                                                     (new_funcdef, vec![]);
 
+                                                let constant_el =
+                                                    self.ast.elements[constant_ref].clone();
+                                                //dbg!(constant_el);
                                                 // replace constant with Unused
                                                 self.ast.elements[constant_ref] =
                                                     (ElementInfo::Unused, vec![]);
@@ -620,6 +760,8 @@ impl Config {
 
                                                 //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
                                                 //dbg!(self.clone());
+
+                                                self.ast.outdent();
                                                 self.ast.outdent();
                                                 self.ast.outdent();
                                                 self.ast.indent_this(func_def_ref);
@@ -639,6 +781,21 @@ impl Config {
             }
             _ => (),
         }
+        self.outdent_if_last_expected_child();
+        Ok(())
+    }
+
+    //TODO remember to error / or at least check if reusing arg names in nested functions
+
+    fn parse_functiontypesig_or_functionreference_start(self: &mut Self) -> Result<(), ()> {
+        self.indent_if_first_in_line();
+        self.ast.append((ElementInfo::Parens, vec![]));
+        self.ast.indent();
+        Ok(())
+    }
+
+    fn parse_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
+        self.ast.outdent();
         self.outdent_if_last_expected_child();
         Ok(())
     }
@@ -700,6 +857,9 @@ impl Config {
                                         ElementInfo::FunctionCall(_, _) => {
                                             is_end_of_return_statement_of_a_func_def = true;
                                         }
+                                        ElementInfo::Parens => {
+                                            is_end_of_return_statement_of_a_func_def = true;
+                                        }
                                         // explicitly listing other types rather than using _ to not overlook new types in future
                                         ElementInfo::Root => (),
                                         ElementInfo::CommentSingleLine(_) => (),
@@ -759,8 +919,8 @@ impl Config {
                         self.ast.outdent();
                     }
                 }
-                ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
-                    //dbg!("InbuiltFunctionCall");
+                ElementInfo::InbuiltFunctionCall(name, fndefref, _) => {
+                    //dbg!("InbuiltFunctionCall", &name);
                     let fndef = self.ast.elements[fndefref].clone();
                     match fndef.0 {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
@@ -830,13 +990,12 @@ impl Config {
                             }
                         }
                         (ElementInfo::Indent, ElementInfo::FunctionCall(name, _)) => {
-                            //dbg!("FunctionCall");
                             let fn_index = self.ast.get_function_index_by_name(&name);
                             match fn_index {
                                 Some(index) => {
                                     let fndef = self.ast.elements[index].clone();
                                     match fndef.0 {
-                                        ElementInfo::FunctionDef(_, argnames, _, _) => {
+                                        ElementInfo::FunctionDef(name, argnames, _, returntype) => {
                                             // current assumption is functionCalls expect a fixed number
                                             // of children to match args
                                             if fndef.1.len() == argnames.len() {
@@ -859,6 +1018,7 @@ impl Config {
                     }
                 }
                 ElementInfo::FunctionCall(name, _) => {
+                    //dbg!("FunctionCall", &name);
                     let fn_index = self.ast.get_function_index_by_name(&name);
                     match fn_index {
                         Some(index) => {
@@ -867,6 +1027,14 @@ impl Config {
                                 ElementInfo::FunctionDef(_, argnames, _, _) => {
                                     if current_parent.1.len() > 0
                                         && current_parent.1.len() == argnames.len()
+                                    {
+                                        self.ast.outdent();
+                                        self.ast.outdent();
+                                    }
+                                }
+                                ElementInfo::Arg(_, _, returntype) => {
+                                    let args = self.get_args_from_dyn_fn(returntype);
+                                    if current_parent.1.len() > 0 && current_parent.1.len() == args
                                     {
                                         self.ast.outdent();
                                         self.ast.outdent();
@@ -888,6 +1056,7 @@ impl Config {
                 ElementInfo::ConstantRef(_, _, _) => (),
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
                 ElementInfo::FunctionDefWIP => (),
+                ElementInfo::Parens => (),
                 ElementInfo::Type(_) => (),
                 ElementInfo::Eol => (),
                 ElementInfo::Seol => (),
@@ -1134,14 +1303,6 @@ fn strip_trailing_whitespace(input: String) -> String {
 
 #[cfg(test)]
 mod tests {
-
-    // cargo watch -x "test test_run"
-    // cargo watch -x "test test_run -- --show-output"
-    // cargo watch -x "test test_is_float -- --show-output"
-
-    // cd target/debug
-    // cargo build
-    // toylang ../../src/test.toy
 
     use super::*;
     use ast::Element;
@@ -1398,7 +1559,6 @@ mod tests {
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
             ],
             //function definitions - multiline, several semicolon statements, with final return statement
-            //TOFIX
             [
                 "= a \\ i64 i64 i64 arg1 arg2 :\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
@@ -1406,11 +1566,10 @@ mod tests {
             //function definitions - pass functions as arguments
             //arg1 is a function that takes i64 returns i64, arg2 is an i64
             //the function body calls arg1 with arg2 as its argument, returning which returns i64
-            //TODO
-            //[
-            //    "= a \\ (i64 i64) i64 i64 arg1 arg2 :\r\n arg1 arg2",
-            //    "fn main() {\r\n    fn a(arg1: ???, arg2: i64) -> i64 {\r\n        arg1(arg2)}\r\n}\r\n",
-            //],
+            [
+                "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 :\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 : + 123 arg3\r\n= c a ( b ) 456",
+                "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
+            ],
             //type inference
             //type inference - assignment to constantrefs
             [
@@ -1441,8 +1600,7 @@ mod tests {
             [
                 "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
                 "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
-            ]
-            
+            ] 
         ];
 
         for test in test_case_passes {
@@ -1458,7 +1616,7 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-
+        
         let test_case_errors = [
             //empty file
             ["", ""],
@@ -1554,4 +1712,12 @@ mod tests {
         ast.append(el8);
         assert!(true);
     }
+
+    // cargo watch -x "test test_run"
+    // cargo watch -x "test test_run -- --show-output"
+    // cargo watch -x "test test_is_float -- --show-output"
+
+    // cd target/debug
+    // cargo build
+    // toylang ../../src/test.toy
 }

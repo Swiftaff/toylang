@@ -53,3 +53,40 @@ z
 //@ 123
 //@ 123.12
 //@ + 1 2
+
+//= list [ 1 2 3 ]
+
+//let list: Vec<i64> = vec![1,2,3];
+
+= a \ "i64 i64" i64 i64 arg1 arg2 : arg1 arg2
+= b \ i64 i64 arg1 : + 123 arg1
+= c a 'b 456
+
+//or
+
+= a \ (i64 i64) i64 i64 arg1 arg2 : arg1 arg2
+= b \ i64 i64 arg1 : + 123 arg1
+= c a (b) 456
+
+//fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {
+//  arg1(arg2)
+//}
+//fn b(arg1: i64) -> i64 {
+//  123 + arg1
+//}
+//let c = a(b, 456);
+
+// for loops
+
+//.. 0 100
+//= a + a 1
+//..
+
+//.. 100 0
+//= a - a 1
+//..
+
+//= c 0
+//= b [ 0 1 2 3 ]
+//.. 0 len b
+//= c + c 1

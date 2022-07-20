@@ -78,6 +78,7 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::FunctionCall(name, returntype) => {
                 format!("FunctionCall: {} ({})", name, returntype)
             }
+            ElementInfo::Parens => "Parens".to_string(),
             ElementInfo::Eol => "Eol".to_string(),
             ElementInfo::Seol => "Seol".to_string(),
             ElementInfo::Indent => "Indent".to_string(),
@@ -107,7 +108,8 @@ pub enum ElementInfo {
     FunctionDefWIP,                         //no children
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
     FunctionCall(Name, ReturnType),         //fndef argnames.len() children
-    Type(Name),                             // no children
+    Parens,     //either 1 child, for function_ref, or 1+ for function type sig
+    Type(Name), // no children
     Eol,
     Seol,
     Indent,
@@ -300,6 +302,7 @@ impl Ast {
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
                 ElementInfo::FunctionDefWIP => (),
                 ElementInfo::FunctionDef(_, _, _, _) => (),
+                ElementInfo::Parens => (),
                 ElementInfo::Type(_) => (),
                 ElementInfo::Eol => (),
                 ElementInfo::Seol => (),
@@ -340,6 +343,7 @@ impl Ast {
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
+            ElementInfo::Parens => (),
             ElementInfo::Type(_) => (),
             ElementInfo::Eol => (),
             ElementInfo::Seol => (),
@@ -448,6 +452,13 @@ impl Ast {
                 let funcdef = self.elements[index].clone();
                 match funcdef.0 {
                     ElementInfo::FunctionDef(_, _, _, returntype) => returntype,
+                    ElementInfo::Arg(n, _, returntype) => {
+                        if returntype.contains("&dyn Fn") {
+                            returntype
+                        } else {
+                            undefined
+                        }
+                    }
                     _ => undefined,
                 }
             }
@@ -668,20 +679,51 @@ impl Ast {
                 let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
                 format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
             }
-            ElementInfo::FunctionCall(name, _returntype) => {
+            ElementInfo::FunctionCall(name, returntype) => {
                 let arguments = element.1.clone();
                 let mut args = "".to_string();
                 for i in 0..arguments.len() {
                     let arg_el_ref = arguments[i];
+                    let arg_el = self.elements[arg_el_ref].clone();
                     let arg = self.get_output_for_element_index(arg_el_ref, false);
+                    let mut borrow = "".to_string();
+                    //dbg!("here", name.clone(), returntype.clone(), arg_el.clone());
+                    let fndef_option = self.get_function_index_by_name(&name);
+                    match fndef_option {
+                        Some(fndef_ref) => {
+                            let fndef = self.elements[fndef_ref].clone();
+                            match fndef.0 {
+                                ElementInfo::FunctionDef(_, _, argtypes, _) => {
+                                    if argtypes.len() == arguments.len() {
+                                        if argtypes[i].contains("&dyn Fn") {
+                                            borrow = "&".to_string();
+                                        }
+                                    }
+                                }
+                                _ => (),
+                            }
+                        }
+                        _ => {}
+                    }
+
                     let comma = if i == arguments.len() - 1 {
                         "".to_string()
                     } else {
                         ", ".to_string()
                     };
-                    args = format!("{}{}{}", args, arg, comma);
+                    args = format!("{}{}{}{}", args, borrow, arg, comma);
                 }
                 format!("{}({})", name, args)
+            }
+            ElementInfo::Parens => {
+                let children = element.1.clone();
+                let mut output = "".to_string();
+                for i in 0..children.len() {
+                    let child_ref = children[i];
+                    let child = self.get_output_for_element_index(child_ref, false);
+                    output = format!("{}{}", output, child);
+                }
+                format!("({})", output)
             }
             ElementInfo::Eol => format!("\r\n"),
             ElementInfo::Seol => format!(";\r\n"),
@@ -705,13 +747,14 @@ impl Ast {
             ElementInfo::FunctionCall(name, _) => {
                 self.get_infered_type_of_functioncall_element(name)
             }
+            ElementInfo::Type(returntype) => returntype,
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => undefined,
             ElementInfo::CommentSingleLine(_) => undefined,
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => undefined, // don't want to 'find' definitions
             ElementInfo::FunctionDefWIP => undefined,
             ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
-            ElementInfo::Type(_) => undefined,
+            ElementInfo::Parens => undefined,
             ElementInfo::Eol => undefined,
             ElementInfo::Seol => undefined,
             ElementInfo::Indent => undefined,
@@ -822,6 +865,7 @@ impl Ast {
     pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
         self.elements.iter().position(|(elinfo, _)| match &elinfo {
             ElementInfo::FunctionDef(n, _, _, _) => n == name,
+            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
             _ => false,
         })
     }
@@ -829,6 +873,7 @@ impl Ast {
     pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
         self.elements.iter().position(|(elinfo, _)| match &elinfo {
             ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
+            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
             _ => false,
         })
     }
@@ -851,6 +896,9 @@ impl Ast {
             ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
                 //dbg!("here", n, r, name, returntype);
                 n == name && (r.contains(returntype) || returntype.contains(r))
+            }
+            ElementInfo::Arg(n, _, r) => {
+                n == name && r.contains("&dyn Fn") && r.contains(returntype)
             }
             _ => false,
         })
