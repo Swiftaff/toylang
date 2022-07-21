@@ -1,4 +1,4 @@
-<img align="left" style="margin-right: 20px" width="40" alt="Toylang" src="./icon.png">
+<img align="left" style="margin-right: 20px; margin-top: 27px;" width="40" alt="Toylang" src="./icon.png">
 <h1>Toylang</h1>
 
 A toy language which compiles to rust for fun and experimentation.
