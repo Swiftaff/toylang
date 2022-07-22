@@ -18,17 +18,17 @@ impl File {
     }
 
     pub fn get(self: &mut Self, args: &[String]) -> Result<(), Box<dyn Error>> {
-        let filepath = args[1].clone();
-        let filename = Path::new(&filepath.clone())
+        let filepath = &args[1];
+        let filename = Path::new(&filepath)
             .file_name()
             .unwrap()
             .to_str()
             .unwrap()
             .to_string();
-        let filecontents = fs::read_to_string(filepath.clone())?;
-        println!("\r\nINPUT contents of filepath: {:?}", filepath.clone());
+        let filecontents = fs::read_to_string(&filepath)?;
+        println!("\r\nINPUT contents of filepath: {:?}", &filepath);
         self.filename = filename;
-        self.filepath = filepath;
+        self.filepath = filepath.clone();
         self.filecontents = filecontents;
         Ok(())
     }
