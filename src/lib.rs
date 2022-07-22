@@ -237,8 +237,8 @@ impl Config {
             self.ast
                 .append((ElementInfo::String(current_token.clone()), vec![]));
             self.append_outdent_if_last_expected_child();
-            self.append_seol_if_last_in_line();
-            Ok(())
+            return self.append_seol_if_last_in_line();
+    
         } else {
             //dbg!(&self.lines_of_tokens);
             self.get_error2(0, 1, ERRORS.string)
@@ -269,9 +269,8 @@ impl Config {
         self.append_outdent_if_last_expected_child();
 
         //allow seol before outdenting
-        self.append_seol_if_last_in_line();
+        return self.append_seol_if_last_in_line();
 
-        Ok(())
     }
 
     fn parse_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -280,8 +279,8 @@ impl Config {
             self.ast
                 .append((ElementInfo::Float(current_token.clone()), vec![]));
             self.append_outdent_if_last_expected_child();
-            self.append_seol_if_last_in_line();
-            Ok(())
+            return self.append_seol_if_last_in_line();
+      
         } else {
             return self.get_error2(0, 1, ERRORS.float);
         }
@@ -303,7 +302,7 @@ impl Config {
                         //dbg!("Arg", &returntype);
                         if returntype.contains("&dyn Fn") {
                             let args = get_args_from_dyn_fn(&returntype);
-                            return self.append_function_call(current_token, args, &returntype);
+                            return self.append_function_call(current_token, args, &returntype, false);
                         } else {
                             return self.append_constant_ref(current_token, &returntype);
                         }
@@ -519,8 +518,8 @@ impl Config {
             vec![],
         ));
         self.append_outdent_if_last_expected_child();
-        self.append_seol_if_last_in_line();
-        Ok(())
+       return self.append_seol_if_last_in_line();
+
     }
 
     fn append_new_constant_or_arg(self: &mut Self, current_token: &String) -> Result<(),()> {
@@ -550,8 +549,8 @@ impl Config {
         //dbg!("constant 1", &self.ast.parents);
         self.append_outdent_if_last_expected_child();
         //dbg!("constant 2", &self.ast.parents);
-        self.append_seol_if_last_in_line();
-        Ok(())
+        return self.append_seol_if_last_in_line();
+    
     }
 
     fn append_function_ref_or_call(
@@ -582,14 +581,12 @@ impl Config {
                 );
                 self.ast.elements[parent_ref] = new_constant_ref;
                 //self.ast.outdent();
-                self.append_seol_if_last_in_line();
-                return Ok(())
+                return self.append_seol_if_last_in_line();
+            
             }
             _ => {
                 //else it is a function call...
-                self.append_function_call(current_token, args, returntype);
-                self.append_seol_if_last_in_line();
-                return Ok(())
+                return self.append_function_call(current_token, args, returntype, true);
             }
         }
     }
@@ -597,7 +594,7 @@ impl Config {
     fn append_function_call(self: &mut Self,
         current_token: &String,
         args: usize,
-        returntype: &String,) -> Result<(), ()> {
+        returntype: &String,seol: bool) -> Result<(), ()> {
         self.ast.append((
             ElementInfo::FunctionCall(current_token.clone(), returntype.clone()),
             vec![],
@@ -605,7 +602,11 @@ impl Config {
         if args > 0 {
             self.ast.indent();
         }
+        if seol {
+            return self.append_seol_if_last_in_line()
+        } else {
         Ok(())
+        }
     }
 
     fn append_indent_if_first_in_line(self: &mut Self) {
@@ -616,7 +617,7 @@ impl Config {
         }
     }
 
-    fn append_seol_if_last_in_line(self: &mut Self) {
+    fn append_seol_if_last_in_line(self: &mut Self) -> Result<(),()> {
         let is_last_token_in_this_line =
             self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1;
         let mut is_end_of_return_statement_of_a_func_def: bool = false;
@@ -699,6 +700,7 @@ impl Config {
                 self.ast.append((ElementInfo::Seol, vec![]));
             }
         }
+        Ok(())
     }
 
     fn append_outdent_if_last_expected_child(self: &mut Self) {
