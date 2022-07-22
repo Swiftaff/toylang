@@ -981,8 +981,6 @@ mod tests {
 
     #[test]
     fn test_get_depths_vec() {
-        //get_depths_vec
-
         //1 el
         let mut ast1 = Ast::new();
         let mut n = ast1.elements.len();
@@ -1014,10 +1012,12 @@ mod tests {
         ast3.indent();
         ast3.append(el32);
         ast3.append(el33);
-        assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 1, n + 2]]);
+        assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 2, n + 1]]);
 
         //typical nested tree         this flat ast
         //0 (root)                    |_(0,[1,2,3,8]) root
+        // note insert default functions first
+        // so indexes will increase by # of functions
         //|_1 int                     |_(1,[])
         //|_2 int                     |_(2,[])
         //|_3 +                       |_(3,[4,5])
@@ -1080,9 +1080,9 @@ mod tests {
             ast4.get_depths_vec(),
             vec![
                 vec![n, n + 1, n + 2, n + 9],
-                vec![n + 3, n + 4],
-                vec![n + 5, n + 6],
-                vec![n + 7, n + 8]
+                vec![n + 4, n + 3],
+                vec![n + 6, n + 5],
+                vec![n + 8, n + 7]
             ]
         );
     }

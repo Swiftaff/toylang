@@ -1341,17 +1341,6 @@ mod tests {
     }
 
     #[test]
-    fn test_new() {
-        let args = ["toylang".to_string(), "filepath_example".to_string()];
-        let config_result = Config::new(&args);
-        let filepath = "filepath_example".to_string();
-        match config_result {
-            Ok(config) => assert_eq!(config.file.filepath, filepath),
-            Err(_) => assert!(false, "error should not exist"),
-        }
-    }
-
-    #[test]
     fn test_run() {
         let test_case_passes = [
             //empty file
@@ -1679,6 +1668,7 @@ mod tests {
         assert!(true);
     }
 
+    // cargo watch -x "test"
     // cargo watch -x "test test_run"
     // cargo watch -x "test test_run -- --show-output"
     // cargo watch -x "test test_is_float -- --show-output"
