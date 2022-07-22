@@ -529,12 +529,10 @@ impl Config {
         */
 
         //get parent funcdef
-        let func_def_ref_option = self
+        if let Some(func_def_ref) = self
             .ast
-            .get_current_parent_ref_from_element_children_search(self.ast.elements.len() - 1);
-        //dbg!(&self, func_def_ref_option);
-        match func_def_ref_option {
-            Some(func_def_ref) => {
+            .get_current_parent_ref_from_element_children_search(self.ast.elements.len() - 1) {
+   
                 //get child refs
                 let func_def = &self.ast.elements[func_def_ref];
                 let children = func_def.1.clone();
@@ -592,8 +590,7 @@ impl Config {
                                                         (ElementInfo::Parens, paren_children) => {
                                                             if paren_children.len() > 0 {
                                                                 let paren_returntype_ref =
-                                                                    paren_children
-                                                                        [paren_children.len() - 1];
+                                                                    *paren_children.last().unwrap();
                                                                 let paren_returntype_el = &self
                                                                     .ast
                                                                     .elements[paren_returntype_ref]
@@ -748,9 +745,9 @@ impl Config {
                         }
                     }
                     _ => (),
-                }
             }
-            _ => (),
+        
+            
         }
         self.outdent_if_last_expected_child();
         Ok(())

@@ -108,7 +108,7 @@ impl Ast {
         loop {
             //println!("{:?}", &tracked_parents);
             let mut next_level = vec![];
-            let current_level = depths[depths.len() - 1].clone();
+            let current_level = depths.last().unwrap().clone();
             for el_ref in current_level {
                 let el = &self.elements[el_ref];
                 children = el.1.iter().cloned().rev().collect();
@@ -251,24 +251,20 @@ impl Ast {
         match el_info {
             ElementInfo::Arg(name, _, _) => {
                 // get type of this arg, from the argtypes of parent funcdef
-                let parent_funcdef_option =
-                    self.get_current_parent_element_from_element_children_search(el_index);
-                match parent_funcdef_option {
-                    Some(parent_funcdef) => match parent_funcdef.0 {
+                if let Some(parent_funcdef) =
+                    self.get_current_parent_element_from_element_children_search(el_index)
+                {
+                    match parent_funcdef.0 {
                         ElementInfo::FunctionDef(_, argnames, argtypes, _) => {
-                            let index_option = argnames.iter().position(|argname| argname == name);
-                            match index_option {
-                                Some(index) => {
-                                    if argtypes.len() > index {
-                                        infered_type = argtypes[index].clone();
-                                    }
+                            if let Some(index) = argnames.iter().position(|argname| argname == name)
+                            {
+                                if argtypes.len() > index {
+                                    infered_type = argtypes[index].clone();
                                 }
-                                _ => (),
                             }
                         }
                         _ => (),
-                    },
-                    _ => (),
+                    }
                 }
             }
             _ => (),
@@ -293,10 +289,8 @@ impl Ast {
 
     fn get_infered_type_of_constantref_element(self: &mut Self, refname: &String) -> String {
         let mut infered_type = "Undefined".to_string();
-        let constant_option = self.get_constant_by_name(&refname);
-        match constant_option {
-            Some(ElementInfo::Constant(_, returntype)) => infered_type = returntype,
-            _ => (),
+        if let Some(ElementInfo::Constant(_, returntype)) = self.get_constant_by_name(&refname) {
+            infered_type = returntype
         }
         infered_type
     }
@@ -335,24 +329,21 @@ impl Ast {
 
     fn get_infered_type_of_functioncall_element(self: &Self, name: &String) -> String {
         let undefined = "Undefined".to_string();
-        let index_option = self.get_function_index_by_name(&name);
-        match index_option {
-            Some(index) => {
-                let funcdef = &self.elements[index];
-                match &funcdef.0 {
-                    ElementInfo::FunctionDef(_, _, _, returntype) => returntype.clone(),
-                    ElementInfo::Arg(_, _, returntype) => {
-                        if returntype.contains("&dyn Fn") {
-                            returntype.clone()
-                        } else {
-                            undefined
-                        }
+        if let Some(index) = self.get_function_index_by_name(&name) {
+            let funcdef = &self.elements[index];
+            match &funcdef.0 {
+                ElementInfo::FunctionDef(_, _, _, returntype) => return returntype.clone(),
+                ElementInfo::Arg(_, _, returntype) => {
+                    if returntype.contains("&dyn Fn") {
+                        return returntype.clone();
+                    } else {
+                        return undefined;
                     }
-                    _ => undefined,
                 }
+                _ => return undefined,
             }
-            _ => undefined,
         }
+        undefined
     }
 
     pub fn set_output(self: &mut Self) {
@@ -438,11 +429,10 @@ impl Ast {
         self: &mut Self,
         child_ref: usize,
     ) -> Option<Element> {
-        let index_option = self.get_current_parent_ref_from_element_children_search(child_ref);
-        match index_option {
-            Some(index) => Some(self.elements[index].clone()),
-            _ => None,
+        if let Some(index) = self.get_current_parent_ref_from_element_children_search(child_ref) {
+            return Some(self.elements[index].clone());
         }
+        None
     }
 
     pub fn replace_element_child(self: &mut Self, element_ref: usize, from: usize, to: usize) {
@@ -466,14 +456,14 @@ impl Ast {
         self: &mut Self,
         child_ref: usize,
     ) -> Option<usize> {
-        let index_option = self
+        if let Some(index) = self
             .elements
             .iter()
-            .position(|(_, children)| children.contains(&child_ref));
-        match index_option {
-            Some(index) => Some(index),
-            _ => None,
+            .position(|(_, children)| children.contains(&child_ref))
+        {
+            return Some(index);
         }
+        None
     }
 
     fn get_output_for_element_index(
@@ -529,9 +519,8 @@ impl Ast {
             }
             ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {
                 //dbg!("InbuiltFunctionCall");
-                let def_option = self.get_inbuilt_function_by_name(&name);
-                match def_option {
-                    Some(def) => match def {
+                if let Some(def) = self.get_inbuilt_function_by_name(&name) {
+                    match def {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
                             let children = element.1;
                             //dbg!(&argnames, &children);
@@ -546,7 +535,7 @@ impl Ast {
                                 //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
                             }
                             if children.len() > 0 && children.len() == (argnames.len() + 1) {
-                                let last_child = &self.elements[children[children.len() - 1]];
+                                let last_child = self.get_last_element();
                                 match &last_child.0 {
                                     ElementInfo::Seol => {
                                         output = format!("{};\r\n", output);
@@ -558,9 +547,9 @@ impl Ast {
                             return output;
                         }
                         _ => return "".to_string(),
-                    },
-                    None => return "".to_string(),
+                    }
                 }
+                "".to_string()
             }
             ElementInfo::FunctionDefWIP => "".to_string(),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
@@ -576,22 +565,18 @@ impl Ast {
                     let arg = self.get_output_for_element_index(arg_el_ref, false);
                     let mut borrow = "".to_string();
                     //dbg!("here", &name, &returntype, &arg_el);
-                    let fndef_option = self.get_function_index_by_name(&name);
-                    match fndef_option {
-                        Some(fndef_ref) => {
-                            let fndef = &self.elements[fndef_ref];
-                            match &fndef.0 {
-                                ElementInfo::FunctionDef(_, _, argtypes, _) => {
-                                    if argtypes.len() == arguments.len() {
-                                        if argtypes[i].contains("&dyn Fn") {
-                                            borrow = "&".to_string();
-                                        }
+                    if let Some(fndef_ref) = self.get_function_index_by_name(&name) {
+                        let fndef = &self.elements[fndef_ref];
+                        match &fndef.0 {
+                            ElementInfo::FunctionDef(_, _, argtypes, _) => {
+                                if argtypes.len() == arguments.len() {
+                                    if argtypes[i].contains("&dyn Fn") {
+                                        borrow = "&".to_string();
                                     }
                                 }
-                                _ => (),
                             }
+                            _ => (),
                         }
-                        _ => {}
                     }
 
                     let comma = if i == arguments.len() - 1 {
@@ -692,30 +677,20 @@ impl Ast {
     }
 
     pub fn get_existing_element_by_name(self: &Self, name: &String) -> Option<Element> {
-        let constant_option = self.get_constant_index_by_name(name);
-        let inbuiltfn_option = self.get_inbuilt_function_index_by_name(name);
-        let fn_option = self.get_function_index_by_name(name);
-        let type_option = self.get_inbuilt_type_index_by_name(name);
-        let arg_option = self.get_arg_index_by_name(name);
-        match constant_option {
-            Some(index) => return Some(self.elements[index].clone()),
-            _ => (),
+        if let Some(index) = self.get_constant_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
-        match inbuiltfn_option {
-            Some(index) => return Some(self.elements[index].clone()),
-            _ => (),
+        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
-        match fn_option {
-            Some(index) => return Some(self.elements[index].clone()),
-            _ => (),
+        if let Some(index) = self.get_function_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
-        match type_option {
-            Some(index) => return Some(self.elements[index].clone()),
-            _ => (),
+        if let Some(index) = self.get_inbuilt_type_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
-        match arg_option {
-            Some(index) => return Some(self.elements[index].clone()),
-            _ => (),
+        if let Some(index) = self.get_arg_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
         None
     }
@@ -743,11 +718,10 @@ impl Ast {
     }
 
     pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        let option_index = self.get_constant_index_by_name(name);
-        match option_index {
-            Some(index) => Some(self.elements[index].0.clone()),
-            None => None,
+        if let Some(index) = self.get_constant_index_by_name(name) {
+            return Some(self.elements[index].0.clone());
         }
+        None
     }
 
     pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
@@ -767,11 +741,10 @@ impl Ast {
     }
 
     pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        let option_index = self.get_inbuilt_function_index_by_name(name);
-        match option_index {
-            Some(index) => Some(self.elements[index].0.clone()),
-            None => None,
+        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
+            return Some(self.elements[index].0.clone());
         }
+        None
     }
 
     pub fn get_inbuilt_function_index_by_name_and_returntype(
@@ -798,15 +771,16 @@ impl Ast {
         returntype: &String,
     ) -> Option<ElementInfo> {
         //dbg!(returntype);
-        let option_index = self.get_inbuilt_function_index_by_name_and_returntype(name, returntype);
-        match option_index {
-            Some(index) => Some(self.elements[index].0.clone()),
-            None => None,
+        if let Some(index) =
+            self.get_inbuilt_function_index_by_name_and_returntype(name, returntype)
+        {
+            return Some(self.elements[index].0.clone());
         }
+        None
     }
 
     pub fn get_last_element(self: &Self) -> Element {
-        self.elements[self.elements.len() - 1].clone()
+        self.elements.last().unwrap().clone()
     }
 }
 
