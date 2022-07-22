@@ -438,198 +438,59 @@ impl Config {
 
                 match func_def.0 {
                     ElementInfo::FunctionDefWIP => {
+
                         //Constant is parent of functionDefWIP
-                        let constant_ref_option = self
-                            .ast
-                            .get_current_parent_ref_from_element_children_search(func_def_ref);
+                        if let Some(constant_ref)  = self
+                        .ast
+                        .get_current_parent_ref_from_element_children_search(func_def_ref) {
+                            let constant = self.ast.elements[constant_ref].clone();
 
-                        match constant_ref_option {
-                            Some(constant_ref) => {
-                                let constant = self.ast.elements[constant_ref].clone();
+                            //assignment is parent of constant
+                            if let Some(assignment_ref) = self
+                                .ast
+                                .get_current_parent_ref_from_element_children_search(
+                                    constant_ref,
+                                ) {
+                                    match constant.0 {
+                                        ElementInfo::Constant(name, _) => {
 
-                                //assignment is parent of constant
-                                let assignment_ref_option = self
-                                    .ast
-                                    .get_current_parent_ref_from_element_children_search(
-                                        constant_ref,
-                                    );
+                                            self.replace_funcdefwip_with_funcdef(&children, &name, func_def_ref);
 
-                                match assignment_ref_option {
-                                    Some(assignment_ref) => {
-                                        //let constant_ref = assignment_element.1[0];
+                                            // replace assignment with unused
+                                            self.ast.elements[assignment_ref] =
+                                                (ElementInfo::Unused, vec![]);
 
-                                        match constant.0 {
-                                            ElementInfo::Constant(name, _) => {
-                                                //assign name to parent funcdef (from constant
-                                                let num_args = children.len() / 2;
-                                                let argtype_refs = &children[..num_args];
-                                                let mut argtypes: Vec<String> = vec![];
-                                                for a in argtype_refs {
-                                                    match &self.ast.elements[a.clone()] {
-                                                        (ElementInfo::Type(typename), _) => {
-                                                            argtypes.push(typename.clone())
-                                                        }
-                                                        (ElementInfo::Parens, paren_children) => {
-                                                            if paren_children.len() > 0 {
-                                                                let paren_returntype_ref =
-                                                                    *paren_children.last().unwrap();
-                                                                let paren_returntype_el = &self
-                                                                    .ast
-                                                                    .elements[paren_returntype_ref]
-                                                                    ;
-                                                                let paren_returntype =
-                                                                    self.ast.get_elementinfo_type(
-                                                                        &paren_returntype_el.0,
-                                                                    );
-                                                                let paren_main_types =
-                                                                    &paren_children[0
-                                                                        ..paren_children.len() - 1];
-                                                                let mut main_types = "".to_string();
-                                                                for i in 0..paren_main_types.len() {
-                                                                    let main_type_ref =
-                                                                        paren_main_types[i];
-                                                                    let main_type_el = &self
-                                                                        .ast
-                                                                        .elements[main_type_ref]
-                                                                        ;
-                                                                    //dbg!(&main_type_el);
-                                                                    let main_type = self
-                                                                        .ast
-                                                                        .get_elementinfo_type(
-                                                                            &main_type_el.0,
-                                                                        );
-                                                                    let comma = if i + 1
-                                                                        == paren_main_types.len()
-                                                                    {
-                                                                        "".to_string()
-                                                                    } else {
-                                                                        ", ".to_string()
-                                                                    };
-                                                                    main_types = format!(
-                                                                        "{}{}{}",
-                                                                        main_types,
-                                                                        comma,
-                                                                        main_type
-                                                                    );
-                                                                }
-                                                                let fn_type_signature = format!(
-                                                                    "&dyn Fn({}) -> {}",
-                                                                    main_types, paren_returntype
-                                                                );
-                                                                argtypes.push(fn_type_signature)
-                                                            }
-                                                        }
-                                                        _ => (),
-                                                    }
-                                                }
+                                            // replace constant with Unused
+                                            self.ast.elements[constant_ref] =
+                                            (ElementInfo::Unused, vec![]);
 
-                                                let returntype_ref = &children[num_args];
-                                                let returntype: String = match &self.ast.elements
-                                                    [returntype_ref.clone()]
-                                                
-                                                {
-                                                    (ElementInfo::Type(typename), _) => typename.clone(),
-                                                    _ => "Undefined".to_string(),
-                                                };
-
-                                                //get argnames from Arg tokens
-                                                //but also update Arg tokens returntypes at same time
-                                                //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
-                                                let argname_refs = &children[num_args + 1..];
-                                                let mut argnames: Vec<String> = vec![];
-                                                for i in 0..argname_refs.len() {
-                                                    let a = argname_refs[i];
-                                                    match &self.ast.elements[a] {
-                                                        (
-                                                            ElementInfo::Arg(argname, scope, _),
-                                                            _,
-                                                        ) => {
-                                                            argnames.push(argname.clone());
-                                                            let returntype = argtypes[i].clone();
-                                                            let updated_arg_token =
-                                                                ElementInfo::Arg(
-                                                                    argname.clone(),
-                                                                    scope.clone(),
-                                                                    returntype,
-                                                                );
-                                                            self.ast.elements[a].0 =
-                                                                updated_arg_token;
-                                                        }
-                                                        _ => (),
-                                                    }
-                                                }
-
-                                                //assign argtypes to parent funcdef
-                                                //assign returntype to parent funcdef
-                                                //assign argnames to parent funcdef
-                                                let new_funcdef = ElementInfo::FunctionDef(
-                                                    name, argnames, argtypes, returntype,
-                                                );
-
-                                                //let assignment_el =
-                                                //    self.ast.elements[assignment_ref].clone();
-                                                //dbg!(assignment_el);
-                                                // replace assignment with unused
-                                                self.ast.elements[assignment_ref] =
-                                                    (ElementInfo::Unused, vec![]);
-
-                                                // replace parents child reference to the assignment
-                                                // with the func_def_ref
-                                                let parent_of_assignment_ref_option = self
-                                                    .ast
-                                                    .get_current_parent_ref_from_element_children_search(
+                                            // replace parents child reference to the assignment, with the func_def_ref
+                                            if let Some(index) = self
+                                                .ast
+                                                .get_current_parent_ref_from_element_children_search(
+                                                    assignment_ref,
+                                                ) {
+                                                    self.ast.replace_element_child(
+                                                        index,
                                                         assignment_ref,
+                                                        func_def_ref,
                                                     );
-                                                match parent_of_assignment_ref_option {
-                                                    Some(index) => {
-                                                        self.ast.replace_element_child(
-                                                            index,
-                                                            assignment_ref,
-                                                            func_def_ref,
-                                                        );
-                                                    }
-                                                    _ => (),
                                                 }
 
-                                                // replace original funcdefWIP with funcdef
-                                                self.ast.elements[func_def_ref] =
-                                                    (new_funcdef, vec![]);
-
-                                                //let constant_el =
-                                                //    self.ast.elements[constant_ref].clone();
-                                                //dbg!(constant_el);
-                                                // replace constant with Unused
-                                                self.ast.elements[constant_ref] =
-                                                    (ElementInfo::Unused, vec![]);
-
-                                                // replace funcdef children with Unused
-                                                //for child_ref in children {
-                                                //    self.ast.elements[child_ref] =
-                                                //        (ElementInfo::Unused, vec![]);
-                                                //}
-
-                                                //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                                //dbg!(&self);
-
-                                                self.ast.outdent();
-                                                self.ast.outdent();
-                                                self.ast.outdent();
-                                                self.ast.indent_this(func_def_ref);
-                                                //dbg!(&self.ast.parents);
-                                            }
-                                            _ => (),
+                                            //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
+                                            self.ast.outdent();
+                                            self.ast.outdent();
+                                            self.ast.outdent();
+                                            self.ast.indent_this(func_def_ref);
+                                            //dbg!(&self.ast.parents);
                                         }
+                                        _ => (),
                                     }
-                                    _ => (),
                                 }
-                            }
-                            _ => (),
-                        }
-                    }
-                    _ => (),
+                            }         
+                        },
+                        _=>()
             }
-        
-            
         }
         self.append_outdent_if_last_expected_child();
         Ok(())
@@ -1109,6 +970,104 @@ impl Config {
             self.lines_of_tokens.push(line_of_tokens);
         }
         //dbg!(&self.lines_of_tokens);
+    }
+
+fn replace_funcdefwip_with_funcdef(self: &mut Self,children: &[usize], name: &String, func_def_ref: usize) {
+    //assign name, argtypes, argnames, returntype to parent funcdef
+    let argtypes = self.get_argtypes_from_argtokens(&children);
+    let returntype = self.get_returntype_from_argtokens(&children);
+    let argnames = self.get_argnames_from_argtokens(&children, &argtypes);
+    let new_funcdef = ElementInfo::FunctionDef(
+        name.clone(), argnames, argtypes, returntype,
+    );
+
+    // replace original funcdefWIP with funcdef
+    self.ast.elements[func_def_ref] =
+    (new_funcdef, vec![]);
+}
+
+fn get_argtypes_from_argtokens(self: &Self,children: &[usize]) -> Vec<String> {
+    let mut argtypes: Vec<String> = vec![];
+    let num_args = children.len() / 2;
+    let argtype_refs = &children[..num_args];
+    for a in argtype_refs {
+        match &self.ast.elements[a.clone()] {
+            (ElementInfo::Type(typename), _) => {
+                argtypes.push(typename.clone())
+            }
+            (ElementInfo::Parens, paren_children) => {
+                if paren_children.len() > 0 {
+                    let fn_type_signature = self.get_formatted_dyn_fn_type_sig(&paren_children);
+                    argtypes.push(fn_type_signature)
+                }
+            }
+            _ => (),
+        }
+    }
+    argtypes
+}
+
+fn get_returntype_from_argtokens(self: &Self,children: &[usize]) -> String {
+    let num_args = children.len() / 2;
+    let returntype_ref = &children[num_args];
+    return match &self.ast.elements
+        [returntype_ref.clone()]
+    {
+        (ElementInfo::Type(typename), _) => typename.clone(),
+        _ => "Undefined".to_string(),
+    };
+}
+
+fn get_argnames_from_argtokens(self: &mut Self, children: &[usize],  argtypes: &Vec<String>) -> Vec<String>{
+    //get argnames from Arg tokens
+    //but also update Arg tokens returntypes at same time
+    //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
+    let mut argnames: Vec<String> = vec![];
+    let num_args = children.len() / 2;
+    let argname_refs = &children[num_args + 1..];
+    for i in 0..argname_refs.len() {
+        let a = argname_refs[i];
+        match &self.ast.elements[a] {
+            (
+                ElementInfo::Arg(argname, scope, _),
+                _,
+            ) => {
+                argnames.push(argname.clone());
+                let returntype = argtypes[i].clone();
+                let updated_arg_token =
+                    ElementInfo::Arg(
+                        argname.clone(),
+                        scope.clone(),
+                        returntype,
+                    );
+                self.ast.elements[a].0 =
+                    updated_arg_token;
+            }
+            _ => (),
+        }
+    }
+    argnames
+}
+
+    fn get_formatted_dyn_fn_type_sig(self: &Self, paren_children: &Vec<usize>) -> String {
+        let paren_returntype_ref = *paren_children.last().unwrap();
+        let paren_returntype_el = &self.ast.elements[paren_returntype_ref];
+        let paren_returntype = self.ast.get_elementinfo_type(&paren_returntype_el.0);
+        let paren_main_types = &paren_children[0..paren_children.len() - 1];
+        let mut main_types = "".to_string();
+        for i in 0..paren_main_types.len() {
+            let main_type_ref = paren_main_types[i];
+            let main_type_el = &self.ast.elements[main_type_ref];
+            //dbg!(&main_type_el);
+            let main_type = self.ast.get_elementinfo_type(&main_type_el.0);
+            let comma = if i + 1 == paren_main_types.len() {
+                "".to_string()
+            } else {
+                ", ".to_string()
+            };
+            main_types = format!("{}{}{}", main_types, comma, main_type);
+        }
+        format!("&dyn Fn({}) -> {}", main_types, paren_returntype)
     }
 
     fn get_error2(
