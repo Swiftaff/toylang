@@ -1,3 +1,5 @@
+use crate::element::{ElIndex, Element, ElementInfo};
+use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
 #[derive(Clone)]
@@ -41,109 +43,6 @@ fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
     arr_debug = format!("{}]", arr_debug);
     arr_debug
 }
-
-impl fmt::Debug for ElementInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let el_debug = match self {
-            ElementInfo::Root => format!("Root"),
-            ElementInfo::CommentSingleLine(comment) => {
-                format!("Comment: {}", comment)
-            }
-            ElementInfo::Int(int) => format!("Int: {}", int),
-            ElementInfo::Float(float) => format!("Float: {}", float),
-            ElementInfo::String(string) => format!("String: {}", string),
-            ElementInfo::Arg(name, scope, returntype) => {
-                format!("Arg: {} scope:{} ({})", name, scope, returntype)
-            }
-            ElementInfo::Constant(name, returntype) => {
-                format!("Constant: {} ({})", name, returntype)
-            }
-            ElementInfo::ConstantRef(name, returntype, refname) => {
-                format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
-            }
-            ElementInfo::Assignment => {
-                format!("Assignment")
-            }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
-                format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
-            }
-            ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
-                format!("InbuiltFunctionCall: {} ({})", name, returntype)
-            }
-            ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
-            ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
-                format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
-            }
-            ElementInfo::FunctionCall(name, returntype) => {
-                format!("FunctionCall: {} ({})", name, returntype)
-            }
-            ElementInfo::Parens => "Parens".to_string(),
-            ElementInfo::Eol => "Eol".to_string(),
-            ElementInfo::Seol => "Seol".to_string(),
-            ElementInfo::Indent => "Indent".to_string(),
-            ElementInfo::Type(name) => {
-                format!("Type: {}", name)
-            }
-            ElementInfo::Unused => "Unused".to_string(),
-        };
-        write!(f, "{}", el_debug)
-    }
-}
-
-#[derive(Clone)]
-
-pub enum ElementInfo {
-    Root,
-    CommentSingleLine(Value),               //no children
-    Int(Value),                             //no children
-    Float(Value),                           //no children
-    String(Value),                          //no children
-    Arg(Name, Scope, ReturnType),           //no children
-    Constant(Name, ReturnType),             //1 child, value
-    ConstantRef(Name, ReturnType, RefName), //no children
-    Assignment,                             //1 child, constant
-    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //no children
-    InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
-    FunctionDefWIP,                         //no children
-    FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
-    FunctionCall(Name, ReturnType),         //fndef argnames.len() children
-    Parens,     //either 1 child, for function_ref, or 1+ for function type sig
-    Type(Name), // no children
-    Eol,
-    Seol,
-    Indent,
-    Unused,
-}
-
-type Value = String;
-type ElIndex = usize;
-type ReturnType = String;
-type Name = String;
-type RefName = String;
-type ArgNames = Vec<String>;
-type ArgTypes = Vec<String>;
-type Format = String;
-type Scope = ElIndex;
-// no need to track parents in Element
-// should only ever be one per Element so can search for it each time
-// to save double handling parent/child refs in two places
-
-/*
-//this is not defined in the current crate because tuples are always foreign
-impl fmt::Debug for Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let children_debug = debug_flat_usize_array(&self.1);
-        let elinfo_debug = format!("{:?} {}", self.0, children_debug);
-        let el_debug = format!("{}\r\n", elinfo_debug);
-
-        write!(f, "{}", el_debug)
-    }
-}
-*/
-
-pub type Element = (ElementInfo, ElementChildren);
-pub type ElementChildren = Vec<ElIndex>;
 
 impl Ast {
     pub fn new() -> Ast {
@@ -927,19 +826,6 @@ pub fn vec_remove_tail(stack: &Vec<usize>) -> Vec<usize> {
     }
 }
 
-fn get_formatted_argname_argtype_pairs(argnames: &Vec<String>, argtypes: &Vec<String>) -> String {
-    let mut args = "".to_string();
-    for a in 0..argnames.len() {
-        let comma = if a + 1 == argnames.len() {
-            "".to_string()
-        } else {
-            ", ".to_string()
-        };
-        args = format!("{}{}: {}{}", args, argnames[a], argtypes[a], comma);
-    }
-    args
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -948,36 +834,6 @@ mod tests {
     // cargo test test_get_depths_vec -- --show-output
 
     use super::*;
-
-    #[test]
-    fn test_get_formatted_argname_argtype_pairs() {
-        let test_case_passes: Vec<Vec<Vec<String>>> = vec![
-            vec![
-                vec!["arg1".to_string()],
-                vec!["i64".to_string()],
-                vec!["arg1: i64".to_string()],
-            ],
-            vec![
-                vec!["arg1".to_string(), "arg2".to_string()],
-                vec!["i64".to_string(), "f64".to_string()],
-                vec!["arg1: i64, arg2: f64".to_string()],
-            ],
-            vec![
-                vec!["arg1".to_string(), "arg2".to_string(), "arg3".to_string()],
-                vec!["i64".to_string(), "f64".to_string(), "String".to_string()],
-                vec!["arg1: i64, arg2: f64, arg3: String".to_string()],
-            ],
-        ];
-        for test in test_case_passes {
-            let argnames = &test[0];
-            let argtypes = &test[1];
-            let output = &test[2][0];
-            assert_eq!(
-                &get_formatted_argname_argtype_pairs(&argnames, &argtypes),
-                output
-            );
-        }
-    }
 
     #[test]
     fn test_get_depths_vec() {

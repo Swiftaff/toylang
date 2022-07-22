@@ -1,8 +1,11 @@
 // TODO make most function arguments refs
 mod ast;
+mod element;
+mod formatting;
 mod file;
 mod errors;
-use ast::{Ast, Element, ElementInfo};
+use ast::Ast;
+use element::{Element, ElementInfo};
 use file::File;
 use errors::ERRORS;
 use std::error::Error;
@@ -1271,7 +1274,7 @@ fn strip_trailing_whitespace(input: &String) -> String {
 mod tests {
 
     use super::*;
-    use ast::Element;
+    use element::Element;
 
     fn mock_config() -> Config {
         Config {
