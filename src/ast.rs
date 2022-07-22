@@ -13,7 +13,7 @@ pub struct Ast {
 impl fmt::Debug for Ast {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut el_debug = "".to_string();
-        let els = self.elements.clone();
+        let els = &self.elements;
         let parents_debug = debug_flat_usize_array(&self.parents);
         for el in 0..els.len() {
             let children_debug = debug_flat_usize_array(&els[el].1);
@@ -44,7 +44,7 @@ fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
 
 impl fmt::Debug for ElementInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let el_debug = match self.clone() {
+        let el_debug = match self {
             ElementInfo::Root => format!("Root"),
             ElementInfo::CommentSingleLine(comment) => {
                 format!("Comment: {}", comment)
@@ -72,7 +72,7 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
+                let args = get_formatted_argname_argtype_pairs(argnames.clone(), argtypes.clone());
                 format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, returntype) => {
@@ -149,11 +149,7 @@ impl Ast {
     pub fn new() -> Ast {
         let type_primitives = vec!["i64", "f64", "string"];
         let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
-        let types: Vec<Element> = type_primitives
-            .clone()
-            .into_iter()
-            .map(type_closure)
-            .collect();
+        let types: Vec<Element> = type_primitives.into_iter().map(type_closure).collect();
         let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
         let arithmetic_closure = |prim: &str| {
             (
@@ -168,7 +164,6 @@ impl Ast {
             )
         };
         let arithmetic_operators: Vec<Element> = arithmetic_primitives
-            .clone()
             .into_iter()
             .map(arithmetic_closure)
             .collect();
@@ -178,7 +173,7 @@ impl Ast {
             .chain(&root)
             .chain(&arithmetic_operators)
             .chain(&types)
-            .map(|x| x.clone())
+            .cloned()
             .collect();
         Ast {
             elements,
@@ -212,26 +207,26 @@ impl Ast {
         let mut children: Vec<usize> = self.elements[0].1.clone();
         let mut depths: Vec<Vec<usize>> = vec![children];
         loop {
-            //println!("{:?}", tracked_parents.clone());
+            //println!("{:?}", &tracked_parents);
             let mut next_level = vec![];
             let current_level = depths[depths.len() - 1].clone();
             for el_ref in current_level {
                 let el = self.elements[el_ref].clone();
-                children = el.1.iter().map(|x| x.clone()).rev().collect();
+                children = el.1.iter().cloned().rev().collect();
                 next_level = vec![]
                     .iter()
                     .chain(&next_level.clone())
                     .chain(&children)
-                    .map(|x| x.clone())
+                    .cloned()
                     .collect();
                 tracked_parents.push(el_ref);
             }
             if next_level.len() > 0 {
-                depths.push(next_level.clone());
+                depths.push(next_level);
             } else {
                 break;
             }
-            //println!("{:?}", tracked_parents.clone());
+            //println!("{:?}", &tracked_parents);
         }
         depths
     }
@@ -452,7 +447,7 @@ impl Ast {
                 let funcdef = self.elements[index].clone();
                 match funcdef.0 {
                     ElementInfo::FunctionDef(_, _, _, returntype) => returntype,
-                    ElementInfo::Arg(n, _, returntype) => {
+                    ElementInfo::Arg(_, _, returntype) => {
                         if returntype.contains("&dyn Fn") {
                             returntype
                         } else {
@@ -679,20 +674,20 @@ impl Ast {
                 let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
                 format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
             }
-            ElementInfo::FunctionCall(name, returntype) => {
+            ElementInfo::FunctionCall(name, _) => {
                 let arguments = element.1.clone();
                 let mut args = "".to_string();
                 for i in 0..arguments.len() {
                     let arg_el_ref = arguments[i];
-                    let arg_el = self.elements[arg_el_ref].clone();
+                    //let arg_el = self.elements[arg_el_ref].clone();
                     let arg = self.get_output_for_element_index(arg_el_ref, false);
                     let mut borrow = "".to_string();
-                    //dbg!("here", name.clone(), returntype.clone(), arg_el.clone());
+                    //dbg!("here", &name, &returntype, &arg_el);
                     let fndef_option = self.get_function_index_by_name(&name);
                     match fndef_option {
                         Some(fndef_ref) => {
-                            let fndef = self.elements[fndef_ref].clone();
-                            match fndef.0 {
+                            let fndef = &self.elements[fndef_ref];
+                            match &fndef.0 {
                                 ElementInfo::FunctionDef(_, _, argtypes, _) => {
                                     if argtypes.len() == arguments.len() {
                                         if argtypes[i].contains("&dyn Fn") {
@@ -716,7 +711,7 @@ impl Ast {
                 format!("{}({})", name, args)
             }
             ElementInfo::Parens => {
-                let children = element.1.clone();
+                let children = &element.1;
                 let mut output = "".to_string();
                 for i in 0..children.len() {
                     let child_ref = children[i];
@@ -764,7 +759,7 @@ impl Ast {
 
     fn set_close_output_for_element(self: &mut Self, el_index: usize) {
         if el_index < self.elements.len() {
-            let element = self.elements[el_index].clone();
+            let element = &self.elements[el_index];
             let element_string = match element.0 {
                 ElementInfo::FunctionDef(_, _, _, _) => {
                     format!("\r\n{}}}\r\n", self.get_indent())
