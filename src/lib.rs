@@ -49,7 +49,7 @@ impl Config {
 
     pub fn run(self: &mut Self, args: &[String]) -> Result<(), Box<dyn Error>> {
         self.file.get(args)?;
-        //dbg!(self.file.clone());
+        //dbg!(&self.file);
         match self.run_main_tasks() {
             Ok(_) => (),
             Err(_e) => (),
@@ -72,12 +72,12 @@ impl Config {
             Ok(_) => {
                 ////dbg!(&self.ast);
                 if self.error_stack.len() > 0 {
-                    println!("{:?}", self.ast.clone());
-                    println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
-                    for error in self.error_stack.clone() {
+                    eprintln!("{:?}", &self.ast);
+                    eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                    for error in &self.error_stack {
                         println!("{}", error);
                     }
-                    println!("----------\r\n");
+                    eprintln!("----------\r\n");
                 } else {
                     self.ast.set_output();
                     println!(
@@ -87,12 +87,12 @@ impl Config {
                 }
             }
             Err(_) => {
-                println!("{:?}", self.ast.clone());
-                println!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
-                for error in self.error_stack.clone() {
+                eprintln!("{:?}", &self.ast);
+                eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                for error in &self.error_stack {
                     println!("{}", error);
                 }
-                println!("----------\r\n");
+                eprintln!("----------\r\n");
             }
         };
         Ok(())
@@ -123,7 +123,7 @@ impl Config {
     }
 
     fn parse_current_token(self: &mut Self, tokens: &Tokens) -> Result<(), ()> {
-        let current_token = tokens[self.current_line_token].clone();
+        let current_token = &tokens[self.current_line_token];
         let current_token_vec: &Vec<char> = &tokens[self.current_line_token].chars().collect();
         if current_token_vec.len() == 0 {
             return Ok(());
@@ -132,8 +132,8 @@ impl Config {
         match self.ast.get_inbuilt_function_index_by_name(&current_token) {
             Some(index_of_function) => {
                 //dbg!(&current_token);
-                let func = self.ast.elements[index_of_function].clone();
-                match func.0 {
+                let func = &self.ast.elements[index_of_function];
+                match &func.0 {
                     ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
                         self.parse_inbuilt_function_call(&current_token, index_of_function)
                     }
@@ -233,7 +233,7 @@ impl Config {
     }
 
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
-        if is_string(&current_token.clone()) {
+        if is_string(&current_token) {
             self.indent_if_first_in_line();
             self.ast
                 .append((ElementInfo::String(current_token.clone()), vec![]));
@@ -291,7 +291,7 @@ impl Config {
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
         //dbg!(current_token);
         let el_option = self.ast.get_existing_element_by_name(current_token);
-        match el_option.clone() {
+        match el_option {
             Some(_) => {
                 //check if constant already exists
                 let parent = self.ast.get_current_parent_element_from_parents();
@@ -402,9 +402,9 @@ impl Config {
             }
         }
 
-        //dbg!("constant 1", self.ast.parents.clone());
+        //dbg!("constant 1", &self.ast.parents);
         self.outdent_if_last_expected_child();
-        //dbg!("constant 2", self.ast.parents.clone());
+        //dbg!("constant 2", &self.ast.parents);
         self.seol_if_last_in_line();
     }
 
@@ -418,7 +418,7 @@ impl Config {
         self.indent_if_first_in_line();
 
         let parent = self.ast.get_current_parent_element_from_parents();
-        //dbg!("penguin",parent.clone());
+        //dbg!("penguin",&parent);
         match parent.0 {
             ElementInfo::Parens => {
                 // if parent is parens, then this is just a function reference
@@ -466,8 +466,8 @@ impl Config {
         index_of_function: usize,
     ) -> Result<(), ()> {
         self.indent_if_first_in_line();
-        let el = self.ast.elements[index_of_function].clone();
-        let returntype = self.ast.get_elementinfo_type(el.0);
+        let el = &self.ast.elements[index_of_function];
+        let returntype = self.ast.get_elementinfo_type(el.0.clone());
         self.ast.append((
             ElementInfo::InbuiltFunctionCall(current_token.clone(), index_of_function, returntype),
             vec![],
@@ -483,8 +483,8 @@ impl Config {
         index_of_function: usize,
     ) -> Result<(), ()> {
         self.indent_if_first_in_line();
-        let el = self.ast.elements[index_of_function].clone();
-        let returntype = self.ast.get_elementinfo_type(el.0);
+        let el = &self.ast.elements[index_of_function];
+        let returntype = self.ast.get_elementinfo_type(el.0.clone());
         self.ast.append((
             ElementInfo::FunctionCall(current_token.clone(), returntype),
             vec![],
@@ -529,13 +529,13 @@ impl Config {
         let func_def_ref_option = self
             .ast
             .get_current_parent_ref_from_element_children_search(self.ast.elements.len() - 1);
-        //dbg!(self.clone(), func_def_ref_option);
+        //dbg!(&self, func_def_ref_option);
         match func_def_ref_option {
             Some(func_def_ref) => {
                 //get child refs
-                let func_def = self.ast.elements[func_def_ref].clone();
-                let children = func_def.1;
-                //dbg!(children.clone());
+                let func_def = &self.ast.elements[func_def_ref];
+                let children = func_def.1.clone();
+                //dbg!(&children);
                 //error if count is NOT odd (argtypes + returntype + argnames)
                 if children.len() % 2 == 0 || children.len() == 0 {
                     return self.get_error2(0, 1, ERRORS.funcdef_args);
@@ -546,7 +546,7 @@ impl Config {
                 //error if arg types are NOT first
                 let first_child_ref = children[0];
 
-                let first_child = self.ast.elements[first_child_ref].clone();
+                let first_child = &self.ast.elements[first_child_ref];
                 match first_child.0 {
                     ElementInfo::Type(_) => (),
                     ElementInfo::Parens => (),
@@ -582,22 +582,22 @@ impl Config {
                                                 let argtype_refs = &children[..num_args];
                                                 let mut argtypes: Vec<String> = vec![];
                                                 for a in argtype_refs {
-                                                    match self.ast.elements[a.clone()].clone() {
+                                                    match &self.ast.elements[a.clone()] {
                                                         (ElementInfo::Type(typename), _) => {
-                                                            argtypes.push(typename)
+                                                            argtypes.push(typename.clone())
                                                         }
                                                         (ElementInfo::Parens, paren_children) => {
                                                             if paren_children.len() > 0 {
                                                                 let paren_returntype_ref =
                                                                     paren_children
                                                                         [paren_children.len() - 1];
-                                                                let paren_returntype_el = self
+                                                                let paren_returntype_el = &self
                                                                     .ast
                                                                     .elements[paren_returntype_ref]
-                                                                    .clone();
+                                                                    ;
                                                                 let paren_returntype =
                                                                     self.ast.get_elementinfo_type(
-                                                                        paren_returntype_el.0,
+                                                                        paren_returntype_el.0.clone(),
                                                                     );
                                                                 let paren_main_types =
                                                                     &paren_children[0
@@ -606,15 +606,15 @@ impl Config {
                                                                 for i in 0..paren_main_types.len() {
                                                                     let main_type_ref =
                                                                         paren_main_types[i];
-                                                                    let main_type_el = self
+                                                                    let main_type_el = &self
                                                                         .ast
                                                                         .elements[main_type_ref]
-                                                                        .clone();
-                                                                    //dbg!(main_type_el.clone());
+                                                                        ;
+                                                                    //dbg!(&main_type_el);
                                                                     let main_type = self
                                                                         .ast
                                                                         .get_elementinfo_type(
-                                                                            main_type_el.0,
+                                                                            main_type_el.0.clone(),
                                                                         );
                                                                     let comma = if i + 1
                                                                         == paren_main_types.len()
@@ -642,11 +642,11 @@ impl Config {
                                                 }
 
                                                 let returntype_ref = &children[num_args];
-                                                let returntype: String = match self.ast.elements
+                                                let returntype: String = match &self.ast.elements
                                                     [returntype_ref.clone()]
-                                                .clone()
+                                                
                                                 {
-                                                    (ElementInfo::Type(typename), _) => typename,
+                                                    (ElementInfo::Type(typename), _) => typename.clone(),
                                                     _ => "Undefined".to_string(),
                                                 };
 
@@ -657,7 +657,7 @@ impl Config {
                                                 let mut argnames: Vec<String> = vec![];
                                                 for i in 0..argname_refs.len() {
                                                     let a = argname_refs[i];
-                                                    match self.ast.elements[a.clone()].clone() {
+                                                    match &self.ast.elements[a.clone()] {
                                                         (
                                                             ElementInfo::Arg(argname, scope, _),
                                                             _,
@@ -667,10 +667,10 @@ impl Config {
                                                             let updated_arg_token =
                                                                 ElementInfo::Arg(
                                                                     argname.clone(),
-                                                                    scope,
+                                                                    scope.clone(),
                                                                     returntype,
                                                                 );
-                                                            self.ast.elements[a.clone()].0 =
+                                                            self.ast.elements[a].0 =
                                                                 updated_arg_token;
                                                         }
                                                         _ => (),
@@ -684,8 +684,8 @@ impl Config {
                                                     name, argnames, argtypes, returntype,
                                                 );
 
-                                                let assignment_el =
-                                                    self.ast.elements[assignment_ref].clone();
+                                                //let assignment_el =
+                                                //    self.ast.elements[assignment_ref].clone();
                                                 //dbg!(assignment_el);
                                                 // replace assignment with unused
                                                 self.ast.elements[assignment_ref] =
@@ -713,8 +713,8 @@ impl Config {
                                                 self.ast.elements[func_def_ref] =
                                                     (new_funcdef, vec![]);
 
-                                                let constant_el =
-                                                    self.ast.elements[constant_ref].clone();
+                                                //let constant_el =
+                                                //    self.ast.elements[constant_ref].clone();
                                                 //dbg!(constant_el);
                                                 // replace constant with Unused
                                                 self.ast.elements[constant_ref] =
@@ -727,13 +727,13 @@ impl Config {
                                                 //}
 
                                                 //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                                //dbg!(self.clone());
+                                                //dbg!(&self);
 
                                                 self.ast.outdent();
                                                 self.ast.outdent();
                                                 self.ast.outdent();
                                                 self.ast.indent_this(func_def_ref);
-                                                //dbg!(self.ast.parents.clone());
+                                                //dbg!(&self.ast.parents);
                                             }
                                             _ => (),
                                         }
@@ -783,7 +783,7 @@ impl Config {
 
         if is_last_token_in_this_line {
             for el_index in (0..self.ast.elements.len()).rev() {
-                let el = self.ast.elements[el_index].clone();
+                let el = &self.ast.elements[el_index];
                 match el.0 {
                     ElementInfo::Indent => {
                         // get start of current line
@@ -800,7 +800,7 @@ impl Config {
                                     // confirm this line is a statement from a func def
 
                                     let first_element_after_indent_el =
-                                        self.ast.elements[first_element_after_indent_ref].clone();
+                                        &self.ast.elements[first_element_after_indent_ref];
                                     match first_element_after_indent_el.0 {
                                         // confirm this statement is a return statement
                                         // i.e. must be one of these types
@@ -864,19 +864,19 @@ impl Config {
     fn outdent_if_last_expected_child(self: &mut Self) {
         let mut prev_parents_len = 999999999;
         loop {
-            //dbg!("loop", self.ast.parents.clone());
+            //dbg!("loop", &self.ast.parents);
             if self.ast.parents.len() < 2 || self.ast.parents.len() == prev_parents_len {
                 break;
             }
             prev_parents_len = self.ast.parents.len();
             let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
-            let current_parent = self.ast.elements[current_parent_ref].clone();
-            //dbg!("---", self.ast.clone());
-            match current_parent.0 {
+            let current_parent = &self.ast.elements[current_parent_ref];
+            //dbg!("---", &self.ast);
+            match current_parent.0.clone() {
                 ElementInfo::Constant(_, _) => {
                     //dbg!("Constant");
                     if current_parent.1.len() > 0 {
-                        //dbg!("Constant outdent", self.ast.parents.clone(),);
+                        //dbg!("Constant outdent", &self.ast.parents,);
                         self.ast.outdent();
                     }
                 }
@@ -887,7 +887,7 @@ impl Config {
                         self.ast.outdent();
                     }
                 }
-                ElementInfo::InbuiltFunctionCall(name, fndefref, _) => {
+                ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
                     //dbg!("InbuiltFunctionCall", &name);
                     let fndef = self.ast.elements[fndefref].clone();
                     match fndef.0 {
@@ -895,7 +895,7 @@ impl Config {
                             // current assumption is inbuiltfunctionCalls expect a fixed number
                             // of children to match args.
                             if current_parent.1.len() == argnames.len() {
-                                //dbg!("InbuiltFunctionCall outdent", self.ast.parents.clone(),);
+                                //dbg!("InbuiltFunctionCall outdent", &self.ast.parents,);
                                 self.ast.outdent();
                             }
                         }
@@ -913,41 +913,41 @@ impl Config {
 
                     match (previous_element.0, self.ast.get_last_element().0) {
                         (ElementInfo::Indent, ElementInfo::Int(_)) => {
-                            //dbg!("FunctionDef outdent Int", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Int", &self.ast.parents,);
                             self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Float(_)) => {
-                            //dbg!("FunctionDef outdent Float", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Float", &self.ast.parents,);
                             self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::String(_)) => {
-                            //dbg!("FunctionDef outdent String", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent String", &self.ast.parents,);
                             self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::Constant(_, _)) => {
-                            //dbg!("FunctionDef outdent Constant", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent Constant", &self.ast.parents,);
                             self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::ConstantRef(_, _, _)) => {
-                            //dbg!("FunctionDef outdent ConstantRef", self.ast.parents.clone(),);
+                            //dbg!("FunctionDef outdent ConstantRef", &self.ast.parents,);
                             self.ast.outdent();
                             self.ast.outdent();
                         }
                         (ElementInfo::Indent, ElementInfo::InbuiltFunctionCall(_, fndefref, _)) => {
                             //dbg!("InbuiltFunctionCall");
-                            let fndef = self.ast.elements[fndefref].clone();
-                            match fndef.0 {
+                            let fndef = &self.ast.elements[fndefref];
+                            match &fndef.0 {
                                 ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
                                     // current assumption is inbuiltFunctionCalls expect a fixed number
                                     // of children to match args
                                     if fndef.1.len() == argnames.len() {
                                         //dbg!(
                                         //    "FunctionDef outdent InbuiltFunctionCall enough args",
-                                        //    self.ast.parents.clone(),
+                                        //    &self.ast.parents,
                                         //);
                                         self.ast.outdent();
                                     }
@@ -961,15 +961,15 @@ impl Config {
                             let fn_index = self.ast.get_function_index_by_name(&name);
                             match fn_index {
                                 Some(index) => {
-                                    let fndef = self.ast.elements[index].clone();
-                                    match fndef.0 {
-                                        ElementInfo::FunctionDef(name, argnames, _, returntype) => {
+                                    let fndef = &self.ast.elements[index];
+                                    match &fndef.0 {
+                                        ElementInfo::FunctionDef(_, argnames, _, _) => {
                                             // current assumption is functionCalls expect a fixed number
                                             // of children to match args
                                             if fndef.1.len() == argnames.len() {
                                                 //dbg!(
                                                 //    "FunctionDef outdent FunctionCall enough args",
-                                                //    self.ast.parents.clone(),
+                                                //    &self.ast.parents,
                                                 //);
                                                 self.ast.outdent();
                                             }
@@ -990,8 +990,8 @@ impl Config {
                     let fn_index = self.ast.get_function_index_by_name(&name);
                     match fn_index {
                         Some(index) => {
-                            let fndef = self.ast.elements[index].clone();
-                            match fndef.0 {
+                            let fndef = &self.ast.elements[index];
+                            match &fndef.0 {
                                 ElementInfo::FunctionDef(_, argnames, _, _) => {
                                     if current_parent.1.len() > 0
                                         && current_parent.1.len() == argnames.len()
@@ -1001,7 +1001,7 @@ impl Config {
                                     }
                                 }
                                 ElementInfo::Arg(_, _, returntype) => {
-                                    let args = self.get_args_from_dyn_fn(returntype);
+                                    let args = self.get_args_from_dyn_fn(returntype.clone());
                                     if current_parent.1.len() > 0 && current_parent.1.len() == args
                                     {
                                         self.ast.outdent();
@@ -1079,8 +1079,8 @@ impl Config {
             let mut index_to = 0;
             let mut count_quotes = 0;
 
-            let char_vec_initial: Vec<char> = self.lines_of_chars[line].clone();
-            let char_as_string = char_vec_initial.iter().cloned().collect::<String>();
+            let char_vec_initial: &Vec<char> = &self.lines_of_chars[line];
+            let char_as_string = char_vec_initial.iter().collect::<String>();
             let removed_leading_whitespace = strip_leading_whitespace(char_as_string);
             let removed_trailing_whitespace = strip_trailing_whitespace(removed_leading_whitespace);
             let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
@@ -1102,7 +1102,6 @@ impl Config {
                     let token_chars = char_vec
                         [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
                         .iter()
-                        .cloned()
                         .collect::<String>();
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
@@ -1114,7 +1113,7 @@ impl Config {
 
             self.lines_of_tokens.push(line_of_tokens);
         }
-        //dbg!(self.lines_of_tokens.clone());
+        //dbg!(&self.lines_of_tokens);
     }
 
     fn get_error2(
@@ -1139,7 +1138,6 @@ impl Config {
             self.current_line + 1,
             self.lines_of_chars[self.current_line]
                 .iter()
-                .cloned()
                 .collect::<String>(),
             " ".repeat(arrow_indent),
             "^".repeat(arrow_len),
