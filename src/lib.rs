@@ -310,13 +310,13 @@ impl Config {
                 }
                 match el_option {
                     Some((ElementInfo::Constant(_, returntype), _)) => {
-                        self.create_constant_ref(current_token, returntype);
+                        self.create_constant_ref(current_token, &returntype);
                         return Ok(());
                     }
                     Some((ElementInfo::Arg(_, _, returntype), _)) => {
                         //dbg!("Arg", &returntype);
                         if returntype.contains("&dyn Fn") {
-                            let args = self.get_args_from_dyn_fn(returntype.clone());
+                            let args = self.get_args_from_dyn_fn(&returntype);
                             self.ast.append((
                                 ElementInfo::FunctionCall(current_token.clone(), returntype),
                                 vec![],
@@ -325,7 +325,7 @@ impl Config {
                                 self.ast.indent();
                             }
                         } else {
-                            self.create_constant_ref(current_token, returntype);
+                            self.create_constant_ref(current_token, &returntype);
                         }
                         return Ok(());
                     }
@@ -341,7 +341,7 @@ impl Config {
                     Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
                     Some((ElementInfo::FunctionDefWIP, _)) => (),
                     Some((ElementInfo::FunctionDef(_, argnames, _, returntype), _)) => {
-                        self.create_function_call(current_token, argnames.len(), returntype);
+                        self.create_function_call(current_token, argnames.len(), &returntype);
                         return Ok(());
                     }
                     Some((ElementInfo::FunctionCall(_, _), _)) => (),
@@ -361,17 +361,17 @@ impl Config {
         Ok(())
     }
 
-    fn get_args_from_dyn_fn(self: &Self, string: String) -> usize {
+    fn get_args_from_dyn_fn(self: &Self, string: &String) -> usize {
         string.matches(",").count() + (!string.contains("()") as usize)
         //0 args, e.g. "&dyn Fn() -> i64"         = 0 commas + 0 does match ()
         //1 args, e.g. "&dyn Fn(i64) -> i64"      = 0 commas + 1 does not match ()
         //2 args, e.g. "&dyn Fn(i64, i64) -> i64" = 1 comma  + 1 does not match ()
     }
 
-    fn create_constant_ref(self: &mut Self, current_token: &String, returntype: String) {
+    fn create_constant_ref(self: &mut Self, current_token: &String, returntype: &String) {
         self.indent_if_first_in_line();
         self.ast.append((
-            ElementInfo::ConstantRef(current_token.clone(), returntype, current_token.clone()),
+            ElementInfo::ConstantRef(current_token.clone(), returntype.clone(), current_token.clone()),
             vec![],
         ));
         self.outdent_if_last_expected_child();
@@ -412,7 +412,7 @@ impl Config {
         self: &mut Self,
         current_token: &String,
         args: usize,
-        returntype: String,
+        returntype: &String,
     ) {
         //dbg!("FunctionCall", &current_token);
         self.indent_if_first_in_line();
@@ -429,7 +429,7 @@ impl Config {
                 let new_constant_ref: Element = (
                     ElementInfo::ConstantRef(
                         current_token.clone(),
-                        returntype,
+                        returntype.clone(),
                         current_token.clone(),
                     ),
                     [].to_vec(),
@@ -441,7 +441,7 @@ impl Config {
                 //else it is a function call...
 
                 self.ast.append((
-                    ElementInfo::FunctionCall(current_token.clone(), returntype),
+                    ElementInfo::FunctionCall(current_token.clone(), returntype.clone()),
                     vec![],
                 ));
                 if args > 0 {
@@ -467,7 +467,7 @@ impl Config {
     ) -> Result<(), ()> {
         self.indent_if_first_in_line();
         let el = &self.ast.elements[index_of_function];
-        let returntype = self.ast.get_elementinfo_type(el.0.clone());
+        let returntype = self.ast.get_elementinfo_type(&el.0);
         self.ast.append((
             ElementInfo::InbuiltFunctionCall(current_token.clone(), index_of_function, returntype),
             vec![],
@@ -484,7 +484,7 @@ impl Config {
     ) -> Result<(), ()> {
         self.indent_if_first_in_line();
         let el = &self.ast.elements[index_of_function];
-        let returntype = self.ast.get_elementinfo_type(el.0.clone());
+        let returntype = self.ast.get_elementinfo_type(&el.0);
         self.ast.append((
             ElementInfo::FunctionCall(current_token.clone(), returntype),
             vec![],
@@ -597,7 +597,7 @@ impl Config {
                                                                     ;
                                                                 let paren_returntype =
                                                                     self.ast.get_elementinfo_type(
-                                                                        paren_returntype_el.0.clone(),
+                                                                        &paren_returntype_el.0,
                                                                     );
                                                                 let paren_main_types =
                                                                     &paren_children[0
@@ -614,7 +614,7 @@ impl Config {
                                                                     let main_type = self
                                                                         .ast
                                                                         .get_elementinfo_type(
-                                                                            main_type_el.0.clone(),
+                                                                            &main_type_el.0,
                                                                         );
                                                                     let comma = if i + 1
                                                                         == paren_main_types.len()
@@ -657,7 +657,7 @@ impl Config {
                                                 let mut argnames: Vec<String> = vec![];
                                                 for i in 0..argname_refs.len() {
                                                     let a = argname_refs[i];
-                                                    match &self.ast.elements[a.clone()] {
+                                                    match &self.ast.elements[a] {
                                                         (
                                                             ElementInfo::Arg(argname, scope, _),
                                                             _,
@@ -883,7 +883,7 @@ impl Config {
                 ElementInfo::Assignment => {
                     //dbg!("Assignment");
                     if current_parent.1.len() > 0 {
-                        //dbg!("Assignment outdent", self.ast.parents.clone(),);
+                        //dbg!("Assignment outdent", &self.ast.parents);
                         self.ast.outdent();
                     }
                 }
@@ -1001,7 +1001,7 @@ impl Config {
                                     }
                                 }
                                 ElementInfo::Arg(_, _, returntype) => {
-                                    let args = self.get_args_from_dyn_fn(returntype.clone());
+                                    let args = self.get_args_from_dyn_fn(&returntype);
                                     if current_parent.1.len() > 0 && current_parent.1.len() == args
                                     {
                                         self.ast.outdent();
@@ -1081,8 +1081,8 @@ impl Config {
 
             let char_vec_initial: &Vec<char> = &self.lines_of_chars[line];
             let char_as_string = char_vec_initial.iter().collect::<String>();
-            let removed_leading_whitespace = strip_leading_whitespace(char_as_string);
-            let removed_trailing_whitespace = strip_trailing_whitespace(removed_leading_whitespace);
+            let removed_leading_whitespace = strip_leading_whitespace(&char_as_string);
+            let removed_trailing_whitespace = strip_trailing_whitespace(&removed_leading_whitespace);
             let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
 
             let mut inside_quotes = false;
@@ -1229,7 +1229,7 @@ fn concatenate_vec_strings(tokens: &Tokens) -> String {
     output
 }
 
-fn strip_leading_whitespace(input: String) -> String {
+fn strip_leading_whitespace(input: &String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
     let mut first_non_whitespace_index = 0;
@@ -1248,7 +1248,7 @@ fn strip_leading_whitespace(input: String) -> String {
     input[first_non_whitespace_index..].to_string()
 }
 
-fn strip_trailing_whitespace(input: String) -> String {
+fn strip_trailing_whitespace(input: &String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
     let mut first_non_whitespace_index = input.len();

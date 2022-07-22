@@ -72,7 +72,7 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(argnames.clone(), argtypes.clone());
+                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
                 format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, returntype) => {
@@ -211,11 +211,11 @@ impl Ast {
             let mut next_level = vec![];
             let current_level = depths[depths.len() - 1].clone();
             for el_ref in current_level {
-                let el = self.elements[el_ref].clone();
+                let el = &self.elements[el_ref];
                 children = el.1.iter().cloned().rev().collect();
                 next_level = vec![]
                     .iter()
-                    .chain(&next_level.clone())
+                    .chain(&next_level)
                     .chain(&children)
                     .cloned()
                     .collect();
@@ -243,12 +243,7 @@ impl Ast {
         let mut output = vec![];
         for i in (0..depths.len()).rev() {
             let level = &depths[i];
-            output = vec![]
-                .iter()
-                .chain(&output.clone())
-                .chain(level)
-                .map(|x| x.clone())
-                .collect();
+            output = vec![].iter().chain(&output).chain(level).cloned().collect();
         }
         output
     }
@@ -256,16 +251,16 @@ impl Ast {
     fn fix_any_unknown_types(self: &mut Self) {
         let depths = self.get_depths_vec();
         let depths_flattened = self.get_depths_flattened(&depths);
-        //dbg!(depths_flattened.clone());
+        //dbg!(&depths_flattened);
         for el_index in depths_flattened {
             self.elements[el_index].0 = self.get_updated_elementinfo_with_infered_type(el_index);
         }
-        //dbg!(self.elements.clone());
+        //dbg!(&self.elements);
     }
 
     fn get_updated_elementinfo_with_infered_type(self: &mut Self, el_index: usize) -> ElementInfo {
         let el = self.elements[el_index].clone();
-        let el_type = self.get_elementinfo_type(el.0.clone());
+        let el_type = self.get_elementinfo_type(&el.0);
         if el_type == "Undefined".to_string() {
             let infered_type = self.get_infered_type_of_any_element(el_index);
             match el.0 {
@@ -304,29 +299,29 @@ impl Ast {
                 ElementInfo::Indent => (),
                 ElementInfo::Unused => (),
             }
-            //dbg!(el_index, self.elements[el_index].clone().0);
+            //dbg!(el_index, &self.elements[el_index].0);
         }
         el.0
     }
 
     fn get_infered_type_of_any_element(self: &mut Self, el_index: usize) -> String {
         let el = self.elements[el_index].clone();
-        let el_info = el.0.clone();
-        match el_info.clone() {
+        let el_info = &el.0;
+        match el_info {
             ElementInfo::Arg(_, _, _) => {
                 return self.get_infered_type_of_arg_element(el_info, el_index);
             }
             ElementInfo::Constant(_, _) => {
-                return self.get_infered_type_of_constant_element(el);
+                return self.get_infered_type_of_constant_element(&el);
             }
             ElementInfo::ConstantRef(_, _, refname) => {
-                return self.get_infered_type_of_constantref_element(refname.clone());
+                return self.get_infered_type_of_constantref_element(&refname);
             }
             ElementInfo::InbuiltFunctionCall(_, fndef_index, _) => {
-                return self.get_infered_type_of_inbuiltfunctioncall_element(el, fndef_index);
+                return self.get_infered_type_of_inbuiltfunctioncall_element(&el, *fndef_index);
             }
             ElementInfo::FunctionCall(name, _) => {
-                return self.get_infered_type_of_functioncall_element(name.clone());
+                return self.get_infered_type_of_functioncall_element(&name);
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => {}
@@ -350,7 +345,7 @@ impl Ast {
 
     fn get_infered_type_of_arg_element(
         self: &mut Self,
-        el_info: ElementInfo,
+        el_info: &ElementInfo,
         el_index: usize,
     ) -> String {
         let mut infered_type = "Undefined".to_string();
@@ -362,7 +357,7 @@ impl Ast {
                 match parent_funcdef_option {
                     Some(parent_funcdef) => match parent_funcdef.0 {
                         ElementInfo::FunctionDef(_, argnames, argtypes, _) => {
-                            let index_option = argnames.iter().position(|argname| argname == &name);
+                            let index_option = argnames.iter().position(|argname| argname == name);
                             match index_option {
                                 Some(index) => {
                                     if argtypes.len() > index {
@@ -383,7 +378,7 @@ impl Ast {
         infered_type
     }
 
-    fn get_infered_type_of_constant_element(self: &mut Self, el: Element) -> String {
+    fn get_infered_type_of_constant_element(self: &mut Self, el: &Element) -> String {
         let mut infered_type = "Undefined".to_string();
         match el.0 {
             ElementInfo::Constant(_, _) => {
@@ -397,7 +392,7 @@ impl Ast {
         infered_type
     }
 
-    fn get_infered_type_of_constantref_element(self: &mut Self, refname: String) -> String {
+    fn get_infered_type_of_constantref_element(self: &mut Self, refname: &String) -> String {
         let mut infered_type = "Undefined".to_string();
         let constant_option = self.get_constant_by_name(&refname);
         match constant_option {
@@ -409,29 +404,29 @@ impl Ast {
 
     fn get_infered_type_of_inbuiltfunctioncall_element(
         self: &mut Self,
-        func_call_el: Element,
+        func_call_el: &Element,
         funcdef_el_index: usize,
     ) -> String {
         let mut infered_type = "Undefined".to_string();
-        let el_children = func_call_el.1;
-        let el = self.elements[funcdef_el_index].clone();
-        let elinfo = el.0;
+        let el_children = func_call_el.1.clone();
+        let el = &self.elements[funcdef_el_index];
+        let elinfo = &el.0;
         match elinfo {
             ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
                 //TODO could check all args match here for parser error
-                //dbg!("2", returntype.clone());
+                //dbg!("2", &returntype);
                 if returntype.contains("|") {
-                    //dbg!("2.5", el_children.clone());
+                    //dbg!("2.5", &el_children);
                     if el_children.len() > 0 && argtypes.len() <= el_children.len() {
                         for _argtype in argtypes {
                             let first_child_ref = el_children[0];
-                            let first_child = self.elements[first_child_ref].clone();
-                            infered_type = self.get_elementinfo_type(first_child.0);
-                            //dbg!("2.6", infered_type.clone());
+                            let first_child = &self.elements[first_child_ref];
+                            infered_type = self.get_elementinfo_type(&first_child.0);
+                            //dbg!("2.6", &infered_type);
                         }
                     }
                 } else {
-                    infered_type = returntype;
+                    infered_type = returntype.clone();
                 }
             }
             _ => (),
@@ -439,17 +434,17 @@ impl Ast {
         infered_type
     }
 
-    fn get_infered_type_of_functioncall_element(self: &Self, name: String) -> String {
+    fn get_infered_type_of_functioncall_element(self: &Self, name: &String) -> String {
         let undefined = "Undefined".to_string();
         let index_option = self.get_function_index_by_name(&name);
         match index_option {
             Some(index) => {
-                let funcdef = self.elements[index].clone();
-                match funcdef.0 {
-                    ElementInfo::FunctionDef(_, _, _, returntype) => returntype,
+                let funcdef = &self.elements[index];
+                match &funcdef.0 {
+                    ElementInfo::FunctionDef(_, _, _, returntype) => returntype.clone(),
                     ElementInfo::Arg(_, _, returntype) => {
                         if returntype.contains("&dyn Fn") {
-                            returntype
+                            returntype.clone()
                         } else {
                             undefined
                         }
@@ -476,7 +471,7 @@ impl Ast {
         while stack.len() > 0 {
             let current_item = stack[0];
             // remove current item from stack
-            stack = vec_remove_head(stack);
+            stack = vec_remove_head(&stack);
             // if it is an outdent marker, outdent level!
             if current_item == 0 {
                 self.outdent();
@@ -485,7 +480,7 @@ impl Ast {
 
                 self.set_close_output_for_element(end_tag);
                 // removed the outdent marker earlier, now remove the end tag indicator
-                stack = vec_remove_head(stack);
+                stack = vec_remove_head(&stack);
                 // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
                 // since it needs to be treated as the return statement, so remove it if there is one
             } else {
@@ -495,7 +490,7 @@ impl Ast {
                 let mut current_item_children = self.elements[current_item].1.clone();
 
                 // don't render children of certain elements - they are rendered separately
-                let el = self.elements[current_item].clone();
+                let el = &self.elements[current_item];
                 match el.0 {
                     ElementInfo::InbuiltFunctionCall(_, _, _) => current_item_children = vec![],
                     _ => (),
@@ -588,8 +583,8 @@ impl Ast {
         skip_in_case_handled_by_parent: bool,
     ) -> String {
         let element = self.elements[element_index].clone();
-        //dbg!(element.0.clone());
-        //dbg!(element.clone(), self.parents.clone()); //            self.get_current_parent_ref_from_parents(),            self.get_current_parent_element()   );
+        //dbg!(&element.0);
+        //dbg!(&element, self.parents); //            self.get_current_parent_ref_from_parents(),            self.get_current_parent_element()   );
         let skip = "".to_string();
 
         //skip children for certain parents who already parsed them
@@ -601,7 +596,7 @@ impl Ast {
             }
         }
 
-        match element.0.clone() {
+        match element.0 {
             ElementInfo::Root => "".to_string(),
             ElementInfo::CommentSingleLine(comment_string) => format!("{}", comment_string),
             ElementInfo::Int(val) => format!("{}", val),
@@ -614,16 +609,16 @@ impl Ast {
             }
             ElementInfo::Assignment => {
                 let mut returntype = "Undefined".to_string();
-                let children = element.1.clone();
+                let children = element.1;
                 if children.len() < 1 {
                     format!("// let ?: ? = ? OUTPUT ERROR: Can't get constant for this assignment from : {:?}", children)
                 } else {
                     let constant_index = children[0];
                     let constant_output = self.get_output_for_element_index(constant_index, false);
-                    let constant = self.elements[constant_index].clone();
-                    match constant.0 {
+                    let constant = &self.elements[constant_index];
+                    match &constant.0 {
                         ElementInfo::Constant(_, r) => {
-                            returntype = r;
+                            returntype = r.clone();
                         }
                         _ => (),
                     }
@@ -639,7 +634,7 @@ impl Ast {
                 match def_option {
                     Some(def) => match def {
                         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
-                            let children = element.1.clone();
+                            let children = element.1;
                             //dbg!(&argnames, &children);
                             let mut output = format;
                             //dbg!(&output);
@@ -649,12 +644,11 @@ impl Ast {
                                 let arg_output =
                                     self.get_output_for_element_index(arg_value_el_ref, true);
                                 output = output.replace(&arg_var_num, &arg_output);
-                                //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,output.clone());
+                                //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
                             }
                             if children.len() > 0 && children.len() == (argnames.len() + 1) {
-                                let last_child =
-                                    self.elements[children[children.len() - 1]].clone();
-                                match last_child.0 {
+                                let last_child = &self.elements[children[children.len() - 1]];
+                                match &last_child.0 {
                                     ElementInfo::Seol => {
                                         output = format!("{};\r\n", output);
                                         ()
@@ -671,15 +665,15 @@ impl Ast {
             }
             ElementInfo::FunctionDefWIP => "".to_string(),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(argnames, argtypes);
+                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
                 format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, _) => {
-                let arguments = element.1.clone();
+                let arguments = element.1;
                 let mut args = "".to_string();
                 for i in 0..arguments.len() {
                     let arg_el_ref = arguments[i];
-                    //let arg_el = self.elements[arg_el_ref].clone();
+                    //let arg_el = self.elements[arg_el_ref];
                     let arg = self.get_output_for_element_index(arg_el_ref, false);
                     let mut borrow = "".to_string();
                     //dbg!("here", &name, &returntype, &arg_el);
@@ -728,21 +722,21 @@ impl Ast {
         }
     }
 
-    pub fn get_elementinfo_type(self: &Self, elementinfo: ElementInfo) -> String {
+    pub fn get_elementinfo_type(self: &Self, elementinfo: &ElementInfo) -> String {
         let undefined = "Undefined".to_string();
         match elementinfo {
             ElementInfo::Int(_) => "i64".to_string(),
             ElementInfo::Float(_) => "f64".to_string(),
             ElementInfo::String(_) => "String".to_string(),
             ElementInfo::Assignment => undefined,
-            ElementInfo::Constant(_, returntype) => returntype,
-            ElementInfo::ConstantRef(_, returntype, _) => returntype,
-            ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype,
-            ElementInfo::Arg(_, _, returntype) => returntype,
+            ElementInfo::Constant(_, returntype) => returntype.clone(),
+            ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
+            ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
+            ElementInfo::Arg(_, _, returntype) => returntype.clone(),
             ElementInfo::FunctionCall(name, _) => {
-                self.get_infered_type_of_functioncall_element(name)
+                self.get_infered_type_of_functioncall_element(&name)
             }
-            ElementInfo::Type(returntype) => returntype,
+            ElementInfo::Type(returntype) => returntype.clone(),
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => undefined,
             ElementInfo::CommentSingleLine(_) => undefined,
@@ -794,7 +788,7 @@ impl Ast {
         self.parents = if self.parents.len() < 2 {
             vec![0]
         } else {
-            vec_remove_tail(self.parents.clone())
+            vec_remove_tail(&self.parents)
         };
     }
 
@@ -917,7 +911,7 @@ impl Ast {
     }
 }
 
-fn vec_remove_head(stack: Vec<usize>) -> Vec<usize> {
+fn vec_remove_head(stack: &Vec<usize>) -> Vec<usize> {
     if stack.len() == 1 {
         vec![]
     } else {
@@ -925,7 +919,7 @@ fn vec_remove_head(stack: Vec<usize>) -> Vec<usize> {
     }
 }
 
-pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
+pub fn vec_remove_tail(stack: &Vec<usize>) -> Vec<usize> {
     if stack.len() == 1 {
         vec![]
     } else {
@@ -933,7 +927,7 @@ pub fn vec_remove_tail(stack: Vec<usize>) -> Vec<usize> {
     }
 }
 
-fn get_formatted_argname_argtype_pairs(argnames: Vec<String>, argtypes: Vec<String>) -> String {
+fn get_formatted_argname_argtype_pairs(argnames: &Vec<String>, argtypes: &Vec<String>) -> String {
     let mut args = "".to_string();
     for a in 0..argnames.len() {
         let comma = if a + 1 == argnames.len() {
@@ -979,8 +973,8 @@ mod tests {
             let argtypes = &test[1];
             let output = &test[2][0];
             assert_eq!(
-                get_formatted_argname_argtype_pairs(argnames.clone(), argtypes.clone()),
-                output.clone()
+                &get_formatted_argname_argtype_pairs(&argnames, &argtypes),
+                output
             );
         }
     }
@@ -993,7 +987,7 @@ mod tests {
         let mut ast1 = Ast::new();
         let mut n = ast1.elements.len();
         let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast1.append(el1.clone());
+        ast1.append(el1);
         assert_eq!(ast1.get_depths_vec(), vec![[n]]);
 
         //3 el under root
@@ -1002,9 +996,9 @@ mod tests {
         let el21: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el22: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el23: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast2.append(el21.clone());
-        ast2.append(el22.clone());
-        ast2.append(el23.clone());
+        ast2.append(el21);
+        ast2.append(el22);
+        ast2.append(el23);
         assert_eq!(ast2.get_depths_vec(), vec![[n, n + 1, n + 2]]);
 
         //1 el under with 2 children, under root
@@ -1016,10 +1010,10 @@ mod tests {
         );
         let el32: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el33: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast3.append(el31.clone());
+        ast3.append(el31);
         ast3.indent();
-        ast3.append(el32.clone());
-        ast3.append(el33.clone());
+        ast3.append(el32);
+        ast3.append(el33);
         assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 1, n + 2]]);
 
         //typical nested tree         this flat ast
@@ -1066,22 +1060,22 @@ mod tests {
         let el48: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el49: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el410: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast4.append(el41.clone());
-        ast4.append(el42.clone());
-        ast4.append(el43.clone());
+        ast4.append(el41);
+        ast4.append(el42);
+        ast4.append(el43);
         ast4.indent();
-        ast4.append(el44.clone());
-        ast4.append(el45.clone());
+        ast4.append(el44);
+        ast4.append(el45);
         ast4.indent();
-        ast4.append(el46.clone());
-        ast4.append(el47.clone());
+        ast4.append(el46);
+        ast4.append(el47);
         ast4.indent();
-        ast4.append(el48.clone());
-        ast4.append(el49.clone());
+        ast4.append(el48);
+        ast4.append(el49);
         ast4.outdent();
         ast4.outdent();
         ast4.outdent();
-        ast4.append(el410.clone());
+        ast4.append(el410);
         assert_eq!(
             ast4.get_depths_vec(),
             vec![
