@@ -1339,6 +1339,53 @@ mod tests {
             assert!(!is_float(input));
         }
     }
+ 
+    #[test]
+    fn test_ast_walk() {
+        /*
+
+        WIP attempting to generate nested output without recursing, using a stack
+
+        Example, nested AST:
+
+        typical nested tree         this flat ast
+        0 (root)                    |_(0,[1,2,3,8]) root
+        |_1                         |_(1,[])
+        |_2                         |_(2,[])
+        |_3                         |_(3,[4,5])
+        | |_4                       |_(4,[])
+        | |_5                       |_(5,[6,7])
+        |   |_6                     |_(6,[])
+        |   |_7                     |_(7,[])
+        |_8                         |_(8,[])
+
+        */
+        //let root: Element = (ElementInfo::CommentSingleLine("root".to_string()), vec![1, 2, 3, 8]);
+        // we use the 0 index (for root) to mean outdent a level
+        // so all real elements start at index 1!
+        let el1: Element = (ElementInfo::CommentSingleLine("1".to_string()), vec![]);
+        let el2: Element = (ElementInfo::CommentSingleLine("2".to_string()), vec![]);
+        let el3: Element = (ElementInfo::CommentSingleLine("3".to_string()), vec![4, 5]);
+        let el4: Element = (ElementInfo::CommentSingleLine("4".to_string()), vec![]);
+        let el5: Element = (ElementInfo::CommentSingleLine("5".to_string()), vec![6, 7]);
+        let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
+        let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
+        let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
+        let mut ast: Ast = Ast::new();
+        ast.append(el1);
+        ast.append(el2);
+        ast.append(el3);
+        ast.indent();
+        ast.append(el4);
+        ast.append(el5);
+        ast.indent();
+        ast.append(el6);
+        ast.append(el7);
+        ast.outdent();
+        ast.outdent();
+        ast.append(el8);
+        assert!(true);
+    }
 
     #[test]
     fn test_run() {
@@ -1619,53 +1666,6 @@ mod tests {
                 Err(_e) => assert!(false, "error should not exist"),
             }
         }
-    }
-
-    #[test]
-    fn test_ast_walk() {
-        /*
-
-        WIP attempting to generate nested output without recursing, using a stack
-
-        Example, nested AST:
-
-        typical nested tree         this flat ast
-        0 (root)                    |_(0,[1,2,3,8]) root
-        |_1                         |_(1,[])
-        |_2                         |_(2,[])
-        |_3                         |_(3,[4,5])
-        | |_4                       |_(4,[])
-        | |_5                       |_(5,[6,7])
-        |   |_6                     |_(6,[])
-        |   |_7                     |_(7,[])
-        |_8                         |_(8,[])
-
-        */
-        //let root: Element = (ElementInfo::CommentSingleLine("root".to_string()), vec![1, 2, 3, 8]);
-        // we use the 0 index (for root) to mean outdent a level
-        // so all real elements start at index 1!
-        let el1: Element = (ElementInfo::CommentSingleLine("1".to_string()), vec![]);
-        let el2: Element = (ElementInfo::CommentSingleLine("2".to_string()), vec![]);
-        let el3: Element = (ElementInfo::CommentSingleLine("3".to_string()), vec![4, 5]);
-        let el4: Element = (ElementInfo::CommentSingleLine("4".to_string()), vec![]);
-        let el5: Element = (ElementInfo::CommentSingleLine("5".to_string()), vec![6, 7]);
-        let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
-        let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
-        let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
-        let mut ast: Ast = Ast::new();
-        ast.append(el1);
-        ast.append(el2);
-        ast.append(el3);
-        ast.indent();
-        ast.append(el4);
-        ast.append(el5);
-        ast.indent();
-        ast.append(el6);
-        ast.append(el7);
-        ast.outdent();
-        ast.outdent();
-        ast.append(el8);
-        assert!(true);
     }
 
     // cargo watch -x "test"
