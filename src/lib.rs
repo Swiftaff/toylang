@@ -180,7 +180,7 @@ impl Compiler {
                 if current_token_vec.len() > 1 {
                     return self.get_error2(0, 1, ERRORS.assign);
                 }
-                self.parse_assignment(&current_token)
+                self.parse_assignment()
             }
             '"' => self.parse_string(&current_token),
             //positive numbers
@@ -216,6 +216,10 @@ impl Compiler {
         if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
             return self.get_error2(0, 1, ERRORS.comment_single_line);
         }
+        self.append_comment_single_line()
+    }
+
+    fn append_comment_single_line(self: &mut Self) -> Result<(), ()> {
         let val = concatenate_vec_strings(&self.lines_of_tokens[self.current_line]);
         self.ast.append((ElementInfo::Indent, vec![]));
         self.ast
@@ -225,6 +229,11 @@ impl Compiler {
     }
 
     fn parse_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
+        // TODO error checking
+        self.append_type(index_of_type)
+    }
+
+    fn append_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
         self.append_indent_if_first_in_line();
         self.ast.append(self.ast.elements[index_of_type].clone());
         Ok(())
@@ -232,16 +241,19 @@ impl Compiler {
 
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if is_string(&current_token) {
-            self.append_indent_if_first_in_line();
-            self.ast
-                .append((ElementInfo::String(current_token.clone()), vec![]));
-            self.append_outdent_if_last_expected_child();
-            return self.append_seol_if_last_in_line();
-    
+            self.append_string(current_token)
         } else {
             //dbg!(&self.lines_of_tokens);
             self.get_error2(0, 1, ERRORS.string)
         }
+    }
+
+    fn append_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
+            self.append_indent_if_first_in_line();
+            self.ast
+                .append((ElementInfo::String(current_token.clone()), vec![]));
+            self.append_outdent_if_last_expected_child();
+            self.append_seol_if_last_in_line()
     }
 
     fn parse_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -262,27 +274,31 @@ impl Compiler {
             Ok(_) => (),
             Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
         }
+        self.append_int(current_token)
+    }
+
+    fn append_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
         self.append_indent_if_first_in_line();
         self.ast
             .append((ElementInfo::Int(current_token.clone()), vec![]));
         self.append_outdent_if_last_expected_child();
-
-        //allow seol before outdenting
-        return self.append_seol_if_last_in_line();
-
+        self.append_seol_if_last_in_line()
     }
 
     fn parse_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if current_token.len() > 0 && is_float(current_token) {
-            self.append_indent_if_first_in_line();
-            self.ast
-                .append((ElementInfo::Float(current_token.clone()), vec![]));
-            self.append_outdent_if_last_expected_child();
-            return self.append_seol_if_last_in_line();
-      
+            self.append_float(current_token)
         } else {
             return self.get_error2(0, 1, ERRORS.float);
         }
+    }
+
+    fn append_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
+        self.append_indent_if_first_in_line();
+        self.ast
+            .append((ElementInfo::Float(current_token.clone()), vec![]));
+        self.append_outdent_if_last_expected_child();
+        self.append_seol_if_last_in_line()
     }
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -335,7 +351,12 @@ impl Compiler {
         return self.append_new_constant_or_arg(current_token);
     }
 
-    fn parse_assignment(self: &mut Self, _current_token: &String) -> Result<(), ()> {
+    fn parse_assignment(self: &mut Self) -> Result<(), ()> {
+        // TODO error checking
+        self.append_assignment()
+    }
+
+    fn append_assignment(self: &mut Self) -> Result<(), ()> {
         self.append_indent_if_first_in_line();
         self.ast.append((ElementInfo::Assignment, vec![]));
         self.append_outdent_if_last_expected_child();
@@ -348,6 +369,15 @@ impl Compiler {
         current_token: &String,
         index_of_function: usize,
     ) -> Result<(), ()> {
+        //TODO erro checking
+        self.append_inbuilt_function_call(current_token, index_of_function)
+    }
+
+    fn append_inbuilt_function_call(
+        self: &mut Self,
+        current_token: &String,
+        index_of_function: usize,
+    ) -> Result<(),()> {
         self.append_indent_if_first_in_line();
         let el = &self.ast.elements[index_of_function];
         let returntype = self.ast.get_elementinfo_type(&el.0);
@@ -365,6 +395,15 @@ impl Compiler {
         current_token: &String,
         index_of_function: usize,
     ) -> Result<(), ()> {
+        self.append_function_call1(current_token, index_of_function)
+    }
+    
+    fn append_function_call1(
+        self: &mut Self,
+        current_token: &String,
+        index_of_function: usize,
+    ) -> Result<(), ()> {
+        //TODO find difference with other append_function_call
         self.append_indent_if_first_in_line();
         let el = &self.ast.elements[index_of_function];
         let returntype = self.ast.get_elementinfo_type(&el.0);
@@ -378,6 +417,10 @@ impl Compiler {
     }
 
     fn parse_function_definition_start(self: &mut Self) -> Result<(), ()> {
+        self.append_function_definition_start()
+    }
+
+    fn append_function_definition_start(self: &mut Self) -> Result<(), ()> {
         self.append_indent_if_first_in_line();
         self.ast.append((ElementInfo::FunctionDefWIP, vec![]));
         //self.outdent_if_last_expected_child();
@@ -497,6 +540,10 @@ impl Compiler {
     //TODO remember to error / or at least check if reusing arg names in nested functions
 
     fn parse_functiontypesig_or_functionreference_start(self: &mut Self) -> Result<(), ()> {
+        self.append_functiontypesig_or_functionreference_start()
+    }
+
+    fn append_functiontypesig_or_functionreference_start(self: &mut Self) -> Result<(), ()> {
         self.append_indent_if_first_in_line();
         self.ast.append((ElementInfo::Parens, vec![]));
         self.ast.indent();
@@ -504,6 +551,10 @@ impl Compiler {
     }
 
     fn parse_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
+        self.append_functiontypesig_or_functionreference_end()
+    }
+
+    fn append_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
         self.ast.outdent();
         self.append_outdent_if_last_expected_child();
         Ok(())
