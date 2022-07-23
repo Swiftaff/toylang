@@ -288,7 +288,7 @@ impl Config {
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
         //dbg!(current_token);
-        let el_option = self.ast.get_existing_element_by_name(current_token);
+        let el_option = self.ast.get_element_by_name(current_token);
         match el_option {
             Some(_) => {               
                 if self.is_existing_constant() {

@@ -46,31 +46,13 @@ fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
 
 impl Ast {
     pub fn new() -> Ast {
-        let type_primitives = vec!["i64", "f64", "string"];
-        let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
-        let types: Vec<Element> = type_primitives.into_iter().map(type_closure).collect();
-        let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
-        let arithmetic_closure = |prim: &str| {
-            (
-                ElementInfo::InbuiltFunctionDef(
-                    prim.to_string(),
-                    vec!["arg~1".to_string(), "arg~2".to_string()],
-                    vec!["i64|f64".to_string(), "i64|f64".to_string()],
-                    "i64|f64".to_string(),
-                    format!("arg~1 {} arg~2", prim).to_string(),
-                ),
-                vec![],
-            )
-        };
-        let arithmetic_operators: Vec<Element> = arithmetic_primitives
-            .into_iter()
-            .map(arithmetic_closure)
-            .collect();
+        let types = get_initial_types();
+        let arithmetic = get_initial_arithmetic_operators();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Vec<Element> = vec![]
             .iter()
             .chain(&root)
-            .chain(&arithmetic_operators)
+            .chain(&arithmetic)
             .chain(&types)
             .cloned()
             .collect();
@@ -95,6 +77,16 @@ impl Ast {
         self.elements.push(element);
         let new_items_index = self.elements.len() - 1;
         new_items_index
+    }
+
+    fn replace_any_unknown_types(self: &mut Self) {
+        let depths = self.get_depths_vec();
+        let depths_flattened = self.get_depths_flattened(&depths);
+        //dbg!(&depths_flattened);
+        for el_index in depths_flattened {
+            self.elements[el_index].0 = self.get_updated_elementinfo_with_infered_type(el_index);
+        }
+        //dbg!(&self.elements);
     }
 
     fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
@@ -147,14 +139,111 @@ impl Ast {
         output
     }
 
-    fn fix_any_unknown_types(self: &mut Self) {
-        let depths = self.get_depths_vec();
-        let depths_flattened = self.get_depths_flattened(&depths);
-        //dbg!(&depths_flattened);
-        for el_index in depths_flattened {
-            self.elements[el_index].0 = self.get_updated_elementinfo_with_infered_type(el_index);
+    pub fn get_element_by_name(self: &Self, name: &String) -> Option<Element> {
+        if let Some(index) = self.get_constant_index_by_name(name) {
+            return Some(self.elements[index].clone());
         }
-        //dbg!(&self.elements);
+        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
+            return Some(self.elements[index].clone());
+        }
+        if let Some(index) = self.get_function_index_by_name(name) {
+            return Some(self.elements[index].clone());
+        }
+        if let Some(index) = self.get_inbuilt_type_index_by_name(name) {
+            return Some(self.elements[index].clone());
+        }
+        if let Some(index) = self.get_arg_index_by_name(name) {
+            return Some(self.elements[index].clone());
+        }
+        None
+    }
+
+    pub fn get_arg_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Arg(n, _, _) => n == name,
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_type_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Type(n) => n == name,
+            _ => false,
+        })
+    }
+
+    pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match elinfo {
+            ElementInfo::Constant(n, _t) => n == name,
+            ElementInfo::ConstantRef(n, _t, _refname) => n == name,
+            _ => false,
+        })
+    }
+
+    pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
+        if let Some(index) = self.get_constant_index_by_name(name) {
+            return Some(self.elements[index].0.clone());
+        }
+        None
+    }
+
+    pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::FunctionDef(n, _, _, _) => n == name,
+            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
+            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_function_index_by_name_and_returntype(
+        self: &Self,
+        name: &String,
+        returntype: &String,
+    ) -> Option<usize> {
+        //dbg!(returntype);
+        self.elements.iter().position(|(elinfo, _)| match &elinfo {
+            ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
+                //dbg!("here", n, r, name, returntype);
+                n == name && (r.contains(returntype) || returntype.contains(r))
+            }
+            ElementInfo::Arg(n, _, r) => {
+                n == name && r.contains("&dyn Fn") && r.contains(returntype)
+            }
+            _ => false,
+        })
+    }
+
+    pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
+        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
+            return Some(self.elements[index].0.clone());
+        }
+        None
+    }
+
+    pub fn get_inbuilt_function_by_name_and_returntype(
+        self: &Self,
+        name: &String,
+        returntype: &String,
+    ) -> Option<ElementInfo> {
+        //dbg!(returntype);
+        if let Some(index) =
+            self.get_inbuilt_function_index_by_name_and_returntype(name, returntype)
+        {
+            return Some(self.elements[index].0.clone());
+        }
+        None
+    }
+
+    pub fn get_last_element(self: &Self) -> Element {
+        self.elements.last().unwrap().clone()
     }
 
     fn get_updated_elementinfo_with_infered_type(self: &mut Self, el_index: usize) -> ElementInfo {
@@ -346,73 +435,50 @@ impl Ast {
         undefined
     }
 
-    pub fn set_output(self: &mut Self) {
-        //dbg!(&self);
-        for _i in 0..10 {
-            self.fix_any_unknown_types();
-        }
-        self.set_output_append("fn main() {\r\n");
-        self.parents = vec![0];
-        // the values of indent and outdent don't matter when outputting - only using parents.len()
-        // values do matter when building the ast
-        self.indent();
-
-        let mut stack: Vec<usize> = self.elements[0].1.clone();
-        while stack.len() > 0 {
-            let current_item = stack[0];
-            // remove current item from stack
-            stack = vec_remove_head(&stack);
-            // if it is an outdent marker, outdent level!
-            if current_item == 0 {
-                self.outdent();
-                // push current end tag to output
-                let end_tag = stack[0];
-
-                self.set_close_output_for_element(end_tag);
-                // removed the outdent marker earlier, now remove the end tag indicator
-                stack = vec_remove_head(&stack);
-                // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
-                // since it needs to be treated as the return statement, so remove it if there is one
-            } else {
-                // push current to output
-                self.set_open_output_for_element(current_item);
-                // if current item has children...
-                let mut current_item_children = self.elements[current_item].1.clone();
-
-                // don't render children of certain elements - they are rendered separately
-                let el = &self.elements[current_item];
-                match el.0 {
-                    ElementInfo::InbuiltFunctionCall(_, _, _) => current_item_children = vec![],
-                    _ => (),
-                }
-
-                if current_item < self.elements.len() && current_item_children.len() > 0 {
-                    // prepend with current item end tag indicator - so we know to close it at after the outdent
-                    stack.splice(0..0, vec![current_item]);
-                    // prepend with 0 (marker for outdent)
-                    stack.splice(0..0, vec![0]);
-                    // prepend with children
-                    stack.splice(0..0, self.elements[current_item].1.clone());
-                    // and increase indent
-                    self.indent();
-                }
+    pub fn get_elementinfo_type(self: &Self, elementinfo: &ElementInfo) -> String {
+        let undefined = "Undefined".to_string();
+        match elementinfo {
+            ElementInfo::Int(_) => "i64".to_string(),
+            ElementInfo::Float(_) => "f64".to_string(),
+            ElementInfo::String(_) => "String".to_string(),
+            ElementInfo::Assignment => undefined,
+            ElementInfo::Constant(_, returntype) => returntype.clone(),
+            ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
+            ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
+            ElementInfo::Arg(_, _, returntype) => returntype.clone(),
+            ElementInfo::FunctionCall(name, _) => {
+                self.get_infered_type_of_functioncall_element(&name)
             }
+            ElementInfo::Type(returntype) => returntype.clone(),
+            // explicitly listing other types rather than using _ to not overlook new types in future
+            ElementInfo::Root => undefined,
+            ElementInfo::CommentSingleLine(_) => undefined,
+            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => undefined, // don't want to 'find' definitions
+            ElementInfo::FunctionDefWIP => undefined,
+            ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
+            ElementInfo::Parens => undefined,
+            ElementInfo::Eol => undefined,
+            ElementInfo::Seol => undefined,
+            ElementInfo::Indent => undefined,
+            ElementInfo::Unused => undefined,
         }
-        self.outdent();
-        self.set_output_append("}\r\n");
-        //println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
     }
 
-    fn set_open_output_for_element(self: &mut Self, el_index: usize) {
-        if el_index < self.elements.len() {
-            let element = self.elements[el_index].clone();
-            let element_string = self.get_output_for_element_index(el_index, true);
-            match element.0 {
-                ElementInfo::Eol => self.set_output_append_no_indent(&element_string),
-                ElementInfo::Seol => self.set_output_append_no_indent(&element_string),
-                _ => self.set_output_append(&element_string),
+    pub fn replace_element_child(self: &mut Self, element_ref: usize, from: usize, to: usize) {
+        let closure = |el_ref: usize| {
+            if el_ref == from {
+                to
+            } else {
+                el_ref
             }
-        }
+        };
+        let children: Vec<usize> = self.elements[element_ref]
+            .1
+            .clone()
+            .into_iter()
+            .map(closure)
+            .collect();
+        self.elements[element_ref].1 = children;
     }
 
     pub fn get_current_parent_element_from_parents(self: &mut Self) -> Element {
@@ -435,23 +501,6 @@ impl Ast {
         None
     }
 
-    pub fn replace_element_child(self: &mut Self, element_ref: usize, from: usize, to: usize) {
-        let closure = |el_ref: usize| {
-            if el_ref == from {
-                to
-            } else {
-                el_ref
-            }
-        };
-        let children: Vec<usize> = self.elements[element_ref]
-            .1
-            .clone()
-            .into_iter()
-            .map(closure)
-            .collect();
-        self.elements[element_ref].1 = children;
-    }
-
     pub fn get_current_parent_ref_from_element_children_search(
         self: &mut Self,
         child_ref: usize,
@@ -464,6 +513,26 @@ impl Ast {
             return Some(index);
         }
         None
+    }
+
+    fn get_indent(self: &Self) -> String {
+        " ".repeat(4 * (self.parents.len() - 1))
+    }
+
+    pub fn indent(self: &mut Self) {
+        self.parents.push(self.elements.len() - 1);
+    }
+
+    pub fn indent_this(self: &mut Self, index: usize) {
+        self.parents.push(index);
+    }
+
+    pub fn outdent(self: &mut Self) {
+        self.parents = if self.parents.len() < 2 {
+            vec![0]
+        } else {
+            vec_remove_tail(&self.parents)
+        };
     }
 
     fn get_output_for_element_index(
@@ -606,36 +675,76 @@ impl Ast {
         }
     }
 
-    pub fn get_elementinfo_type(self: &Self, elementinfo: &ElementInfo) -> String {
-        let undefined = "Undefined".to_string();
-        match elementinfo {
-            ElementInfo::Int(_) => "i64".to_string(),
-            ElementInfo::Float(_) => "f64".to_string(),
-            ElementInfo::String(_) => "String".to_string(),
-            ElementInfo::Assignment => undefined,
-            ElementInfo::Constant(_, returntype) => returntype.clone(),
-            ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
-            ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
-            ElementInfo::Arg(_, _, returntype) => returntype.clone(),
-            ElementInfo::FunctionCall(name, _) => {
-                self.get_infered_type_of_functioncall_element(&name)
+    pub fn set_output(self: &mut Self) {
+        //dbg!(&self);
+        for _i in 0..10 {
+            self.replace_any_unknown_types();
+        }
+        self.set_output_append("fn main() {\r\n");
+        self.parents = vec![0];
+        // the values of indent and outdent don't matter when outputting - only using parents.len()
+        // values do matter when building the ast
+        self.indent();
+
+        let mut stack: Vec<usize> = self.elements[0].1.clone();
+        while stack.len() > 0 {
+            let current_item = stack[0];
+            // remove current item from stack
+            stack = vec_remove_head(&stack);
+            // if it is an outdent marker, outdent level!
+            if current_item == 0 {
+                self.outdent();
+                // push current end tag to output
+                let end_tag = stack[0];
+
+                self.set_output_for_element_close(end_tag);
+                // removed the outdent marker earlier, now remove the end tag indicator
+                stack = vec_remove_head(&stack);
+                // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
+                // since it needs to be treated as the return statement, so remove it if there is one
+            } else {
+                // push current to output
+                self.set_output_for_element_open(current_item);
+                // if current item has children...
+                let mut current_item_children = self.elements[current_item].1.clone();
+
+                // don't render children of certain elements - they are rendered separately
+                let el = &self.elements[current_item];
+                match el.0 {
+                    ElementInfo::InbuiltFunctionCall(_, _, _) => current_item_children = vec![],
+                    _ => (),
+                }
+
+                if current_item < self.elements.len() && current_item_children.len() > 0 {
+                    // prepend with current item end tag indicator - so we know to close it at after the outdent
+                    stack.splice(0..0, vec![current_item]);
+                    // prepend with 0 (marker for outdent)
+                    stack.splice(0..0, vec![0]);
+                    // prepend with children
+                    stack.splice(0..0, self.elements[current_item].1.clone());
+                    // and increase indent
+                    self.indent();
+                }
             }
-            ElementInfo::Type(returntype) => returntype.clone(),
-            // explicitly listing other types rather than using _ to not overlook new types in future
-            ElementInfo::Root => undefined,
-            ElementInfo::CommentSingleLine(_) => undefined,
-            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => undefined, // don't want to 'find' definitions
-            ElementInfo::FunctionDefWIP => undefined,
-            ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
-            ElementInfo::Parens => undefined,
-            ElementInfo::Eol => undefined,
-            ElementInfo::Seol => undefined,
-            ElementInfo::Indent => undefined,
-            ElementInfo::Unused => undefined,
+        }
+        self.outdent();
+        self.set_output_append("}\r\n");
+        //println!("AST_OUTPUT\r\n{:?}\r\n{:?}", self.elements, self.output);
+    }
+
+    fn set_output_for_element_open(self: &mut Self, el_index: usize) {
+        if el_index < self.elements.len() {
+            let element = self.elements[el_index].clone();
+            let element_string = self.get_output_for_element_index(el_index, true);
+            match element.0 {
+                ElementInfo::Eol => self.set_output_append_no_indent(&element_string),
+                ElementInfo::Seol => self.set_output_append_no_indent(&element_string),
+                _ => self.set_output_append(&element_string),
+            }
         }
     }
 
-    fn set_close_output_for_element(self: &mut Self, el_index: usize) {
+    fn set_output_for_element_close(self: &mut Self, el_index: usize) {
         if el_index < self.elements.len() {
             let element = &self.elements[el_index];
             let element_string = match element.0 {
@@ -655,133 +764,32 @@ impl Ast {
     fn set_output_append_no_indent(self: &mut Self, append_string: &str) {
         self.output = format!("{}{}", self.output, append_string);
     }
+}
 
-    fn get_indent(self: &Self) -> String {
-        " ".repeat(4 * (self.parents.len() - 1))
-    }
+fn get_initial_types() -> Vec<Element> {
+    let type_primitives = vec!["i64", "f64", "string"];
+    let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
+    type_primitives.into_iter().map(type_closure).collect()
+}
 
-    pub fn indent(self: &mut Self) {
-        self.parents.push(self.elements.len() - 1);
-    }
-
-    pub fn indent_this(self: &mut Self, index: usize) {
-        self.parents.push(index);
-    }
-
-    pub fn outdent(self: &mut Self) {
-        self.parents = if self.parents.len() < 2 {
-            vec![0]
-        } else {
-            vec_remove_tail(&self.parents)
-        };
-    }
-
-    pub fn get_existing_element_by_name(self: &Self, name: &String) -> Option<Element> {
-        if let Some(index) = self.get_constant_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_function_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_inbuilt_type_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_arg_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        None
-    }
-
-    pub fn get_arg_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Arg(n, _, _) => n == name,
-            _ => false,
-        })
-    }
-
-    pub fn get_inbuilt_type_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Type(n) => n == name,
-            _ => false,
-        })
-    }
-
-    pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Constant(n, _t) => n == name,
-            ElementInfo::ConstantRef(n, _t, _refname) => n == name,
-            _ => false,
-        })
-    }
-
-    pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        if let Some(index) = self.get_constant_index_by_name(name) {
-            return Some(self.elements[index].0.clone());
-        }
-        None
-    }
-
-    pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::FunctionDef(n, _, _, _) => n == name,
-            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
-            _ => false,
-        })
-    }
-
-    pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
-            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
-            _ => false,
-        })
-    }
-
-    pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
-            return Some(self.elements[index].0.clone());
-        }
-        None
-    }
-
-    pub fn get_inbuilt_function_index_by_name_and_returntype(
-        self: &Self,
-        name: &String,
-        returntype: &String,
-    ) -> Option<usize> {
-        //dbg!(returntype);
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
-                //dbg!("here", n, r, name, returntype);
-                n == name && (r.contains(returntype) || returntype.contains(r))
-            }
-            ElementInfo::Arg(n, _, r) => {
-                n == name && r.contains("&dyn Fn") && r.contains(returntype)
-            }
-            _ => false,
-        })
-    }
-
-    pub fn get_inbuilt_function_by_name_and_returntype(
-        self: &Self,
-        name: &String,
-        returntype: &String,
-    ) -> Option<ElementInfo> {
-        //dbg!(returntype);
-        if let Some(index) =
-            self.get_inbuilt_function_index_by_name_and_returntype(name, returntype)
-        {
-            return Some(self.elements[index].0.clone());
-        }
-        None
-    }
-
-    pub fn get_last_element(self: &Self) -> Element {
-        self.elements.last().unwrap().clone()
-    }
+fn get_initial_arithmetic_operators() -> Vec<Element> {
+    let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
+    let arithmetic_closure = |prim: &str| {
+        (
+            ElementInfo::InbuiltFunctionDef(
+                prim.to_string(),
+                vec!["arg~1".to_string(), "arg~2".to_string()],
+                vec!["i64|f64".to_string(), "i64|f64".to_string()],
+                "i64|f64".to_string(),
+                format!("arg~1 {} arg~2", prim).to_string(),
+            ),
+            vec![],
+        )
+    };
+    arithmetic_primitives
+        .into_iter()
+        .map(arithmetic_closure)
+        .collect()
 }
 
 fn vec_remove_head(stack: &Vec<usize>) -> Vec<usize> {
