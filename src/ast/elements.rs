@@ -104,3 +104,19 @@ impl fmt::Debug for Element {
 pub type Elements = Vec<Element>;
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
+
+pub fn append(ast: &mut super::Ast, element: Element) -> usize {
+    // add element to list, and add to list of children of current parent where 0 = root
+    ast.elements.push(element);
+    let new_items_index = ast.elements.len() - 1;
+    let current_parent_ref = ast.get_current_parent_ref_from_parents();
+    ast.elements[current_parent_ref].1.push(new_items_index);
+    new_items_index
+}
+
+pub fn append_as_ref(ast: &mut super::Ast, element: Element) -> usize {
+    // add element to list only, don't add as child
+    ast.elements.push(element);
+    let new_items_index = ast.elements.len() - 1;
+    new_items_index
+}

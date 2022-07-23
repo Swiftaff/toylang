@@ -1,4 +1,6 @@
-use crate::element::{ElIndex, Element, ElementInfo, Elements};
+pub mod elements;
+pub mod output;
+use crate::ast::elements::{ElIndex, Element, ElementInfo, Elements};
 use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
@@ -63,80 +65,27 @@ impl Ast {
         }
     }
 
-    pub fn append(self: &mut Self, element: Element) -> usize {
-        // add element to list, and add to list of children of current parent where 0 = root
-        self.elements.push(element);
-        let new_items_index = self.elements.len() - 1;
-        let current_parent_ref = self.get_current_parent_ref_from_parents();
-        self.elements[current_parent_ref].1.push(new_items_index);
-        new_items_index
+    // ELEMENTS
+    pub fn append(&mut self, element: Element) {
+        elements::append(self, element);
     }
 
     pub fn append_as_ref(self: &mut Self, element: Element) -> usize {
-        // add element to list only, don't add as child
-        self.elements.push(element);
-        let new_items_index = self.elements.len() - 1;
-        new_items_index
+        elements::append_as_ref(self, element)
     }
 
+    // OUTPUT
+
     fn replace_any_unknown_types(self: &mut Self) {
-        let depths = self.get_depths_vec();
-        let depths_flattened = self.get_depths_flattened(&depths);
-        //dbg!(&depths_flattened);
-        for el_index in depths_flattened {
-            self.elements[el_index].0 = self.get_updated_elementinfo_with_infered_type(el_index);
-        }
-        //dbg!(&self.elements);
+        output::replace_any_unknown_types(self)
     }
 
     fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
-        // collect a vec of all children
-        // from deepest block in the 'tree' to highest
-        // (ordered top to bottom for block at same level)
-        // and reverse order within each block
-        let mut tracked_parents: Vec<usize> = vec![0];
-        let mut children: Vec<usize> = self.elements[0].1.clone();
-        let mut depths: Vec<Vec<usize>> = vec![children];
-        loop {
-            //println!("{:?}", &tracked_parents);
-            let mut next_level = vec![];
-            let current_level = depths.last().unwrap().clone();
-            for el_ref in current_level {
-                let el = &self.elements[el_ref];
-                children = el.1.iter().cloned().rev().collect();
-                next_level = vec![]
-                    .iter()
-                    .chain(&next_level)
-                    .chain(&children)
-                    .cloned()
-                    .collect();
-                tracked_parents.push(el_ref);
-            }
-            if next_level.len() > 0 {
-                depths.push(next_level);
-            } else {
-                break;
-            }
-            //println!("{:?}", &tracked_parents);
-        }
-        depths
+        output::get_depths_vec(self)
     }
 
     fn get_depths_flattened(self: &mut Self, depths: &Vec<Vec<usize>>) -> Vec<usize> {
-        // flattens depths from bottom (deepest) to top
-        // this is so that it can be used to traverse elements in the correct order
-        // to allow correcting the types from the deepest elements first
-        // since higher levels may rely on type of deeper elements.
-        // e.g. a higher level "+" fn with type "i64|f64" will need to be disambiguated
-        // to either i64 or f64 based on the type of it's 2 child args
-        // so the two child args are fixed first (if unknown)
-        // then "+" fn can be determined safely
-        let mut output = vec![];
-        for i in (0..depths.len()).rev() {
-            let level = &depths[i];
-            output = vec![].iter().chain(&output).chain(level).cloned().collect();
-        }
-        output
+        output::get_depths_flattened(depths)
     }
 
     pub fn get_element_by_name(self: &Self, name: &String) -> Option<Element> {
