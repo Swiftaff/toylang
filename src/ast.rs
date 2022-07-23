@@ -1,6 +1,8 @@
 pub mod elements;
 pub mod output;
+pub mod parents;
 use crate::ast::elements::{ElIndex, Element, ElementInfo, Elements};
+use crate::ast::parents::vec_remove_head;
 use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
@@ -177,57 +179,41 @@ impl Ast {
     // PARENTS
 
     pub fn get_current_parent_element_from_parents(self: &mut Self) -> Element {
-        let parent_ref = self.get_current_parent_ref_from_parents();
-        self.elements[parent_ref].clone()
+        parents::get_current_parent_element_from_parents(self)
     }
 
     pub fn get_current_parent_ref_from_parents(self: &mut Self) -> usize {
-        let last = self.parents.len() - 1;
-        self.parents[last]
+        parents::get_current_parent_ref_from_parents(self)
     }
 
     pub fn get_current_parent_element_from_element_children_search(
         self: &mut Self,
         child_ref: usize,
     ) -> Option<Element> {
-        if let Some(index) = self.get_current_parent_ref_from_element_children_search(child_ref) {
-            return Some(self.elements[index].clone());
-        }
-        None
+        parents::get_current_parent_element_from_element_children_search(self, child_ref)
     }
 
     pub fn get_current_parent_ref_from_element_children_search(
         self: &mut Self,
         child_ref: usize,
     ) -> Option<usize> {
-        if let Some(index) = self
-            .elements
-            .iter()
-            .position(|(_, children)| children.contains(&child_ref))
-        {
-            return Some(index);
-        }
-        None
+        parents::get_current_parent_ref_from_element_children_search(self, child_ref)
     }
 
     fn get_indent(self: &Self) -> String {
-        " ".repeat(4 * (self.parents.len() - 1))
+        parents::get_indent(self)
     }
 
     pub fn indent(self: &mut Self) {
-        self.parents.push(self.elements.len() - 1);
+        parents::indent(self)
     }
 
     pub fn indent_this(self: &mut Self, index: usize) {
-        self.parents.push(index);
+        parents::indent_this(self, index)
     }
 
     pub fn outdent(self: &mut Self) {
-        self.parents = if self.parents.len() < 2 {
-            vec![0]
-        } else {
-            vec_remove_tail(&self.parents)
-        };
+        parents::outdent(self)
     }
 
     // OUTPUT
@@ -499,22 +485,6 @@ fn get_initial_arithmetic_operators() -> Elements {
         .into_iter()
         .map(arithmetic_closure)
         .collect()
-}
-
-fn vec_remove_head(stack: &Vec<usize>) -> Vec<usize> {
-    if stack.len() == 1 {
-        vec![]
-    } else {
-        stack[1..].to_vec()
-    }
-}
-
-pub fn vec_remove_tail(stack: &Vec<usize>) -> Vec<usize> {
-    if stack.len() == 1 {
-        vec![]
-    } else {
-        stack[..stack.len() - 1].to_vec()
-    }
 }
 
 #[cfg(test)]
