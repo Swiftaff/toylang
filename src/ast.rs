@@ -1,11 +1,11 @@
-use crate::element::{ElIndex, Element, ElementInfo};
+use crate::element::{ElIndex, Element, ElementInfo, Elements};
 use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
 #[derive(Clone)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1
-    pub elements: Vec<Element>,
+    pub elements: Elements,
     pub output: String,
     //note: parents are only used for building, ignored output.
     //becuse of that, split outputting to be less confusing?
@@ -49,7 +49,7 @@ impl Ast {
         let types = get_initial_types();
         let arithmetic = get_initial_arithmetic_operators();
         let root = vec![(ElementInfo::Root, vec![])];
-        let elements: Vec<Element> = vec![]
+        let elements: Elements = vec![]
             .iter()
             .chain(&root)
             .chain(&arithmetic)
@@ -766,13 +766,13 @@ impl Ast {
     }
 }
 
-fn get_initial_types() -> Vec<Element> {
+fn get_initial_types() -> Elements {
     let type_primitives = vec!["i64", "f64", "string"];
     let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
     type_primitives.into_iter().map(type_closure).collect()
 }
 
-fn get_initial_arithmetic_operators() -> Vec<Element> {
+fn get_initial_arithmetic_operators() -> Elements {
     let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
     let arithmetic_closure = |prim: &str| {
         (

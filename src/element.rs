@@ -101,5 +101,6 @@ impl fmt::Debug for Element {
 }
 */
 
+pub type Elements = Vec<Element>;
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
