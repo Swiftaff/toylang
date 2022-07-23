@@ -13,7 +13,7 @@ type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
 
 #[derive(Clone, Debug)]
-pub struct Config {
+pub struct Compiler {
     pub file: File,
     pub lines_of_chars: Vec<Vec<char>>,
     pub lines_of_tokens: Vec<Tokens>,
@@ -24,8 +24,8 @@ pub struct Config {
     pub ast: Ast,
 }
 
-impl Config {
-    pub fn new(args: &[String]) -> Result<Config, String> {
+impl Compiler {
+    pub fn new(args: &[String]) -> Result<Compiler, String> {
         if args.len() < 2 {
             return Err("missing filepath argument".to_string());
         }
@@ -37,7 +37,7 @@ impl Config {
         let current_line_token = 0;
         let error_stack = vec![];
         let ast = Ast::new();
-        Ok(Config {
+        Ok(Compiler {
             file,
             lines_of_chars,
             lines_of_tokens,
@@ -1232,8 +1232,8 @@ mod tests {
     use super::*;
     use ast::elements::Element;
 
-    fn mock_config() -> Config {
-        Config {
+    fn mock_compiler() -> Compiler {
+        Compiler {
             file: File::new(),
             lines_of_chars: vec![],
             lines_of_tokens: vec![],
@@ -1567,7 +1567,7 @@ mod tests {
         for test in test_case_passes {
             let input = test[0];
             let output = test[1];
-            let mut c = mock_config();
+            let mut c = mock_compiler();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
@@ -1612,7 +1612,7 @@ mod tests {
         for test in test_case_errors {
             let input = test[0];
             let error = test[1];
-            let mut c = mock_config();
+            let mut c = mock_compiler();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
