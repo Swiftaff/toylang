@@ -74,82 +74,32 @@ impl Ast {
         elements::append_as_ref(self, element)
     }
 
-    // OUTPUT
-
-    fn replace_any_unknown_types(self: &mut Self) {
-        output::replace_any_unknown_types(self)
-    }
-
-    fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
-        output::get_depths_vec(self)
-    }
-
-    fn get_depths_flattened(self: &mut Self, depths: &Vec<Vec<usize>>) -> Vec<usize> {
-        output::get_depths_flattened(depths)
-    }
-
     pub fn get_element_by_name(self: &Self, name: &String) -> Option<Element> {
-        if let Some(index) = self.get_constant_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_function_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_inbuilt_type_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        if let Some(index) = self.get_arg_index_by_name(name) {
-            return Some(self.elements[index].clone());
-        }
-        None
+        elements::get_element_by_name(self, name)
     }
 
     pub fn get_arg_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Arg(n, _, _) => n == name,
-            _ => false,
-        })
+        elements::get_arg_index_by_name(self, name)
     }
 
     pub fn get_inbuilt_type_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Type(n) => n == name,
-            _ => false,
-        })
+        elements::get_inbuilt_type_index_by_name(self, name)
     }
 
     pub fn get_constant_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match elinfo {
-            ElementInfo::Constant(n, _t) => n == name,
-            ElementInfo::ConstantRef(n, _t, _refname) => n == name,
-            _ => false,
-        })
+        elements::get_constant_index_by_name(self, name)
     }
 
     pub fn get_constant_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        if let Some(index) = self.get_constant_index_by_name(name) {
-            return Some(self.elements[index].0.clone());
-        }
-        None
+        elements::get_constant_by_name(self, name)
     }
 
     pub fn get_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::FunctionDef(n, _, _, _) => n == name,
-            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
-            _ => false,
-        })
+        elements::get_function_index_by_name(self, name)
     }
 
     pub fn get_inbuilt_function_index_by_name(self: &Self, name: &String) -> Option<usize> {
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
-            ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
-            _ => false,
-        })
+        elements::get_inbuilt_function_index_by_name(self, name)
     }
 
     pub fn get_inbuilt_function_index_by_name_and_returntype(
@@ -157,24 +107,11 @@ impl Ast {
         name: &String,
         returntype: &String,
     ) -> Option<usize> {
-        //dbg!(returntype);
-        self.elements.iter().position(|(elinfo, _)| match &elinfo {
-            ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
-                //dbg!("here", n, r, name, returntype);
-                n == name && (r.contains(returntype) || returntype.contains(r))
-            }
-            ElementInfo::Arg(n, _, r) => {
-                n == name && r.contains("&dyn Fn") && r.contains(returntype)
-            }
-            _ => false,
-        })
+        elements::get_inbuilt_function_index_by_name_and_returntype(self, name, returntype)
     }
 
     pub fn get_inbuilt_function_by_name(self: &Self, name: &String) -> Option<ElementInfo> {
-        if let Some(index) = self.get_inbuilt_function_index_by_name(name) {
-            return Some(self.elements[index].0.clone());
-        }
-        None
+        elements::get_inbuilt_function_by_name(self, name)
     }
 
     pub fn get_inbuilt_function_by_name_and_returntype(
@@ -182,102 +119,19 @@ impl Ast {
         name: &String,
         returntype: &String,
     ) -> Option<ElementInfo> {
-        //dbg!(returntype);
-        if let Some(index) =
-            self.get_inbuilt_function_index_by_name_and_returntype(name, returntype)
-        {
-            return Some(self.elements[index].0.clone());
-        }
-        None
+        elements::get_inbuilt_function_by_name_and_returntype(self, name, returntype)
     }
 
     pub fn get_last_element(self: &Self) -> Element {
-        self.elements.last().unwrap().clone()
+        elements::get_last_element(self)
     }
 
     fn get_updated_elementinfo_with_infered_type(self: &mut Self, el_index: usize) -> ElementInfo {
-        let el = self.elements[el_index].clone();
-        let el_type = self.get_elementinfo_type(&el.0);
-        if el_type == "Undefined".to_string() {
-            let infered_type = self.get_infered_type_of_any_element(el_index);
-            match el.0 {
-                ElementInfo::Arg(name, scope, _) => {
-                    return ElementInfo::Arg(name, scope, infered_type);
-                }
-                ElementInfo::Constant(name, _) => {
-                    return ElementInfo::Constant(name, infered_type);
-                }
-                ElementInfo::ConstantRef(name, _, refname) => {
-                    return ElementInfo::ConstantRef(name, infered_type, refname);
-                }
-                ElementInfo::Assignment => {
-                    return ElementInfo::Assignment;
-                }
-                ElementInfo::InbuiltFunctionCall(name, fndef_index, _) => {
-                    return ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
-                }
-                ElementInfo::FunctionCall(name, _) => {
-                    return ElementInfo::FunctionCall(name, infered_type);
-                }
-                // explicitly listing other types rather than using _ to not overlook new types in future.
-                // These either have no type or are predefined and can't be infered
-                ElementInfo::Root => (),
-                ElementInfo::CommentSingleLine(_) => (),
-                ElementInfo::Int(_) => (),
-                ElementInfo::Float(_) => (),
-                ElementInfo::String(_) => (),
-                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-                ElementInfo::FunctionDefWIP => (),
-                ElementInfo::FunctionDef(_, _, _, _) => (),
-                ElementInfo::Parens => (),
-                ElementInfo::Type(_) => (),
-                ElementInfo::Eol => (),
-                ElementInfo::Seol => (),
-                ElementInfo::Indent => (),
-                ElementInfo::Unused => (),
-            }
-            //dbg!(el_index, &self.elements[el_index].0);
-        }
-        el.0
+        elements::get_updated_elementinfo_with_infered_type(self, el_index)
     }
 
     fn get_infered_type_of_any_element(self: &mut Self, el_index: usize) -> String {
-        let el = self.elements[el_index].clone();
-        let el_info = &el.0;
-        match el_info {
-            ElementInfo::Arg(_, _, _) => {
-                return self.get_infered_type_of_arg_element(el_info, el_index);
-            }
-            ElementInfo::Constant(_, _) => {
-                return self.get_infered_type_of_constant_element(&el);
-            }
-            ElementInfo::ConstantRef(_, _, refname) => {
-                return self.get_infered_type_of_constantref_element(&refname);
-            }
-            ElementInfo::InbuiltFunctionCall(_, fndef_index, _) => {
-                return self.get_infered_type_of_inbuiltfunctioncall_element(&el, *fndef_index);
-            }
-            ElementInfo::FunctionCall(name, _) => {
-                return self.get_infered_type_of_functioncall_element(&name);
-            }
-            // explicitly listing other types rather than using _ to not overlook new types in future
-            ElementInfo::Root => {}
-            ElementInfo::CommentSingleLine(_) => (),
-            ElementInfo::Int(_) => (),
-            ElementInfo::Float(_) => (),
-            ElementInfo::String(_) => (),
-            ElementInfo::Assignment => (),
-            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-            ElementInfo::FunctionDefWIP => (),
-            ElementInfo::FunctionDef(_, _, _, _) => (),
-            ElementInfo::Parens => (),
-            ElementInfo::Type(_) => (),
-            ElementInfo::Eol => (),
-            ElementInfo::Seol => (),
-            ElementInfo::Indent => (),
-            ElementInfo::Unused => (),
-        }
-        self.get_elementinfo_type(el_info)
+        elements::get_infered_type_of_any_element(self, el_index)
     }
 
     fn get_infered_type_of_arg_element(
@@ -285,52 +139,15 @@ impl Ast {
         el_info: &ElementInfo,
         el_index: usize,
     ) -> String {
-        let mut infered_type = "Undefined".to_string();
-        match el_info {
-            ElementInfo::Arg(name, _, _) => {
-                // get type of this arg, from the argtypes of parent funcdef
-                if let Some(parent_funcdef) =
-                    self.get_current_parent_element_from_element_children_search(el_index)
-                {
-                    match parent_funcdef.0 {
-                        ElementInfo::FunctionDef(_, argnames, argtypes, _) => {
-                            if let Some(index) = argnames.iter().position(|argname| argname == name)
-                            {
-                                if argtypes.len() > index {
-                                    infered_type = argtypes[index].clone();
-                                }
-                            }
-                        }
-                        _ => (),
-                    }
-                }
-            }
-            _ => (),
-        }
-
-        infered_type
+        elements::get_infered_type_of_arg_element(self, el_info, el_index)
     }
 
     fn get_infered_type_of_constant_element(self: &mut Self, el: &Element) -> String {
-        let mut infered_type = "Undefined".to_string();
-        match el.0 {
-            ElementInfo::Constant(_, _) => {
-                if el.1.len() > 0 {
-                    let child_ref = el.1[0];
-                    infered_type = self.get_infered_type_of_any_element(child_ref);
-                }
-            }
-            _ => (),
-        }
-        infered_type
+        elements::get_infered_type_of_constant_element(self, el)
     }
 
     fn get_infered_type_of_constantref_element(self: &mut Self, refname: &String) -> String {
-        let mut infered_type = "Undefined".to_string();
-        if let Some(ElementInfo::Constant(_, returntype)) = self.get_constant_by_name(&refname) {
-            infered_type = returntype
-        }
-        infered_type
+        elements::get_infered_type_of_constantref_element(self, refname)
     }
 
     fn get_infered_type_of_inbuiltfunctioncall_element(
@@ -338,97 +155,26 @@ impl Ast {
         func_call_el: &Element,
         funcdef_el_index: usize,
     ) -> String {
-        let mut infered_type = "Undefined".to_string();
-        let el_children = func_call_el.1.clone();
-        let el = &self.elements[funcdef_el_index];
-        let elinfo = &el.0;
-        match elinfo {
-            ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
-                //TODO could check all args match here for parser error
-                //dbg!("2", &returntype);
-                if returntype.contains("|") {
-                    //dbg!("2.5", &el_children);
-                    if el_children.len() > 0 && argtypes.len() <= el_children.len() {
-                        for _argtype in argtypes {
-                            let first_child_ref = el_children[0];
-                            let first_child = &self.elements[first_child_ref];
-                            infered_type = self.get_elementinfo_type(&first_child.0);
-                            //dbg!("2.6", &infered_type);
-                        }
-                    }
-                } else {
-                    infered_type = returntype.clone();
-                }
-            }
-            _ => (),
-        }
-        infered_type
+        elements::get_infered_type_of_inbuiltfunctioncall_element(
+            self,
+            func_call_el,
+            funcdef_el_index,
+        )
     }
 
     fn get_infered_type_of_functioncall_element(self: &Self, name: &String) -> String {
-        let undefined = "Undefined".to_string();
-        if let Some(index) = self.get_function_index_by_name(&name) {
-            let funcdef = &self.elements[index];
-            match &funcdef.0 {
-                ElementInfo::FunctionDef(_, _, _, returntype) => return returntype.clone(),
-                ElementInfo::Arg(_, _, returntype) => {
-                    if returntype.contains("&dyn Fn") {
-                        return returntype.clone();
-                    } else {
-                        return undefined;
-                    }
-                }
-                _ => return undefined,
-            }
-        }
-        undefined
+        elements::get_infered_type_of_functioncall_element(self, name)
     }
 
     pub fn get_elementinfo_type(self: &Self, elementinfo: &ElementInfo) -> String {
-        let undefined = "Undefined".to_string();
-        match elementinfo {
-            ElementInfo::Int(_) => "i64".to_string(),
-            ElementInfo::Float(_) => "f64".to_string(),
-            ElementInfo::String(_) => "String".to_string(),
-            ElementInfo::Assignment => undefined,
-            ElementInfo::Constant(_, returntype) => returntype.clone(),
-            ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
-            ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
-            ElementInfo::Arg(_, _, returntype) => returntype.clone(),
-            ElementInfo::FunctionCall(name, _) => {
-                self.get_infered_type_of_functioncall_element(&name)
-            }
-            ElementInfo::Type(returntype) => returntype.clone(),
-            // explicitly listing other types rather than using _ to not overlook new types in future
-            ElementInfo::Root => undefined,
-            ElementInfo::CommentSingleLine(_) => undefined,
-            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => undefined, // don't want to 'find' definitions
-            ElementInfo::FunctionDefWIP => undefined,
-            ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
-            ElementInfo::Parens => undefined,
-            ElementInfo::Eol => undefined,
-            ElementInfo::Seol => undefined,
-            ElementInfo::Indent => undefined,
-            ElementInfo::Unused => undefined,
-        }
+        elements::get_elementinfo_type(self, elementinfo)
     }
 
     pub fn replace_element_child(self: &mut Self, element_ref: usize, from: usize, to: usize) {
-        let closure = |el_ref: usize| {
-            if el_ref == from {
-                to
-            } else {
-                el_ref
-            }
-        };
-        let children: Vec<usize> = self.elements[element_ref]
-            .1
-            .clone()
-            .into_iter()
-            .map(closure)
-            .collect();
-        self.elements[element_ref].1 = children;
+        elements::replace_element_child(self, element_ref, from, to)
     }
+
+    // PARENTS
 
     pub fn get_current_parent_element_from_parents(self: &mut Self) -> Element {
         let parent_ref = self.get_current_parent_ref_from_parents();
@@ -482,6 +228,20 @@ impl Ast {
         } else {
             vec_remove_tail(&self.parents)
         };
+    }
+
+    // OUTPUT
+
+    fn replace_any_unknown_types(self: &mut Self) {
+        output::replace_any_unknown_types(self)
+    }
+
+    fn get_depths_vec(self: &mut Self) -> Vec<Vec<usize>> {
+        output::get_depths_vec(self)
+    }
+
+    fn get_depths_flattened(self: &mut Self, depths: &Vec<Vec<usize>>) -> Vec<usize> {
+        output::get_depths_flattened(depths)
     }
 
     fn get_output_for_element_index(
