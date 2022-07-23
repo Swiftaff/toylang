@@ -1,55 +1,6 @@
 use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
-impl fmt::Debug for ElementInfo {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let el_debug = match self {
-            ElementInfo::Root => format!("Root"),
-            ElementInfo::CommentSingleLine(comment) => {
-                format!("Comment: {}", comment)
-            }
-            ElementInfo::Int(int) => format!("Int: {}", int),
-            ElementInfo::Float(float) => format!("Float: {}", float),
-            ElementInfo::String(string) => format!("String: {}", string),
-            ElementInfo::Arg(name, scope, returntype) => {
-                format!("Arg: {} scope:{} ({})", name, scope, returntype)
-            }
-            ElementInfo::Constant(name, returntype) => {
-                format!("Constant: {} ({})", name, returntype)
-            }
-            ElementInfo::ConstantRef(name, returntype, refname) => {
-                format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
-            }
-            ElementInfo::Assignment => {
-                format!("Assignment")
-            }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
-                format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
-            }
-            ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
-                format!("InbuiltFunctionCall: {} ({})", name, returntype)
-            }
-            ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
-            ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
-                format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
-            }
-            ElementInfo::FunctionCall(name, returntype) => {
-                format!("FunctionCall: {} ({})", name, returntype)
-            }
-            ElementInfo::Parens => "Parens".to_string(),
-            ElementInfo::Eol => "Eol".to_string(),
-            ElementInfo::Seol => "Seol".to_string(),
-            ElementInfo::Indent => "Indent".to_string(),
-            ElementInfo::Type(name) => {
-                format!("Type: {}", name)
-            }
-            ElementInfo::Unused => "Unused".to_string(),
-        };
-        write!(f, "{}", el_debug)
-    }
-}
-
 #[derive(Clone)]
 
 pub enum ElementInfo {
@@ -457,4 +408,191 @@ pub fn replace_element_child(ast: &mut super::Ast, element_ref: usize, from: usi
         .map(closure)
         .collect();
     ast.elements[element_ref].1 = children;
+}
+
+impl fmt::Debug for ElementInfo {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let el_debug = match self {
+            ElementInfo::Root => format!("Root"),
+            ElementInfo::CommentSingleLine(comment) => {
+                format!("Comment: {}", comment)
+            }
+            ElementInfo::Int(int) => format!("Int: {}", int),
+            ElementInfo::Float(float) => format!("Float: {}", float),
+            ElementInfo::String(string) => format!("String: {}", string),
+            ElementInfo::Arg(name, scope, returntype) => {
+                format!("Arg: {} scope:{} ({})", name, scope, returntype)
+            }
+            ElementInfo::Constant(name, returntype) => {
+                format!("Constant: {} ({})", name, returntype)
+            }
+            ElementInfo::ConstantRef(name, returntype, refname) => {
+                format!("ConstantRef: {} ({}) for \"{}\"", name, returntype, refname)
+            }
+            ElementInfo::Assignment => {
+                format!("Assignment")
+            }
+            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
+                format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
+            }
+            ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
+                format!("InbuiltFunctionCall: {} ({})", name, returntype)
+            }
+            ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
+            ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
+                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
+                format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
+            }
+            ElementInfo::FunctionCall(name, returntype) => {
+                format!("FunctionCall: {} ({})", name, returntype)
+            }
+            ElementInfo::Parens => "Parens".to_string(),
+            ElementInfo::Eol => "Eol".to_string(),
+            ElementInfo::Seol => "Seol".to_string(),
+            ElementInfo::Indent => "Indent".to_string(),
+            ElementInfo::Type(name) => {
+                format!("Type: {}", name)
+            }
+            ElementInfo::Unused => "Unused".to_string(),
+        };
+        write!(f, "{}", el_debug)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    // cargo watch -x "test test_get_depths_vec"
+    // cargo watch -x "test test_get_depths_vec -- --show-output"
+    // cargo test test_get_depths_vec -- --show-output
+
+    use super::*;
+    use crate::Ast;
+
+    #[test]
+    fn test_get_depths_vec() {
+        //1 el
+        let mut ast1 = Ast::new();
+        let mut n = ast1.elements.len();
+        let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast1.append(el1);
+        assert_eq!(ast1.get_depths_vec(), vec![[n]]);
+
+        //3 el under root
+        let mut ast2 = Ast::new();
+        n = ast2.elements.len();
+        let el21: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el22: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el23: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast2.append(el21);
+        ast2.append(el22);
+        ast2.append(el23);
+        assert_eq!(ast2.get_depths_vec(), vec![[n, n + 1, n + 2]]);
+
+        //1 el under with 2 children, under root
+        let mut ast3 = Ast::new();
+        n = ast3.elements.len();
+        let el31: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el32: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el33: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast3.append(el31);
+        ast3.indent();
+        ast3.append(el32);
+        ast3.append(el33);
+        assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 2, n + 1]]);
+
+        //typical nested tree         this flat ast
+        //0 (root)                    |_(0,[1,2,3,8]) root
+        // note insert default functions first
+        // so indexes will increase by # of functions
+        //|_1 int                     |_(1,[])
+        //|_2 int                     |_(2,[])
+        //|_3 +                       |_(3,[4,5])
+        //| |_4 int                   |_(4,[])
+        //| |_5 +                     |_(5,[6,7])
+        //|   |_6 int                 |_(6,[])
+        //|   |_7 +                   |_(7,[8,9])
+        //|     |_8 int               |_(8,[])
+        //|     |_9 int               |_(9,[])
+        //|_10 i64                    |_(10,[])
+
+        /*
+        [
+            [1,2,3,10],
+            [4,5],
+            [6,7],
+            [8,9]
+        ]
+        */
+
+        //10 el in nested structure above
+        let mut ast4 = Ast::new();
+        n = ast4.elements.len();
+        let el41: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el42: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el43: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el44: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el45: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el46: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el47: Element = (
+            ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),
+            vec![],
+        );
+        let el48: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el49: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        let el410: Element = (ElementInfo::Int("1".to_string()), vec![]);
+        ast4.append(el41);
+        ast4.append(el42);
+        ast4.append(el43);
+        ast4.indent();
+        ast4.append(el44);
+        ast4.append(el45);
+        ast4.indent();
+        ast4.append(el46);
+        ast4.append(el47);
+        ast4.indent();
+        ast4.append(el48);
+        ast4.append(el49);
+        ast4.outdent();
+        ast4.outdent();
+        ast4.outdent();
+        ast4.append(el410);
+        assert_eq!(
+            ast4.get_depths_vec(),
+            vec![
+                vec![n, n + 1, n + 2, n + 9],
+                vec![n + 4, n + 3],
+                vec![n + 6, n + 5],
+                vec![n + 8, n + 7]
+            ]
+        );
+    }
+
+    #[test]
+    fn test_get_depths_flattened() {
+        let mut ast = Ast::new();
+        let mut input = vec![vec![0]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![0]);
+
+        input = vec![vec![1, 2, 3]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![1, 2, 3]);
+
+        input = vec![vec![1], vec![2, 3]];
+        assert_eq!(ast.get_depths_flattened(&input), vec![2, 3, 1]);
+
+        input = vec![vec![1, 2, 3, 10], vec![4, 5], vec![6, 7], vec![8, 9]];
+        assert_eq!(
+            ast.get_depths_flattened(&input),
+            vec![8, 9, 6, 7, 4, 5, 1, 2, 3, 10]
+        );
+    }
 }

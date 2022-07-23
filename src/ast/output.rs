@@ -1,3 +1,7 @@
+use crate::ast::elements::ElementInfo;
+use crate::ast::parents::vec_remove_head;
+use crate::formatting::get_formatted_argname_argtype_pairs;
+
 pub fn replace_any_unknown_types(ast: &mut super::Ast) {
     let depths = ast.get_depths_vec();
     let depths_flattened = ast.get_depths_flattened(&depths);
@@ -5,7 +9,7 @@ pub fn replace_any_unknown_types(ast: &mut super::Ast) {
     for el_index in depths_flattened {
         ast.elements[el_index].0 = ast.get_updated_elementinfo_with_infered_type(el_index);
     }
-    //dbg!(&self.elements);
+    //dbg!(&ast.elements);
 }
 
 pub fn get_depths_vec(ast: &mut super::Ast) -> Vec<Vec<usize>> {
@@ -56,4 +60,234 @@ pub fn get_depths_flattened(depths: &Vec<Vec<usize>>) -> Vec<usize> {
         output = vec![].iter().chain(&output).chain(level).cloned().collect();
     }
     output
+}
+
+pub fn get_output_for_element_index(
+    ast: &mut super::Ast,
+    element_index: usize,
+    skip_in_case_handled_by_parent: bool,
+) -> String {
+    let element = ast.elements[element_index].clone();
+    //dbg!(&element.0);
+    //dbg!(&element, ast.parents); //            ast.get_current_parent_ref_from_parents(),            ast.get_current_parent_element()   );
+    let skip = "".to_string();
+
+    //skip children for certain parents who already parsed them
+    if skip_in_case_handled_by_parent {
+        match ast.get_current_parent_element_from_element_children_search(element_index) {
+            Some((ElementInfo::Assignment, _)) => return skip,
+            Some((ElementInfo::FunctionCall(_, _), _)) => return skip,
+            _ => (),
+        }
+    }
+
+    match element.0 {
+        ElementInfo::Root => "".to_string(),
+        ElementInfo::CommentSingleLine(comment_string) => format!("{}", comment_string),
+        ElementInfo::Int(val) => format!("{}", val),
+        ElementInfo::Float(val) => format!("{}", val),
+        ElementInfo::String(val) => format!("{}.to_string()", val),
+        ElementInfo::Arg(name, _scope, _returntype) => format!("{}", name).to_string(),
+        ElementInfo::Constant(name, _returntype) => format!("{}", name).to_string(),
+        ElementInfo::ConstantRef(name, _typename, _reference) => {
+            format!("{}", name)
+        }
+        ElementInfo::Assignment => {
+            let mut returntype = "Undefined".to_string();
+            let children = element.1;
+            if children.len() < 1 {
+                format!("// let ?: ? = ? OUTPUT ERROR: Can't get constant for this assignment from : {:?}", children)
+            } else {
+                let constant_index = children[0];
+                let constant_output = ast.get_output_for_element_index(constant_index, false);
+                let constant = &ast.elements[constant_index];
+                match &constant.0 {
+                    ElementInfo::Constant(_, r) => {
+                        returntype = r.clone();
+                    }
+                    _ => (),
+                }
+                format!("let {}: {} = ", constant_output, returntype)
+            }
+        }
+        ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
+            format!("fn {}() ->{{ /* stuff */ }}", name)
+        }
+        ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {
+            //dbg!("InbuiltFunctionCall");
+            if let Some(def) = ast.get_inbuilt_function_by_name(&name) {
+                match def {
+                    ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
+                        let children = element.1;
+                        //dbg!(&argnames, &children);
+                        let mut output = format;
+                        //dbg!(&output);
+                        for i in 0..argnames.len() {
+                            let arg_var_num = format!("arg~{}", i + 1);
+                            let arg_value_el_ref = children[i];
+                            let arg_output =
+                                ast.get_output_for_element_index(arg_value_el_ref, true);
+                            output = output.replace(&arg_var_num, &arg_output);
+                            //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
+                        }
+                        if children.len() > 0 && children.len() == (argnames.len() + 1) {
+                            let last_child = ast.get_last_element();
+                            match &last_child.0 {
+                                ElementInfo::Seol => {
+                                    output = format!("{};\r\n", output);
+                                    ()
+                                }
+                                _ => (),
+                            }
+                        }
+                        return output;
+                    }
+                    _ => return "".to_string(),
+                }
+            }
+            "".to_string()
+        }
+        ElementInfo::FunctionDefWIP => "".to_string(),
+        ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
+            let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
+            format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
+        }
+        ElementInfo::FunctionCall(name, _) => {
+            let arguments = element.1;
+            let mut args = "".to_string();
+            for i in 0..arguments.len() {
+                let arg_el_ref = arguments[i];
+                //let arg_el = ast.elements[arg_el_ref];
+                let arg = ast.get_output_for_element_index(arg_el_ref, false);
+                let mut borrow = "".to_string();
+                //dbg!("here", &name, &returntype, &arg_el);
+                if let Some(fndef_ref) = ast.get_function_index_by_name(&name) {
+                    let fndef = &ast.elements[fndef_ref];
+                    match &fndef.0 {
+                        ElementInfo::FunctionDef(_, _, argtypes, _) => {
+                            if argtypes.len() == arguments.len() {
+                                if argtypes[i].contains("&dyn Fn") {
+                                    borrow = "&".to_string();
+                                }
+                            }
+                        }
+                        _ => (),
+                    }
+                }
+
+                let comma = if i == arguments.len() - 1 {
+                    "".to_string()
+                } else {
+                    ", ".to_string()
+                };
+                args = format!("{}{}{}{}", args, borrow, arg, comma);
+            }
+            format!("{}({})", name, args)
+        }
+        ElementInfo::Parens => {
+            let children = &element.1;
+            let mut output = "".to_string();
+            for i in 0..children.len() {
+                let child_ref = children[i];
+                let child = ast.get_output_for_element_index(child_ref, false);
+                output = format!("{}{}", output, child);
+            }
+            format!("({})", output)
+        }
+        ElementInfo::Eol => format!("\r\n"),
+        ElementInfo::Seol => format!(";\r\n"),
+        ElementInfo::Indent => ast.get_indent(),
+        ElementInfo::Type(name) => format!("{}", name),
+        ElementInfo::Unused => "".to_string(),
+    }
+}
+
+pub fn set_output(ast: &mut super::Ast) {
+    //dbg!(&ast);
+    for _i in 0..10 {
+        ast.replace_any_unknown_types();
+    }
+    ast.set_output_append("fn main() {\r\n");
+    ast.parents = vec![0];
+    // the values of indent and outdent don't matter when outputting - only using parents.len()
+    // values do matter when building the ast
+    ast.indent();
+
+    let mut stack: Vec<usize> = ast.elements[0].1.clone();
+    while stack.len() > 0 {
+        let current_item = stack[0];
+        // remove current item from stack
+        stack = vec_remove_head(&stack);
+        // if it is an outdent marker, outdent level!
+        if current_item == 0 {
+            ast.outdent();
+            // push current end tag to output
+            let end_tag = stack[0];
+
+            ast.set_output_for_element_close(end_tag);
+            // removed the outdent marker earlier, now remove the end tag indicator
+            stack = vec_remove_head(&stack);
+            // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
+            // since it needs to be treated as the return statement, so remove it if there is one
+        } else {
+            // push current to output
+            ast.set_output_for_element_open(current_item);
+            // if current item has children...
+            let mut current_item_children = ast.elements[current_item].1.clone();
+
+            // don't render children of certain elements - they are rendered separately
+            let el = &ast.elements[current_item];
+            match el.0 {
+                ElementInfo::InbuiltFunctionCall(_, _, _) => current_item_children = vec![],
+                _ => (),
+            }
+
+            if current_item < ast.elements.len() && current_item_children.len() > 0 {
+                // prepend with current item end tag indicator - so we know to close it at after the outdent
+                stack.splice(0..0, vec![current_item]);
+                // prepend with 0 (marker for outdent)
+                stack.splice(0..0, vec![0]);
+                // prepend with children
+                stack.splice(0..0, ast.elements[current_item].1.clone());
+                // and increase indent
+                ast.indent();
+            }
+        }
+    }
+    ast.outdent();
+    ast.set_output_append("}\r\n");
+    //println!("AST_OUTPUT\r\n{:?}\r\n{:?}", ast.elements, ast.output);
+}
+
+pub fn set_output_for_element_open(ast: &mut super::Ast, el_index: usize) {
+    if el_index < ast.elements.len() {
+        let element = ast.elements[el_index].clone();
+        let element_string = ast.get_output_for_element_index(el_index, true);
+        match element.0 {
+            ElementInfo::Eol => ast.set_output_append_no_indent(&element_string),
+            ElementInfo::Seol => ast.set_output_append_no_indent(&element_string),
+            _ => ast.set_output_append(&element_string),
+        }
+    }
+}
+
+pub fn set_output_for_element_close(ast: &mut super::Ast, el_index: usize) {
+    if el_index < ast.elements.len() {
+        let element = &ast.elements[el_index];
+        let element_string = match element.0 {
+            ElementInfo::FunctionDef(_, _, _, _) => {
+                format!("\r\n{}}}\r\n", ast.get_indent())
+            }
+            _ => "".to_string(),
+        };
+        ast.set_output_append(&element_string);
+    }
+}
+
+pub fn set_output_append(ast: &mut super::Ast, append_string: &str) {
+    ast.output = format!("{}{}", ast.output, append_string);
+}
+
+pub fn set_output_append_no_indent(ast: &mut super::Ast, append_string: &str) {
+    ast.output = format!("{}{}", ast.output, append_string);
 }
