@@ -216,27 +216,13 @@ impl Compiler {
         if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
             return self.get_error2(0, 1, ERRORS.comment_single_line);
         }
-        self.append_comment_single_line()
-    }
-
-    fn append_comment_single_line(self: &mut Self) -> Result<(), ()> {
         let val = concatenate_vec_strings(&self.lines_of_tokens[self.current_line]);
-        self.ast.append((ElementInfo::Indent, vec![]));
-        self.ast
-            .append((ElementInfo::CommentSingleLine(val), vec![]));
-        self.ast.append((ElementInfo::Eol, vec![]));
-        Ok(())
+        ast::elements::append_comment_single_line(&mut self.ast, val)
     }
 
     fn parse_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
         // TODO error checking
-        self.append_type(index_of_type)
-    }
-
-    fn append_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast.append(self.ast.elements[index_of_type].clone());
-        Ok(())
+        ast::elements::append_type(self,index_of_type)
     }
 
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -762,149 +748,23 @@ impl Compiler {
             }
             prev_parents_len = self.ast.parents.len();
             let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
-            let current_parent = &self.ast.elements[current_parent_ref];
+            let current_parent = self.ast.elements[current_parent_ref].clone();
             //dbg!("---", &self.ast);
             match current_parent.0.clone() {
                 ElementInfo::Constant(_, _) => {
-                    //dbg!("Constant");
-                    if current_parent.1.len() > 0 {
-                        //dbg!("Constant outdent", &self.ast.parents,);
-                        self.ast.outdent();
-                    }
+                    self.outdent_constant(current_parent);
                 }
                 ElementInfo::Assignment => {
-                    //dbg!("Assignment");
-                    if current_parent.1.len() > 0 {
-                        //dbg!("Assignment outdent", &self.ast.parents);
-                        self.ast.outdent();
-                    }
+                    self.outdent_assignment(current_parent);
                 }
                 ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
-                    //dbg!("InbuiltFunctionCall", &name);
-                    let fndef = self.ast.elements[fndefref].clone();
-                    match fndef.0 {
-                        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
-                            // current assumption is inbuiltfunctionCalls expect a fixed number
-                            // of children to match args.
-                            if current_parent.1.len() == argnames.len() {
-                                //dbg!("InbuiltFunctionCall outdent", &self.ast.parents,);
-                                self.ast.outdent();
-                            }
-                        }
-                        _ => (),
-                    }
+                    self.outdent_inbuiltfncall_from_inbuiltfndef(current_parent, fndefref);
                 }
                 ElementInfo::FunctionDef(_, _argnames, _, _) => {
-                    //dbg!("FunctionDef");
-                    // outdent if a return expression
-                    // i.e. if previous element is an indent
-                    let previous_element = self.ast.elements[self.ast.elements.len() - 2].clone(); //should be safe to subtract 2 since there should always be a root
-
-                    // then the following are the first element in the row
-                    // and they are all return expressions
-
-                    match (previous_element.0, self.ast.get_last_element().0) {
-                        (ElementInfo::Indent, ElementInfo::Int(_)) => {
-                            //dbg!("FunctionDef outdent Int", &self.ast.parents,);
-                            self.ast.outdent();
-                            self.ast.outdent();
-                        }
-                        (ElementInfo::Indent, ElementInfo::Float(_)) => {
-                            //dbg!("FunctionDef outdent Float", &self.ast.parents,);
-                            self.ast.outdent();
-                            self.ast.outdent();
-                        }
-                        (ElementInfo::Indent, ElementInfo::String(_)) => {
-                            //dbg!("FunctionDef outdent String", &self.ast.parents,);
-                            self.ast.outdent();
-                            self.ast.outdent();
-                        }
-                        (ElementInfo::Indent, ElementInfo::Constant(_, _)) => {
-                            //dbg!("FunctionDef outdent Constant", &self.ast.parents,);
-                            self.ast.outdent();
-                            self.ast.outdent();
-                        }
-                        (ElementInfo::Indent, ElementInfo::ConstantRef(_, _, _)) => {
-                            //dbg!("FunctionDef outdent ConstantRef", &self.ast.parents,);
-                            self.ast.outdent();
-                            self.ast.outdent();
-                        }
-                        (ElementInfo::Indent, ElementInfo::InbuiltFunctionCall(_, fndefref, _)) => {
-                            //dbg!("InbuiltFunctionCall");
-                            let fndef = &self.ast.elements[fndefref];
-                            match &fndef.0 {
-                                ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
-                                    // current assumption is inbuiltFunctionCalls expect a fixed number
-                                    // of children to match args
-                                    if fndef.1.len() == argnames.len() {
-                                        //dbg!(
-                                        //    "FunctionDef outdent InbuiltFunctionCall enough args",
-                                        //    &self.ast.parents,
-                                        //);
-                                        self.ast.outdent();
-                                    }
-                                    self.ast.outdent();
-                                    self.ast.outdent();
-                                }
-                                _ => (),
-                            }
-                        }
-                        (ElementInfo::Indent, ElementInfo::FunctionCall(name, _)) => {
-                            let fn_index = self.ast.get_function_index_by_name(&name);
-                            match fn_index {
-                                Some(index) => {
-                                    let fndef = &self.ast.elements[index];
-                                    match &fndef.0 {
-                                        ElementInfo::FunctionDef(_, argnames, _, _) => {
-                                            // current assumption is functionCalls expect a fixed number
-                                            // of children to match args
-                                            if fndef.1.len() == argnames.len() {
-                                                //dbg!(
-                                                //    "FunctionDef outdent FunctionCall enough args",
-                                                //    &self.ast.parents,
-                                                //);
-                                                self.ast.outdent();
-                                            }
-                                            self.ast.outdent();
-                                            self.ast.outdent();
-                                        }
-                                        _ => (),
-                                    }
-                                }
-                                _ => (), // something went wrong
-                            }
-                        }
-                        _ => (),
-                    }
+                    self.outdent_within_fndef_from_return_expression();
                 }
                 ElementInfo::FunctionCall(name, _) => {
-                    //dbg!("FunctionCall", &name);
-                    let fn_index = self.ast.get_function_index_by_name(&name);
-                    match fn_index {
-                        Some(index) => {
-                            let fndef = &self.ast.elements[index];
-                            match &fndef.0 {
-                                ElementInfo::FunctionDef(_, argnames, _, _) => {
-                                    if current_parent.1.len() > 0
-                                        && current_parent.1.len() == argnames.len()
-                                    {
-                                        self.ast.outdent();
-                                        self.ast.outdent();
-                                    }
-                                }
-                                ElementInfo::Arg(_, _, returntype) => {
-                                    let args = get_args_from_dyn_fn(&returntype);
-                                    if current_parent.1.len() > 0 && current_parent.1.len() == args
-                                    {
-                                        self.ast.outdent();
-                                        self.ast.outdent();
-                                    }
-                                }
-                                _ => (),
-                            }
-                        }
-                        _ => (), // something went wrong
-                    }
+                    self.outdent_fncall_from_fndef_or_arg(current_parent, name);
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 ElementInfo::Root => (),
@@ -926,6 +786,173 @@ impl Compiler {
         }
     }
 
+    fn outdent_within_fndef_from_return_expression(self: &mut Self){
+        //dbg!("FunctionDef");
+        let previous_element = self.ast.elements[self.ast.elements.len() - 2].clone();
+        // (should be safe to subtract 2 since there should always be a root)
+
+        // outdent if a return expression i.e.
+        // if previous element is an indent
+        // then the last element on that row is the next element after the indent
+        // so it can be checked for being a return expression
+        match previous_element.0 {
+            ElementInfo::Indent => {
+                // outdent if it is a return expression
+                // based on these valid examples of return expression
+                match self.ast.get_last_element().0 {
+                    ElementInfo::Int(_) => {
+                        //dbg!("FunctionDef outdent Int", &self.ast.parents,);
+                        self.ast.outdent();
+                        self.ast.outdent();
+                    }
+                    ElementInfo::Float(_) => {
+                        //dbg!("FunctionDef outdent Float", &self.ast.parents,);
+                        self.ast.outdent();
+                        self.ast.outdent();
+                    }
+                    ElementInfo::String(_) => {
+                        //dbg!("FunctionDef outdent String", &self.ast.parents,);
+                        self.ast.outdent();
+                        self.ast.outdent();
+                    }
+                    ElementInfo::Arg(_, _, _) =>{
+                        //TODO
+                    },
+                    ElementInfo::Constant(_, _) => {
+                        //dbg!("FunctionDef outdent Constant", &self.ast.parents,);
+                        self.ast.outdent();
+                        self.ast.outdent();
+                    }
+                    ElementInfo::ConstantRef(_, _, _) => {
+                        //dbg!("FunctionDef outdent ConstantRef", &self.ast.parents,);
+                        self.ast.outdent();
+                        self.ast.outdent();
+                    }
+                    ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
+                        self.outdent_within_fndef_for_inbuiltfncall_from_inbuiltfndef(fndefref);
+                    }
+                    ElementInfo::FunctionCall(name, _) => {
+                        self.outdent_within_fndef_for_fncall_from_fndef(&name);
+                    }
+                    ElementInfo::Parens =>{
+                        //TODO for a function ref?
+                    },
+                    // non-return expresions
+                    // explicitly listing other types rather than using _ to not overlook new types in future          
+                    ElementInfo::Root =>(),
+                    ElementInfo::CommentSingleLine(_) =>(),
+                    ElementInfo::Assignment =>(),
+                    ElementInfo::InbuiltFunctionDef(_,_ ,_ ,_ ,_ ) =>(),
+                    ElementInfo::FunctionDefWIP =>(),
+                    ElementInfo::FunctionDef(_,_ ,_ ,_ ) =>(),
+                    ElementInfo::Type(_) =>(),
+                    ElementInfo::Eol =>(),
+                    ElementInfo::Seol =>(),
+                    ElementInfo::Indent =>(),
+                    ElementInfo::Unused =>(),
+                }
+            }
+            _=>()
+        }
+    }
+
+    fn outdent_within_fndef_for_inbuiltfncall_from_inbuiltfndef(self: &mut Self, fndefref: usize){ 
+        let fndef = &self.ast.elements[fndefref];
+        match &fndef.0 {
+            ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                // current assumption is inbuiltFunctionCalls expect a fixed number
+                // of children to match args
+                if fndef.1.len() == argnames.len() {
+                    self.ast.outdent();
+                }
+                self.ast.outdent();
+                self.ast.outdent();
+            }
+            _ => (),
+        }
+    }
+
+    fn outdent_inbuiltfncall_from_inbuiltfndef(self: &mut Self, current_parent: Element, fndefref: usize){ 
+        //dbg!("InbuiltFunctionCall", &name);
+        let fndef = self.ast.elements[fndefref].clone();
+        match fndef.0 {
+            ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+                // current assumption is inbuiltfunctionCalls expect a fixed number
+                // of children to match args.
+                if current_parent.1.len() == argnames.len() {
+                    self.ast.outdent();
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn outdent_within_fndef_for_fncall_from_fndef(self: &mut Self, name: &String){ 
+        if let Some(index) = self.ast.get_function_index_by_name(name) {
+            let fndef = &self.ast.elements[index];
+            match &fndef.0 {
+                ElementInfo::FunctionDef(_, argnames, _, _) => {
+                    // current assumption is functionCalls expect a fixed number
+                    // of children to match args
+                    if fndef.1.len() == argnames.len() {
+                        self.ast.outdent();
+                    }
+                    self.ast.outdent();
+                    self.ast.outdent();
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn outdent_fncall_from_fndef_or_arg(self: &mut Self, current_parent: Element, name: String){
+        if let Some(index) = self.ast.get_function_index_by_name(&name) {
+            let fndef = &self.ast.elements[index];
+            match &fndef.0 {
+                ElementInfo::FunctionDef(_, argnames, _, _) => {
+                    let args = argnames.clone().len();
+                    self.outdent_functiondef(current_parent.1.len(), args);
+                }
+                ElementInfo::Arg(_, _, returntype) => {
+                    let r = returntype.clone();
+                    self.outdent_arg(&r,current_parent.1.len());
+                }
+                _ => (),
+            }
+        }
+    }
+
+    fn outdent_constant(self: &mut Self, current_parent: Element){
+        //dbg!("Constant");
+        if current_parent.1.len() > 0 {
+            self.ast.outdent();
+        }
+    }
+    
+    fn outdent_assignment(self: &mut Self, current_parent: Element){
+        //dbg!("Assignment");
+        if current_parent.1.len() > 0 {
+            self.ast.outdent();
+        }
+    }
+
+    fn outdent_arg(self: &mut Self, returntype: &String, num_children: usize){
+        let args = get_args_from_dyn_fn(returntype);
+        if num_children > 0 && num_children == args
+        {
+            self.ast.outdent();
+            self.ast.outdent();
+        }
+    }
+
+    fn outdent_functiondef(self: &mut Self, num_children: usize, args: usize){
+        if num_children > 0 && num_children == args
+        {
+            self.ast.outdent();
+            self.ast.outdent();
+        }
+    }
+
     fn is_existing_constant(self: &mut Self) -> bool {
         let parent = self.ast.get_current_parent_element_from_parents();
         let mut parent_assignment_has_no_children = false;
@@ -933,9 +960,9 @@ impl Compiler {
             ElementInfo::Assignment => {
                 parent_assignment_has_no_children = parent.1.len() == 0;
                 // then this constant is the first child of the assignment
-                            // so it is the name of the constant (and not the value if it were the second child),
-                            // and since constants are immutable it can't have the same name as a pre-existing constant
-                            // so it is invalid!
+                // so it is the name of the constant (and not the value if it were the second child),
+                // and since constants are immutable it can't have the same name as a pre-existing constant
+                // so it is invalid!
             },
             _=>()
         }

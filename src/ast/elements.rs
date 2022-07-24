@@ -72,6 +72,29 @@ pub fn append_as_ref(ast: &mut super::Ast, element: Element) -> usize {
     new_items_index
 }
 
+pub fn append_indent_if_first_in_line(compiler: &mut crate::Compiler) {
+    //or if first part of the expression in a single line function (after the colon)
+    //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
+    if compiler.current_line_token == 0 {
+        compiler.ast.append((ElementInfo::Indent, vec![]));
+    }
+}
+
+pub fn append_comment_single_line(ast: &mut super::Ast, val: String) -> Result<(), ()> {
+    ast.append((ElementInfo::Indent, vec![]));
+    ast.append((ElementInfo::CommentSingleLine(val), vec![]));
+    ast.append((ElementInfo::Eol, vec![]));
+    Ok(())
+}
+
+pub fn append_type(compiler: &mut crate::Compiler, index_of_type: usize) -> Result<(), ()> {
+    append_indent_if_first_in_line(compiler);
+    compiler
+        .ast
+        .append(compiler.ast.elements[index_of_type].clone());
+    Ok(())
+}
+
 pub fn get_element_by_name(ast: &super::Ast, name: &String) -> Option<Element> {
     if let Some(index) = ast.get_constant_index_by_name(name) {
         return Some(ast.elements[index].clone());
