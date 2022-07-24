@@ -1,3 +1,5 @@
+pub mod append;
+
 use crate::formatting::get_formatted_argname_argtype_pairs;
 use std::fmt;
 
@@ -55,45 +57,6 @@ impl fmt::Debug for Element {
 pub type Elements = Vec<Element>;
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
-
-pub fn append(ast: &mut super::Ast, element: Element) -> usize {
-    // add element to list, and add to list of children of current parent where 0 = root
-    ast.elements.push(element);
-    let new_items_index = ast.elements.len() - 1;
-    let current_parent_ref = ast.get_current_parent_ref_from_parents();
-    ast.elements[current_parent_ref].1.push(new_items_index);
-    new_items_index
-}
-
-pub fn append_as_ref(ast: &mut super::Ast, element: Element) -> usize {
-    // add element to list only, don't add as child
-    ast.elements.push(element);
-    let new_items_index = ast.elements.len() - 1;
-    new_items_index
-}
-
-pub fn append_indent_if_first_in_line(compiler: &mut crate::Compiler) {
-    //or if first part of the expression in a single line function (after the colon)
-    //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
-    if compiler.current_line_token == 0 {
-        compiler.ast.append((ElementInfo::Indent, vec![]));
-    }
-}
-
-pub fn append_comment_single_line(ast: &mut super::Ast, val: String) -> Result<(), ()> {
-    ast.append((ElementInfo::Indent, vec![]));
-    ast.append((ElementInfo::CommentSingleLine(val), vec![]));
-    ast.append((ElementInfo::Eol, vec![]));
-    Ok(())
-}
-
-pub fn append_type(compiler: &mut crate::Compiler, index_of_type: usize) -> Result<(), ()> {
-    append_indent_if_first_in_line(compiler);
-    compiler
-        .ast
-        .append(compiler.ast.elements[index_of_type].clone());
-    Ok(())
-}
 
 pub fn get_element_by_name(ast: &super::Ast, name: &String) -> Option<Element> {
     if let Some(index) = ast.get_constant_index_by_name(name) {

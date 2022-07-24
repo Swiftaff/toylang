@@ -217,29 +217,21 @@ impl Compiler {
             return self.get_error2(0, 1, ERRORS.comment_single_line);
         }
         let val = concatenate_vec_strings(&self.lines_of_tokens[self.current_line]);
-        ast::elements::append_comment_single_line(&mut self.ast, val)
+        ast::elements::append::comment_single_line(&mut self.ast, val)
     }
 
     fn parse_type(self: &mut Self, index_of_type: usize) -> Result<(), ()> {
         // TODO error checking
-        ast::elements::append_type(self,index_of_type)
+        ast::elements::append::types(self,index_of_type)
     }
 
     fn parse_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if is_string(&current_token) {
-            self.append_string(current_token)
+            ast::elements::append::string(self, current_token)
         } else {
             //dbg!(&self.lines_of_tokens);
             self.get_error2(0, 1, ERRORS.string)
         }
-    }
-
-    fn append_string(self: &mut Self, current_token: &String) -> Result<(), ()> {
-            self.append_indent_if_first_in_line();
-            self.ast
-                .append((ElementInfo::String(current_token.clone()), vec![]));
-            self.append_outdent_if_last_expected_child();
-            self.append_seol_if_last_in_line()
     }
 
     fn parse_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -260,31 +252,16 @@ impl Compiler {
             Ok(_) => (),
             Err(_) => self.get_error2(0, 1, ERRORS.int_out_of_bounds)?,
         }
-        self.append_int(current_token)
+        self::ast::elements::append::int(self,current_token)
     }
 
-    fn append_int(self: &mut Self, current_token: &String) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast
-            .append((ElementInfo::Int(current_token.clone()), vec![]));
-        self.append_outdent_if_last_expected_child();
-        self.append_seol_if_last_in_line()
-    }
 
     fn parse_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
         if current_token.len() > 0 && is_float(current_token) {
-            self.append_float(current_token)
+            self::ast::elements::append::float(self,current_token)
         } else {
             return self.get_error2(0, 1, ERRORS.float);
         }
-    }
-
-    fn append_float(self: &mut Self, current_token: &String) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast
-            .append((ElementInfo::Float(current_token.clone()), vec![]));
-        self.append_outdent_if_last_expected_child();
-        self.append_seol_if_last_in_line()
     }
 
     fn parse_constant(self: &mut Self, current_token: &String) -> Result<(), ()> {
@@ -339,15 +316,7 @@ impl Compiler {
 
     fn parse_assignment(self: &mut Self) -> Result<(), ()> {
         // TODO error checking
-        self.append_assignment()
-    }
-
-    fn append_assignment(self: &mut Self) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast.append((ElementInfo::Assignment, vec![]));
-        self.append_outdent_if_last_expected_child();
-        self.ast.indent();
-        Ok(())
+        self::ast::elements::append::assignment(self)
     }
 
     fn parse_inbuilt_function_call(
@@ -356,24 +325,7 @@ impl Compiler {
         index_of_function: usize,
     ) -> Result<(), ()> {
         //TODO erro checking
-        self.append_inbuilt_function_call(current_token, index_of_function)
-    }
-
-    fn append_inbuilt_function_call(
-        self: &mut Self,
-        current_token: &String,
-        index_of_function: usize,
-    ) -> Result<(),()> {
-        self.append_indent_if_first_in_line();
-        let el = &self.ast.elements[index_of_function];
-        let returntype = self.ast.get_elementinfo_type(&el.0);
-        self.ast.append((
-            ElementInfo::InbuiltFunctionCall(current_token.clone(), index_of_function, returntype),
-            vec![],
-        ));
-        self.append_outdent_if_last_expected_child();
-        self.ast.indent();
-        Ok(())
+        self::ast::elements::append::inbuilt_function_call(self, current_token, index_of_function)
     }
 
     fn parse_function_call(
@@ -397,7 +349,7 @@ impl Compiler {
             ElementInfo::FunctionCall(current_token.clone(), returntype),
             vec![],
         ));
-        self.append_outdent_if_last_expected_child();
+        ast::elements::append::outdent_if_last_expected_child(self);
         self.ast.indent();
         Ok(())
     }
@@ -519,7 +471,7 @@ impl Compiler {
                         _=>()
             }
         }
-        self.append_outdent_if_last_expected_child();
+        ast::elements::append::outdent_if_last_expected_child(self);
         Ok(())
     }
 
@@ -542,7 +494,7 @@ impl Compiler {
 
     fn append_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
         self.ast.outdent();
-        self.append_outdent_if_last_expected_child();
+        ast::elements::append::outdent_if_last_expected_child(self);
         Ok(())
     }
 
@@ -553,8 +505,8 @@ impl Compiler {
             ElementInfo::ConstantRef(current_token.clone(), returntype.clone(), current_token.clone()),
             vec![],
         ));
-        self.append_outdent_if_last_expected_child();
-       return self.append_seol_if_last_in_line();
+        ast::elements::append::outdent_if_last_expected_child(self);
+       return ast::elements::append::seol_if_last_in_line(self);
 
     }
 
@@ -583,9 +535,9 @@ impl Compiler {
         }
 
         //dbg!("constant 1", &self.ast.parents);
-        self.append_outdent_if_last_expected_child();
+        ast::elements::append::outdent_if_last_expected_child(self);
         //dbg!("constant 2", &self.ast.parents);
-        return self.append_seol_if_last_in_line();
+        return ast::elements::append::seol_if_last_in_line(self);
     
     }
 
@@ -617,7 +569,7 @@ impl Compiler {
                 );
                 self.ast.elements[parent_ref] = new_constant_ref;
                 //self.ast.outdent();
-                return self.append_seol_if_last_in_line();
+                return ast::elements::append::seol_if_last_in_line(self);
             
             }
             _ => {
@@ -639,7 +591,7 @@ impl Compiler {
             self.ast.indent();
         }
         if seol {
-            return self.append_seol_if_last_in_line()
+            return ast::elements::append::seol_if_last_in_line(self)
         } else {
         Ok(())
         }
@@ -650,139 +602,6 @@ impl Compiler {
         //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
         if self.current_line_token == 0 {
             self.ast.append((ElementInfo::Indent, vec![]));
-        }
-    }
-
-    fn append_seol_if_last_in_line(self: &mut Self) -> Result<(),()> {
-        let is_last_token_in_this_line =
-            self.current_line_token == self.lines_of_tokens[self.current_line].len() - 1;
-        let mut is_end_of_return_statement_of_a_func_def: bool = false;
-
-        if is_last_token_in_this_line {
-            for el_index in (0..self.ast.elements.len()).rev() {
-                let el = &self.ast.elements[el_index];
-                match el.0 {
-                    ElementInfo::Indent => {
-                        // get start of current line
-
-                        if el_index != self.ast.elements.len() - 1 {
-                            let first_element_after_indent_ref = el_index + 1;
-                            let parent_of_first_el_option = self
-                                .ast
-                                .get_current_parent_element_from_element_children_search(
-                                    first_element_after_indent_ref,
-                                );
-                            match parent_of_first_el_option {
-                                Some((ElementInfo::FunctionDef(_, _, _, _), _)) => {
-                                    // confirm this line is a statement from a func def
-
-                                    let first_element_after_indent_el =
-                                        &self.ast.elements[first_element_after_indent_ref];
-                                    match first_element_after_indent_el.0 {
-                                        // confirm this statement is a return statement
-                                        // i.e. must be one of these types
-                                        ElementInfo::Int(_) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::Float(_) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::String(_) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::Constant(_, _) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::ConstantRef(_, _, _) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::InbuiltFunctionCall(_, _, _) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::FunctionCall(_, _) => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        ElementInfo::Parens => {
-                                            is_end_of_return_statement_of_a_func_def = true;
-                                        }
-                                        // explicitly listing other types rather than using _ to not overlook new types in future
-                                        ElementInfo::Root => (),
-                                        ElementInfo::CommentSingleLine(_) => (),
-                                        ElementInfo::Arg(_, _, _) => (),
-                                        ElementInfo::Assignment => (),
-                                        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-                                        ElementInfo::FunctionDefWIP => (),
-                                        ElementInfo::FunctionDef(_, _, _, _) => (),
-                                        ElementInfo::Type(_) => (),
-                                        ElementInfo::Eol => (),
-                                        ElementInfo::Seol => (),
-                                        ElementInfo::Indent => (),
-                                        ElementInfo::Unused => (),
-                                    }
-                                }
-                                _ => (),
-                            }
-                            break;
-                        }
-                    }
-                    _ => (),
-                }
-            }
-
-            // if is the last return expression of a func_def
-            // then don't add the semicolon, just the EOL
-            if !is_end_of_return_statement_of_a_func_def {
-                //self.ast.append((ElementInfo::Eol, vec![]));
-                self.ast.append((ElementInfo::Seol, vec![]));
-            }
-        }
-        Ok(())
-    }
-
-    fn append_outdent_if_last_expected_child(self: &mut Self) {
-        let mut prev_parents_len = 999999999;
-        loop {
-            //dbg!("loop", &self.ast.parents);
-            if self.ast.parents.len() < 2 || self.ast.parents.len() == prev_parents_len {
-                break;
-            }
-            prev_parents_len = self.ast.parents.len();
-            let current_parent_ref = self.ast.get_current_parent_ref_from_parents();
-            let current_parent = self.ast.elements[current_parent_ref].clone();
-            //dbg!("---", &self.ast);
-            match current_parent.0.clone() {
-                ElementInfo::Constant(_, _) => {
-                    self.outdent_constant(current_parent);
-                }
-                ElementInfo::Assignment => {
-                    self.outdent_assignment(current_parent);
-                }
-                ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
-                    self.outdent_inbuiltfncall_from_inbuiltfndef(current_parent, fndefref);
-                }
-                ElementInfo::FunctionDef(_, _argnames, _, _) => {
-                    self.outdent_within_fndef_from_return_expression();
-                }
-                ElementInfo::FunctionCall(name, _) => {
-                    self.outdent_fncall_from_fndef_or_arg(current_parent, name);
-                }
-                // explicitly listing other types rather than using _ to not overlook new types in future
-                ElementInfo::Root => (),
-                ElementInfo::CommentSingleLine(_) => (),
-                ElementInfo::Int(_) => (),
-                ElementInfo::Float(_) => (),
-                ElementInfo::String(_) => (),
-                ElementInfo::Arg(_, _, _) => (),
-                ElementInfo::ConstantRef(_, _, _) => (),
-                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-                ElementInfo::FunctionDefWIP => (),
-                ElementInfo::Parens => (),
-                ElementInfo::Type(_) => (),
-                ElementInfo::Eol => (),
-                ElementInfo::Seol => (),
-                ElementInfo::Indent => (),
-                ElementInfo::Unused => (),
-            }
         }
     }
 

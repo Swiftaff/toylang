@@ -1,6 +1,7 @@
 pub mod elements;
 pub mod output;
 pub mod parents;
+
 use crate::ast::elements::{ElIndex, Element, ElementInfo, Elements};
 use std::fmt;
 
@@ -35,11 +36,11 @@ impl Ast {
 
     // ELEMENTS
     pub fn append(&mut self, element: Element) {
-        elements::append(self, element);
+        elements::append::append(self, element);
     }
 
     pub fn append_as_ref(self: &mut Self, element: Element) -> usize {
-        elements::append_as_ref(self, element)
+        elements::append::append_as_ref(self, element)
     }
 
     pub fn get_element_by_name(self: &Self, name: &String) -> Option<Element> {
