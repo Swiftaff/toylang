@@ -232,3 +232,163 @@ pub fn inbuilt_function_call(
     compiler.ast.indent();
     Ok(())
 }
+
+pub fn function_call1(
+    compiler: &mut Compiler,
+    current_token: &String,
+    index_of_function: usize,
+) -> Result<(), ()> {
+    //TODO find difference with other append_function_call
+    indent_if_first_in_line(compiler);
+    let el = &compiler.ast.elements[index_of_function];
+    let returntype = compiler.ast.get_elementinfo_type(&el.0);
+    append(
+        &mut compiler.ast,
+        (
+            ElementInfo::FunctionCall(current_token.clone(), returntype),
+            vec![],
+        ),
+    );
+    outdent_if_last_expected_child(compiler);
+    compiler.ast.indent();
+    Ok(())
+}
+
+pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
+    indent_if_first_in_line(compiler);
+    append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
+    //self.outdent_if_last_expected_child();
+    compiler.ast.indent();
+    Ok(())
+}
+
+pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
+    indent_if_first_in_line(compiler);
+    append(&mut compiler.ast, (ElementInfo::Parens, vec![]));
+    compiler.ast.indent();
+    Ok(())
+}
+
+pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.ast.outdent();
+    outdent_if_last_expected_child(compiler);
+    Ok(())
+}
+
+pub fn constant_ref(
+    compiler: &mut Compiler,
+    current_token: &String,
+    returntype: &String,
+) -> Result<(), ()> {
+    indent_if_first_in_line(compiler);
+    append(
+        &mut compiler.ast,
+        (
+            ElementInfo::ConstantRef(
+                current_token.clone(),
+                returntype.clone(),
+                current_token.clone(),
+            ),
+            vec![],
+        ),
+    );
+    outdent_if_last_expected_child(compiler);
+    seol_if_last_in_line(compiler)
+}
+
+pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    let typename = "Undefined".to_string();
+    indent_if_first_in_line(compiler);
+    //TODO change this to inbuiltfunction?
+
+    let parent_ref = compiler.ast.get_current_parent_ref_from_parents();
+    let parent = compiler.ast.elements[parent_ref].clone();
+    match parent.0 {
+        ElementInfo::FunctionDefWIP => {
+            append(
+                &mut compiler.ast,
+                (
+                    ElementInfo::Arg(current_token.clone(), parent_ref, "Undefined".to_string()),
+                    vec![],
+                ),
+            );
+        }
+        _ => {
+            append(
+                &mut compiler.ast,
+                (
+                    ElementInfo::Constant(current_token.clone(), typename),
+                    vec![],
+                ),
+            );
+            //self.outdent_if_last_expected_child();
+            compiler.ast.indent();
+        }
+    }
+
+    //dbg!("constant 1", &self.ast.parents);
+    outdent_if_last_expected_child(compiler);
+    //dbg!("constant 2", &self.ast.parents);
+    seol_if_last_in_line(compiler)
+}
+
+pub fn function_ref_or_call(
+    compiler: &mut Compiler,
+    current_token: &String,
+    args: usize,
+    returntype: &String,
+) -> Result<(), ()> {
+    //dbg!("FunctionCall", &current_token);
+    indent_if_first_in_line(compiler);
+
+    let parent = compiler.ast.get_current_parent_element_from_parents();
+    //dbg!("penguin",&parent);
+    match parent.0 {
+        ElementInfo::Parens => {
+            // if parent is parens, then this is just a function reference
+            // don't treat it like a functionCall,
+            // just change the parent to be a ConstantRef
+
+            let parent_ref = compiler.ast.get_current_parent_ref_from_parents();
+            let new_constant_ref: Element = (
+                ElementInfo::ConstantRef(
+                    current_token.clone(),
+                    returntype.clone(),
+                    current_token.clone(),
+                ),
+                [].to_vec(),
+            );
+            compiler.ast.elements[parent_ref] = new_constant_ref;
+            //compiler.ast.outdent();
+            return seol_if_last_in_line(compiler);
+        }
+        _ => {
+            //else it is a function call...
+            return function_call(compiler, current_token, args, returntype, true);
+        }
+    }
+}
+
+pub fn function_call(
+    compiler: &mut Compiler,
+    current_token: &String,
+    args: usize,
+    returntype: &String,
+    seol: bool,
+) -> Result<(), ()> {
+    append(
+        &mut compiler.ast,
+        (
+            ElementInfo::FunctionCall(current_token.clone(), returntype.clone()),
+            vec![],
+        ),
+    );
+    if args > 0 {
+        compiler.ast.indent();
+    }
+    if seol {
+        return seol_if_last_in_line(compiler);
+    } else {
+        Ok(())
+    }
+}

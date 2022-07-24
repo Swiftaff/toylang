@@ -274,19 +274,19 @@ impl Compiler {
                 }     
                 match el_option {
                     Some((ElementInfo::Constant(_, returntype), _)) => {
-                        return self.append_constant_ref(current_token, &returntype);
+                        return self::ast::elements::append::constant_ref(self, current_token, &returntype);
                     }
                     Some((ElementInfo::Arg(_, _, returntype), _)) => {
                         //dbg!("Arg", &returntype);
                         if returntype.contains("&dyn Fn") {
                             let args = get_args_from_dyn_fn(&returntype);
-                            return self.append_function_call(current_token, args, &returntype, false);
+                            return self::ast::elements::append::function_call(self, current_token, args, &returntype, false);
                         } else {
-                            return self.append_constant_ref(current_token, &returntype);
+                            return self::ast::elements::append::constant_ref(self, current_token, &returntype);
                         }
                     }
                     Some((ElementInfo::FunctionDef(_, argnames, _, returntype), _)) => {
-                        return self.append_function_ref_or_call(current_token, argnames.len(), &returntype);
+                        return self::ast::elements::append::function_ref_or_call(self, current_token, argnames.len(), &returntype);
                     }
                     // explicitly listing other types rather than using _ to not overlook new types in future
                     Some((ElementInfo::Root, _)) => (),
@@ -311,7 +311,7 @@ impl Compiler {
             }
             None => (),
         }
-        return self.append_new_constant_or_arg(current_token);
+        return self::ast::elements::append::new_constant_or_arg(self, current_token);
     }
 
     fn parse_assignment(self: &mut Self) -> Result<(), ()> {
@@ -324,7 +324,7 @@ impl Compiler {
         current_token: &String,
         index_of_function: usize,
     ) -> Result<(), ()> {
-        //TODO erro checking
+        //TODO error checking
         self::ast::elements::append::inbuilt_function_call(self, current_token, index_of_function)
     }
 
@@ -333,37 +333,11 @@ impl Compiler {
         current_token: &String,
         index_of_function: usize,
     ) -> Result<(), ()> {
-        self.append_function_call1(current_token, index_of_function)
-    }
-    
-    fn append_function_call1(
-        self: &mut Self,
-        current_token: &String,
-        index_of_function: usize,
-    ) -> Result<(), ()> {
-        //TODO find difference with other append_function_call
-        self.append_indent_if_first_in_line();
-        let el = &self.ast.elements[index_of_function];
-        let returntype = self.ast.get_elementinfo_type(&el.0);
-        self.ast.append((
-            ElementInfo::FunctionCall(current_token.clone(), returntype),
-            vec![],
-        ));
-        ast::elements::append::outdent_if_last_expected_child(self);
-        self.ast.indent();
-        Ok(())
+        self::ast::elements::append::function_call1(self, current_token, index_of_function)
     }
 
     fn parse_function_definition_start(self: &mut Self) -> Result<(), ()> {
-        self.append_function_definition_start()
-    }
-
-    fn append_function_definition_start(self: &mut Self) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast.append((ElementInfo::FunctionDefWIP, vec![]));
-        //self.outdent_if_last_expected_child();
-        self.ast.indent();
-        Ok(())
+        self::ast::elements::append::function_definition_start(self)
     }
 
     fn parse_function_definition_end(self: &mut Self) -> Result<(), ()> {
@@ -478,131 +452,11 @@ impl Compiler {
     //TODO remember to error / or at least check if reusing arg names in nested functions
 
     fn parse_functiontypesig_or_functionreference_start(self: &mut Self) -> Result<(), ()> {
-        self.append_functiontypesig_or_functionreference_start()
+        self::ast::elements::append::functiontypesig_or_functionreference_start(self)
     }
 
-    fn append_functiontypesig_or_functionreference_start(self: &mut Self) -> Result<(), ()> {
-        self.append_indent_if_first_in_line();
-        self.ast.append((ElementInfo::Parens, vec![]));
-        self.ast.indent();
-        Ok(())
-    }
-
-    fn parse_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
-        self.append_functiontypesig_or_functionreference_end()
-    }
-
-    fn append_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
-        self.ast.outdent();
-        ast::elements::append::outdent_if_last_expected_child(self);
-        Ok(())
-    }
-
-    
-    fn append_constant_ref(self: &mut Self, current_token: &String, returntype: &String) -> Result<(),()> {
-        self.append_indent_if_first_in_line();
-        self.ast.append((
-            ElementInfo::ConstantRef(current_token.clone(), returntype.clone(), current_token.clone()),
-            vec![],
-        ));
-        ast::elements::append::outdent_if_last_expected_child(self);
-       return ast::elements::append::seol_if_last_in_line(self);
-
-    }
-
-    fn append_new_constant_or_arg(self: &mut Self, current_token: &String) -> Result<(),()> {
-        let typename = "Undefined".to_string();
-        self.append_indent_if_first_in_line();
-        //TODO change this to inbuiltfunction?
-
-        let parent_ref = self.ast.get_current_parent_ref_from_parents();
-        let parent = self.ast.elements[parent_ref].clone();
-        match parent.0 {
-            ElementInfo::FunctionDefWIP => {
-                self.ast.append((
-                    ElementInfo::Arg(current_token.clone(), parent_ref, "Undefined".to_string()),
-                    vec![],
-                ));
-            }
-            _ => {
-                self.ast.append((
-                    ElementInfo::Constant(current_token.clone(), typename),
-                    vec![],
-                ));
-                //self.outdent_if_last_expected_child();
-                self.ast.indent();
-            }
-        }
-
-        //dbg!("constant 1", &self.ast.parents);
-        ast::elements::append::outdent_if_last_expected_child(self);
-        //dbg!("constant 2", &self.ast.parents);
-        return ast::elements::append::seol_if_last_in_line(self);
-    
-    }
-
-    fn append_function_ref_or_call(
-        self: &mut Self,
-        current_token: &String,
-        args: usize,
-        returntype: &String,
-    ) -> Result<(), ()> {
-        //dbg!("FunctionCall", &current_token);
-        self.append_indent_if_first_in_line();
-
-        let parent = self.ast.get_current_parent_element_from_parents();
-        //dbg!("penguin",&parent);
-        match parent.0 {
-            ElementInfo::Parens => {
-                // if parent is parens, then this is just a function reference
-                // don't treat it like a functionCall,
-                // just change the parent to be a ConstantRef
-
-                let parent_ref = self.ast.get_current_parent_ref_from_parents();
-                let new_constant_ref: Element = (
-                    ElementInfo::ConstantRef(
-                        current_token.clone(),
-                        returntype.clone(),
-                        current_token.clone(),
-                    ),
-                    [].to_vec(),
-                );
-                self.ast.elements[parent_ref] = new_constant_ref;
-                //self.ast.outdent();
-                return ast::elements::append::seol_if_last_in_line(self);
-            
-            }
-            _ => {
-                //else it is a function call...
-                return self.append_function_call(current_token, args, returntype, true);
-            }
-        }
-    }
-
-    fn append_function_call(self: &mut Self,
-        current_token: &String,
-        args: usize,
-        returntype: &String,seol: bool) -> Result<(), ()> {
-        self.ast.append((
-            ElementInfo::FunctionCall(current_token.clone(), returntype.clone()),
-            vec![],
-        ));
-        if args > 0 {
-            self.ast.indent();
-        }
-        if seol {
-            return ast::elements::append::seol_if_last_in_line(self)
-        } else {
-        Ok(())
-        }
-    }
-
-    fn append_indent_if_first_in_line(self: &mut Self) {
-        //or if first part of the expression in a single line function (after the colon)
-        //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
-        if self.current_line_token == 0 {
-            self.ast.append((ElementInfo::Indent, vec![]));
-        }
+     fn parse_functiontypesig_or_functionreference_end(self: &mut Self) -> Result<(), ()> {
+        self::ast::elements::append::functiontypesig_or_functionreference_end(self)
     }
 
     fn outdent_within_fndef_from_return_expression(self: &mut Self){
