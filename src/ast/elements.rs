@@ -1,6 +1,9 @@
 pub mod append;
-
-use crate::formatting::get_formatted_argname_argtype_pairs;
+use crate::ast::elements;
+use crate::ast::parents;
+use crate::formatting;
+use crate::Ast;
+use crate::Compiler;
 use std::fmt;
 
 #[derive(Clone)]
@@ -58,40 +61,40 @@ pub type Elements = Vec<Element>;
 pub type Element = (ElementInfo, ElementChildren);
 pub type ElementChildren = Vec<ElIndex>;
 
-pub fn get_element_by_name(ast: &super::Ast, name: &String) -> Option<Element> {
-    if let Some(index) = ast.get_constant_index_by_name(name) {
+pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
+    if let Some(index) = get_constant_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
-    if let Some(index) = ast.get_inbuilt_function_index_by_name(name) {
+    if let Some(index) = get_inbuilt_function_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
-    if let Some(index) = ast.get_function_index_by_name(name) {
+    if let Some(index) = get_function_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
-    if let Some(index) = ast.get_inbuilt_type_index_by_name(name) {
+    if let Some(index) = get_inbuilt_type_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
-    if let Some(index) = ast.get_arg_index_by_name(name) {
+    if let Some(index) = get_arg_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
     None
 }
 
-pub fn get_arg_index_by_name(ast: &super::Ast, name: &String) -> Option<usize> {
+pub fn get_arg_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Arg(n, _, _) => n == name,
         _ => false,
     })
 }
 
-pub fn get_inbuilt_type_index_by_name(ast: &super::Ast, name: &String) -> Option<usize> {
+pub fn get_inbuilt_type_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Type(n) => n == name,
         _ => false,
     })
 }
 
-pub fn get_constant_index_by_name(ast: &super::Ast, name: &String) -> Option<usize> {
+pub fn get_constant_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Constant(n, _t) => n == name,
         ElementInfo::ConstantRef(n, _t, _refname) => n == name,
@@ -99,14 +102,14 @@ pub fn get_constant_index_by_name(ast: &super::Ast, name: &String) -> Option<usi
     })
 }
 
-pub fn get_constant_by_name(ast: &super::Ast, name: &String) -> Option<ElementInfo> {
-    if let Some(index) = ast.get_constant_index_by_name(name) {
+pub fn get_constant_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
+    if let Some(index) = get_constant_index_by_name(ast, name) {
         return Some(ast.elements[index].0.clone());
     }
     None
 }
 
-pub fn get_function_index_by_name(ast: &super::Ast, name: &String) -> Option<usize> {
+pub fn get_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
         ElementInfo::FunctionDef(n, _, _, _) => n == name,
         ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
@@ -114,7 +117,7 @@ pub fn get_function_index_by_name(ast: &super::Ast, name: &String) -> Option<usi
     })
 }
 
-pub fn get_inbuilt_function_index_by_name(ast: &super::Ast, name: &String) -> Option<usize> {
+pub fn get_inbuilt_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
         ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
         ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
@@ -122,8 +125,8 @@ pub fn get_inbuilt_function_index_by_name(ast: &super::Ast, name: &String) -> Op
     })
 }
 
-pub fn get_inbuilt_function_index_by_name_and_returntype(
-    ast: &super::Ast,
+pub fn _get_inbuilt_function_index_by_name_and_returntype(
+    ast: &Ast,
     name: &String,
     returntype: &String,
 ) -> Option<usize> {
@@ -138,37 +141,34 @@ pub fn get_inbuilt_function_index_by_name_and_returntype(
     })
 }
 
-pub fn get_inbuilt_function_by_name(ast: &super::Ast, name: &String) -> Option<ElementInfo> {
-    if let Some(index) = ast.get_inbuilt_function_index_by_name(name) {
+pub fn get_inbuilt_function_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
+    if let Some(index) = get_inbuilt_function_index_by_name(ast, name) {
         return Some(ast.elements[index].0.clone());
     }
     None
 }
 
-pub fn get_inbuilt_function_by_name_and_returntype(
-    ast: &super::Ast,
+pub fn _get_inbuilt_function_by_name_and_returntype(
+    ast: &Ast,
     name: &String,
     returntype: &String,
 ) -> Option<ElementInfo> {
     //dbg!(returntype);
-    if let Some(index) = ast.get_inbuilt_function_index_by_name_and_returntype(name, returntype) {
+    if let Some(index) = _get_inbuilt_function_index_by_name_and_returntype(ast, name, returntype) {
         return Some(ast.elements[index].0.clone());
     }
     None
 }
 
-pub fn get_last_element(ast: &super::Ast) -> Element {
+pub fn get_last_element(ast: &Ast) -> Element {
     ast.elements.last().unwrap().clone()
 }
 
-pub fn get_updated_elementinfo_with_infered_type(
-    ast: &mut super::Ast,
-    el_index: usize,
-) -> ElementInfo {
+pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize) -> ElementInfo {
     let el = ast.elements[el_index].clone();
-    let el_type = ast.get_elementinfo_type(&el.0);
+    let el_type = get_elementinfo_type(ast, &el.0);
     if el_type == "Undefined".to_string() {
-        let infered_type = ast.get_infered_type_of_any_element(el_index);
+        let infered_type = get_infered_type_of_any_element(ast, el_index);
         match el.0 {
             ElementInfo::Arg(name, scope, _) => {
                 return ElementInfo::Arg(name, scope, infered_type);
@@ -210,24 +210,24 @@ pub fn get_updated_elementinfo_with_infered_type(
     el.0
 }
 
-pub fn get_infered_type_of_any_element(ast: &mut super::Ast, el_index: usize) -> String {
+pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
     let el = ast.elements[el_index].clone();
     let el_info = &el.0;
     match el_info {
         ElementInfo::Arg(_, _, _) => {
-            return ast.get_infered_type_of_arg_element(el_info, el_index);
+            return get_infered_type_of_arg_element(ast, el_info, el_index);
         }
         ElementInfo::Constant(_, _) => {
-            return ast.get_infered_type_of_constant_element(&el);
+            return get_infered_type_of_constant_element(ast, &el);
         }
         ElementInfo::ConstantRef(_, _, refname) => {
-            return ast.get_infered_type_of_constantref_element(&refname);
+            return get_infered_type_of_constantref_element(ast, &refname);
         }
         ElementInfo::InbuiltFunctionCall(_, fndef_index, _) => {
-            return ast.get_infered_type_of_inbuiltfunctioncall_element(&el, *fndef_index);
+            return get_infered_type_of_inbuiltfunctioncall_element(ast, &el, *fndef_index);
         }
         ElementInfo::FunctionCall(name, _) => {
-            return ast.get_infered_type_of_functioncall_element(&name);
+            return get_infered_type_of_functioncall_element(ast, &name);
         }
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => {}
@@ -246,11 +246,11 @@ pub fn get_infered_type_of_any_element(ast: &mut super::Ast, el_index: usize) ->
         ElementInfo::Indent => (),
         ElementInfo::Unused => (),
     }
-    ast.get_elementinfo_type(el_info)
+    get_elementinfo_type(ast, el_info)
 }
 
 pub fn get_infered_type_of_arg_element(
-    ast: &mut super::Ast,
+    ast: &Ast,
     el_info: &ElementInfo,
     el_index: usize,
 ) -> String {
@@ -259,7 +259,7 @@ pub fn get_infered_type_of_arg_element(
         ElementInfo::Arg(name, _, _) => {
             // get type of this arg, from the argtypes of parent funcdef
             if let Some(parent_funcdef) =
-                ast.get_current_parent_element_from_element_children_search(el_index)
+                parents::get_current_parent_element_from_element_children_search(ast, el_index)
             {
                 match parent_funcdef.0 {
                     ElementInfo::FunctionDef(_, argnames, argtypes, _) => {
@@ -279,13 +279,13 @@ pub fn get_infered_type_of_arg_element(
     infered_type
 }
 
-pub fn get_infered_type_of_constant_element(ast: &mut super::Ast, el: &Element) -> String {
+pub fn get_infered_type_of_constant_element(ast: &Ast, el: &Element) -> String {
     let mut infered_type = "Undefined".to_string();
     match el.0 {
         ElementInfo::Constant(_, _) => {
             if el.1.len() > 0 {
                 let child_ref = el.1[0];
-                infered_type = ast.get_infered_type_of_any_element(child_ref);
+                infered_type = get_infered_type_of_any_element(ast, child_ref);
             }
         }
         _ => (),
@@ -293,16 +293,16 @@ pub fn get_infered_type_of_constant_element(ast: &mut super::Ast, el: &Element) 
     infered_type
 }
 
-pub fn get_infered_type_of_constantref_element(ast: &mut super::Ast, refname: &String) -> String {
+pub fn get_infered_type_of_constantref_element(ast: &Ast, refname: &String) -> String {
     let mut infered_type = "Undefined".to_string();
-    if let Some(ElementInfo::Constant(_, returntype)) = ast.get_constant_by_name(&refname) {
+    if let Some(ElementInfo::Constant(_, returntype)) = get_constant_by_name(ast, &refname) {
         infered_type = returntype
     }
     infered_type
 }
 
 pub fn get_infered_type_of_inbuiltfunctioncall_element(
-    ast: &mut super::Ast,
+    ast: &Ast,
     func_call_el: &Element,
     funcdef_el_index: usize,
 ) -> String {
@@ -320,7 +320,7 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
                     for _argtype in argtypes {
                         let first_child_ref = el_children[0];
                         let first_child = &ast.elements[first_child_ref];
-                        infered_type = ast.get_elementinfo_type(&first_child.0);
+                        infered_type = get_elementinfo_type(ast, &first_child.0);
                         //dbg!("2.6", &infered_type);
                     }
                 }
@@ -333,9 +333,9 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
     infered_type
 }
 
-pub fn get_infered_type_of_functioncall_element(ast: &super::Ast, name: &String) -> String {
+pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> String {
     let undefined = "Undefined".to_string();
-    if let Some(index) = ast.get_function_index_by_name(&name) {
+    if let Some(index) = get_function_index_by_name(ast, &name) {
         let funcdef = &ast.elements[index];
         match &funcdef.0 {
             ElementInfo::FunctionDef(_, _, _, returntype) => return returntype.clone(),
@@ -352,7 +352,7 @@ pub fn get_infered_type_of_functioncall_element(ast: &super::Ast, name: &String)
     undefined
 }
 
-pub fn get_elementinfo_type(ast: &super::Ast, elementinfo: &ElementInfo) -> String {
+pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
     match elementinfo {
         ElementInfo::Int(_) => "i64".to_string(),
@@ -363,7 +363,7 @@ pub fn get_elementinfo_type(ast: &super::Ast, elementinfo: &ElementInfo) -> Stri
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
         ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
         ElementInfo::Arg(_, _, returntype) => returntype.clone(),
-        ElementInfo::FunctionCall(name, _) => ast.get_infered_type_of_functioncall_element(&name),
+        ElementInfo::FunctionCall(name, _) => get_infered_type_of_functioncall_element(ast, &name),
         ElementInfo::Type(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => undefined,
@@ -379,7 +379,23 @@ pub fn get_elementinfo_type(ast: &super::Ast, elementinfo: &ElementInfo) -> Stri
     }
 }
 
-pub fn replace_element_child(ast: &mut super::Ast, element_ref: usize, from: usize, to: usize) {
+pub fn is_existing_constant(compiler: &Compiler) -> bool {
+    let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    let mut parent_assignment_has_no_children = false;
+    match parent.0 {
+        ElementInfo::Assignment => {
+            parent_assignment_has_no_children = parent.1.len() == 0;
+            // then this constant is the first child of the assignment
+            // so it is the name of the constant (and not the value if it were the second child),
+            // and since constants are immutable it can't have the same name as a pre-existing constant
+            // so it is invalid!
+        }
+        _ => (),
+    }
+    parent_assignment_has_no_children
+}
+
+pub fn replace_element_child(ast: &mut Ast, element_ref: usize, from: usize, to: usize) {
     let closure = |el_ref: usize| {
         if el_ref == from {
             to
@@ -394,6 +410,99 @@ pub fn replace_element_child(ast: &mut super::Ast, element_ref: usize, from: usi
         .map(closure)
         .collect();
     ast.elements[element_ref].1 = children;
+}
+
+pub fn replace_funcdefwip_with_funcdef(
+    compiler: &mut Compiler,
+    children: &[usize],
+    name: &String,
+    func_def_ref: usize,
+) {
+    //assign name, argtypes, argnames, returntype to parent funcdef
+    let argtypes = get_argtypes_from_argtokens(compiler, &children);
+    let returntype = get_returntype_from_argtokens(compiler, &children);
+    let argnames = get_argnames_from_argtokens(compiler, &children, &argtypes);
+    let new_funcdef = ElementInfo::FunctionDef(name.clone(), argnames, argtypes, returntype);
+
+    // replace original funcdefWIP with funcdef
+    compiler.ast.elements[func_def_ref] = (new_funcdef, vec![]);
+}
+
+pub fn get_argtypes_from_argtokens(compiler: &Compiler, children: &[usize]) -> Vec<String> {
+    let mut argtypes: Vec<String> = vec![];
+    let num_args = children.len() / 2;
+    let argtype_refs = &children[..num_args];
+    for a in argtype_refs {
+        match &compiler.ast.elements[a.clone()] {
+            (ElementInfo::Type(typename), _) => argtypes.push(typename.clone()),
+            (ElementInfo::Parens, paren_children) => {
+                if paren_children.len() > 0 {
+                    let fn_type_signature =
+                        get_formatted_dyn_fn_type_sig(compiler, &paren_children);
+                    argtypes.push(fn_type_signature)
+                }
+            }
+            _ => (),
+        }
+    }
+    argtypes
+}
+
+pub fn get_returntype_from_argtokens(compiler: &Compiler, children: &[usize]) -> String {
+    let num_args = children.len() / 2;
+    let returntype_ref = &children[num_args];
+    return match &compiler.ast.elements[returntype_ref.clone()] {
+        (ElementInfo::Type(typename), _) => typename.clone(),
+        _ => "Undefined".to_string(),
+    };
+}
+
+pub fn get_argnames_from_argtokens(
+    compiler: &mut Compiler,
+    children: &[usize],
+    argtypes: &Vec<String>,
+) -> Vec<String> {
+    //get argnames from Arg tokens
+    //but also update Arg tokens returntypes at same time
+    //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
+    let mut argnames: Vec<String> = vec![];
+    let num_args = children.len() / 2;
+    let argname_refs = &children[num_args + 1..];
+    for i in 0..argname_refs.len() {
+        let a = argname_refs[i];
+        match &compiler.ast.elements[a] {
+            (ElementInfo::Arg(argname, scope, _), _) => {
+                argnames.push(argname.clone());
+                let returntype = argtypes[i].clone();
+                let updated_arg_token =
+                    ElementInfo::Arg(argname.clone(), scope.clone(), returntype);
+                compiler.ast.elements[a].0 = updated_arg_token;
+            }
+            _ => (),
+        }
+    }
+    argnames
+}
+
+pub fn get_formatted_dyn_fn_type_sig(compiler: &Compiler, paren_children: &Vec<usize>) -> String {
+    let paren_returntype_ref = *paren_children.last().unwrap();
+    let paren_returntype_el = &compiler.ast.elements[paren_returntype_ref];
+    let paren_returntype = elements::get_elementinfo_type(&compiler.ast, &paren_returntype_el.0);
+    let paren_main_types = &paren_children[0..paren_children.len() - 1];
+    let mut main_types = "".to_string();
+    for i in 0..paren_main_types.len() {
+        let main_type_ref = paren_main_types[i];
+        let main_type_el = &compiler.ast.elements[main_type_ref];
+        //dbg!(&main_type_el);
+        let main_type = elements::get_elementinfo_type(&compiler.ast, &main_type_el.0);
+        let comma = if i + 1 == paren_main_types.len() {
+            "".to_string()
+        } else {
+            ", ".to_string()
+        };
+        main_types = format!("{}{}{}", main_types, comma, main_type);
+    }
+    format!("&dyn Fn({}) -> {}", main_types, paren_returntype)
 }
 
 impl fmt::Debug for ElementInfo {
@@ -426,7 +535,7 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = get_formatted_argname_argtype_pairs(&argnames, &argtypes);
+                let args = formatting::get_formatted_argname_argtype_pairs(&argnames, &argtypes);
                 format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, returntype) => {
@@ -453,7 +562,10 @@ mod tests {
     // cargo test test_get_depths_vec -- --show-output
 
     use super::*;
+    use crate::ast::output;
     use crate::Ast;
+    use crate::Compiler;
+    use crate::File;
 
     #[test]
     fn test_get_depths_vec() {
@@ -461,8 +573,8 @@ mod tests {
         let mut ast1 = Ast::new();
         let mut n = ast1.elements.len();
         let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast1.append(el1);
-        assert_eq!(ast1.get_depths_vec(), vec![[n]]);
+        append::append(&mut ast1, el1);
+        assert_eq!(output::get_depths_vec(ast1), vec![[n]]);
 
         //3 el under root
         let mut ast2 = Ast::new();
@@ -470,10 +582,10 @@ mod tests {
         let el21: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el22: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el23: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast2.append(el21);
-        ast2.append(el22);
-        ast2.append(el23);
-        assert_eq!(ast2.get_depths_vec(), vec![[n, n + 1, n + 2]]);
+        append::append(&mut ast2, el21);
+        append::append(&mut ast2, el22);
+        append::append(&mut ast2, el23);
+        assert_eq!(output::get_depths_vec(ast2), vec![[n, n + 1, n + 2]]);
 
         //1 el under with 2 children, under root
         let mut ast3 = Ast::new();
@@ -484,11 +596,14 @@ mod tests {
         );
         let el32: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el33: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast3.append(el31);
-        ast3.indent();
-        ast3.append(el32);
-        ast3.append(el33);
-        assert_eq!(ast3.get_depths_vec(), vec![vec![n], vec![n + 2, n + 1]]);
+        append::append(&mut ast3, el31);
+        parents::indent::indent(&mut ast3);
+        append::append(&mut ast3, el32);
+        append::append(&mut ast3, el33);
+        assert_eq!(
+            output::get_depths_vec(ast3),
+            vec![vec![n], vec![n + 2, n + 1]]
+        );
 
         //typical nested tree         this flat ast
         //0 (root)                    |_(0,[1,2,3,8]) root
@@ -515,8 +630,21 @@ mod tests {
         */
 
         //10 el in nested structure above
-        let mut ast4 = Ast::new();
-        n = ast4.elements.len();
+
+        fn mock_compiler() -> Compiler {
+            Compiler {
+                file: File::new(),
+                lines_of_chars: vec![],
+                lines_of_tokens: vec![],
+                output: "".to_string(),
+                current_line: 0,
+                current_line_token: 0,
+                error_stack: vec![],
+                ast: Ast::new(),
+            }
+        }
+        let mut c = mock_compiler();
+        n = c.ast.elements.len();
         let el41: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el42: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el43: Element = (
@@ -536,24 +664,25 @@ mod tests {
         let el48: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el49: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el410: Element = (ElementInfo::Int("1".to_string()), vec![]);
-        ast4.append(el41);
-        ast4.append(el42);
-        ast4.append(el43);
-        ast4.indent();
-        ast4.append(el44);
-        ast4.append(el45);
-        ast4.indent();
-        ast4.append(el46);
-        ast4.append(el47);
-        ast4.indent();
-        ast4.append(el48);
-        ast4.append(el49);
-        ast4.outdent();
-        ast4.outdent();
-        ast4.outdent();
-        ast4.append(el410);
+        append::append(&mut c.ast, el41);
+        append::append(&mut c.ast, el42);
+        append::append(&mut c.ast, el43);
+        parents::indent::indent(&mut c.ast);
+        append::append(&mut c.ast, el44);
+        append::append(&mut c.ast, el45);
+        parents::indent::indent(&mut c.ast);
+        append::append(&mut c.ast, el46);
+        append::append(&mut c.ast, el47);
+        parents::indent::indent(&mut c.ast);
+        append::append(&mut c.ast, el48);
+        append::append(&mut c.ast, el49);
+        parents::outdent::outdent(&mut c);
+        parents::outdent::outdent(&mut c);
+        parents::outdent::outdent(&mut c);
+        append::append(&mut c.ast, el410);
+
         assert_eq!(
-            ast4.get_depths_vec(),
+            output::get_depths_vec(c.ast),
             vec![
                 vec![n, n + 1, n + 2, n + 9],
                 vec![n + 4, n + 3],
@@ -565,19 +694,19 @@ mod tests {
 
     #[test]
     fn test_get_depths_flattened() {
-        let mut ast = Ast::new();
+        //let mut ast = Ast::new();
         let mut input = vec![vec![0]];
-        assert_eq!(ast.get_depths_flattened(&input), vec![0]);
+        assert_eq!(output::get_depths_flattened(&input), vec![0]);
 
         input = vec![vec![1, 2, 3]];
-        assert_eq!(ast.get_depths_flattened(&input), vec![1, 2, 3]);
+        assert_eq!(output::get_depths_flattened(&input), vec![1, 2, 3]);
 
         input = vec![vec![1], vec![2, 3]];
-        assert_eq!(ast.get_depths_flattened(&input), vec![2, 3, 1]);
+        assert_eq!(output::get_depths_flattened(&input), vec![2, 3, 1]);
 
         input = vec![vec![1, 2, 3, 10], vec![4, 5], vec![6, 7], vec![8, 9]];
         assert_eq!(
-            ast.get_depths_flattened(&input),
+            output::get_depths_flattened(&input),
             vec![8, 9, 6, 7, 4, 5, 1, 2, 3, 10]
         );
     }

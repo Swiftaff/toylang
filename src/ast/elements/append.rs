@@ -1,5 +1,7 @@
-use crate::ast::elements::{Element, ElementInfo};
-use crate::ast::parents::indent;
+use crate::ast::elements;
+use crate::ast::elements::{append, Element, ElementInfo};
+use crate::ast::parents;
+use crate::ast::parents::outdent;
 use crate::Ast;
 use crate::Compiler;
 
@@ -7,12 +9,12 @@ pub fn append(ast: &mut Ast, element: Element) -> usize {
     // add element to list, and add to list of children of current parent where 0 = root
     ast.elements.push(element);
     let new_items_index = ast.elements.len() - 1;
-    let current_parent_ref = ast.get_current_parent_ref_from_parents();
+    let current_parent_ref = parents::get_current_parent_ref_from_parents(ast);
     ast.elements[current_parent_ref].1.push(new_items_index);
     new_items_index
 }
 
-pub fn append_as_ref(ast: &mut Ast, element: Element) -> usize {
+pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
     // add element to list only, don't add as child
     ast.elements.push(element);
     let new_items_index = ast.elements.len() - 1;
@@ -21,9 +23,8 @@ pub fn append_as_ref(ast: &mut Ast, element: Element) -> usize {
 
 pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
-    compiler
-        .ast
-        .append(compiler.ast.elements[index_of_type].clone());
+    let el = compiler.ast.elements[index_of_type].clone();
+    append::append(&mut compiler.ast, el);
     Ok(())
 }
 
@@ -31,14 +32,14 @@ pub fn indent_if_first_in_line(compiler: &mut Compiler) {
     //or if first part of the expression in a single line function (after the colon)
     //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
     if compiler.current_line_token == 0 {
-        compiler.ast.append((ElementInfo::Indent, vec![]));
+        append::append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     }
 }
 
 pub fn comment_single_line(ast: &mut Ast, val: String) -> Result<(), ()> {
-    ast.append((ElementInfo::Indent, vec![]));
-    ast.append((ElementInfo::CommentSingleLine(val), vec![]));
-    ast.append((ElementInfo::Eol, vec![]));
+    append::append(ast, (ElementInfo::Indent, vec![]));
+    append::append(ast, (ElementInfo::CommentSingleLine(val), vec![]));
+    append::append(ast, (ElementInfo::Eol, vec![]));
     Ok(())
 }
 
@@ -60,24 +61,24 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             break;
         }
         prev_parents_len = compiler.ast.parents.len();
-        let current_parent_ref = compiler.ast.get_current_parent_ref_from_parents();
+        let current_parent_ref = parents::get_current_parent_ref_from_parents(&mut compiler.ast);
         let current_parent = compiler.ast.elements[current_parent_ref].clone();
         //dbg!("---", &compiler.ast);
         match current_parent.0.clone() {
             ElementInfo::Constant(_, _) => {
-                compiler.outdent_constant(current_parent);
+                outdent::constant(compiler, current_parent);
             }
             ElementInfo::Assignment => {
-                compiler.outdent_assignment(current_parent);
+                outdent::assignment(compiler, current_parent);
             }
             ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
-                compiler.outdent_inbuiltfncall_from_inbuiltfndef(current_parent, fndefref);
+                outdent::inbuiltfncall_from_inbuiltfndef(compiler, current_parent, fndefref);
             }
             ElementInfo::FunctionDef(_, _argnames, _, _) => {
-                compiler.outdent_within_fndef_from_return_expression();
+                outdent::within_fndef_from_return_expression(compiler);
             }
             ElementInfo::FunctionCall(name, _) => {
-                compiler.outdent_fncall_from_fndef_or_arg(current_parent, name);
+                outdent::fncall_from_fndef_or_arg(compiler, current_parent, name);
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
@@ -113,9 +114,9 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
 
                     if el_index != compiler.ast.elements.len() - 1 {
                         let first_element_after_indent_ref = el_index + 1;
-                        let parent_of_first_el_option = compiler
-                            .ast
-                            .get_current_parent_element_from_element_children_search(
+                        let parent_of_first_el_option =
+                            parents::get_current_parent_element_from_element_children_search(
+                                &mut compiler.ast,
                                 first_element_after_indent_ref,
                             );
                         match parent_of_first_el_option {
@@ -179,7 +180,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         // then don't add the semicolon, just the EOL
         if !is_end_of_return_statement_of_a_func_def {
             //self.ast.append((ElementInfo::Eol, vec![]));
-            compiler.ast.append((ElementInfo::Seol, vec![]));
+            append::append(&mut compiler.ast, (ElementInfo::Seol, vec![]));
         }
     }
     Ok(())
@@ -209,7 +210,7 @@ pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, ((ElementInfo::Assignment), vec![]));
     outdent_if_last_expected_child(compiler);
-    indent(&mut compiler.ast);
+    parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
 
@@ -220,7 +221,7 @@ pub fn inbuilt_function_call(
 ) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     let el = &compiler.ast.elements[index_of_function];
-    let returntype = compiler.ast.get_elementinfo_type(&el.0);
+    let returntype = elements::get_elementinfo_type(&compiler.ast, &el.0);
     append(
         &mut compiler.ast,
         (
@@ -229,7 +230,7 @@ pub fn inbuilt_function_call(
         ),
     );
     outdent_if_last_expected_child(compiler);
-    compiler.ast.indent();
+    parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
 
@@ -241,7 +242,7 @@ pub fn function_call1(
     //TODO find difference with other append_function_call
     indent_if_first_in_line(compiler);
     let el = &compiler.ast.elements[index_of_function];
-    let returntype = compiler.ast.get_elementinfo_type(&el.0);
+    let returntype = elements::get_elementinfo_type(&compiler.ast, &el.0);
     append(
         &mut compiler.ast,
         (
@@ -250,7 +251,7 @@ pub fn function_call1(
         ),
     );
     outdent_if_last_expected_child(compiler);
-    compiler.ast.indent();
+    parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
 
@@ -258,19 +259,19 @@ pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
     //self.outdent_if_last_expected_child();
-    compiler.ast.indent();
+    parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
 
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::Parens, vec![]));
-    compiler.ast.indent();
+    parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
 
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.ast.outdent();
+    parents::outdent::outdent(compiler);
     outdent_if_last_expected_child(compiler);
     Ok(())
 }
@@ -301,7 +302,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
     indent_if_first_in_line(compiler);
     //TODO change this to inbuiltfunction?
 
-    let parent_ref = compiler.ast.get_current_parent_ref_from_parents();
+    let parent_ref = parents::get_current_parent_ref_from_parents(&mut compiler.ast);
     let parent = compiler.ast.elements[parent_ref].clone();
     match parent.0 {
         ElementInfo::FunctionDefWIP => {
@@ -322,7 +323,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
                 ),
             );
             //self.outdent_if_last_expected_child();
-            compiler.ast.indent();
+            parents::indent::indent(&mut compiler.ast);
         }
     }
 
@@ -341,7 +342,7 @@ pub fn function_ref_or_call(
     //dbg!("FunctionCall", &current_token);
     indent_if_first_in_line(compiler);
 
-    let parent = compiler.ast.get_current_parent_element_from_parents();
+    let parent = parents::get_current_parent_element_from_parents(&mut compiler.ast);
     //dbg!("penguin",&parent);
     match parent.0 {
         ElementInfo::Parens => {
@@ -349,7 +350,7 @@ pub fn function_ref_or_call(
             // don't treat it like a functionCall,
             // just change the parent to be a ConstantRef
 
-            let parent_ref = compiler.ast.get_current_parent_ref_from_parents();
+            let parent_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             let new_constant_ref: Element = (
                 ElementInfo::ConstantRef(
                     current_token.clone(),
@@ -384,7 +385,7 @@ pub fn function_call(
         ),
     );
     if args > 0 {
-        compiler.ast.indent();
+        parents::indent::indent(&mut compiler.ast);
     }
     if seol {
         return seol_if_last_in_line(compiler);

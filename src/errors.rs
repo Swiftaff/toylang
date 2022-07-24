@@ -1,3 +1,5 @@
+use crate::Compiler;
+
 #[derive(Clone, Debug)]
 pub struct Errors {
     pub comment_single_line: &'static str,
@@ -33,4 +35,33 @@ pub const ERRORS: Errors = Errors {
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
 };
 
-impl Errors {}
+pub fn append_error(
+    compiler: &mut Compiler,
+    mut arrow_indent: usize,
+    arrow_len: usize,
+    error: &str,
+) -> Result<(), ()> {
+    if arrow_indent == 0 && compiler.current_line_token != 0 {
+        let line_of_tokens = compiler.lines_of_tokens[compiler.current_line].clone();
+        arrow_indent = line_of_tokens[0..compiler.current_line_token]
+            .iter()
+            .cloned()
+            .collect::<String>()
+            .len()
+            + compiler.current_line_token;
+    }
+
+    let e = format!(
+        "----------\r\n./src/{}:{}:0\r\n{}\r\n{}{} {}",
+        compiler.file.filename,
+        compiler.current_line + 1,
+        compiler.lines_of_chars[compiler.current_line]
+            .iter()
+            .collect::<String>(),
+        " ".repeat(arrow_indent),
+        "^".repeat(arrow_len),
+        error,
+    );
+    compiler.error_stack.push(e);
+    Err(())
+}
