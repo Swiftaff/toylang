@@ -2,6 +2,7 @@ use crate::ast::elements;
 use crate::ast::elements::{append, Element, ElementInfo};
 use crate::ast::parents;
 use crate::ast::parents::outdent;
+use crate::errors;
 use crate::Ast;
 use crate::Compiler;
 
@@ -36,10 +37,14 @@ pub fn indent_if_first_in_line(compiler: &mut Compiler) {
     }
 }
 
-pub fn comment_single_line(ast: &mut Ast, val: String) -> Result<(), ()> {
-    append::append(ast, (ElementInfo::Indent, vec![]));
-    append::append(ast, (ElementInfo::CommentSingleLine(val), vec![]));
-    append::append(ast, (ElementInfo::Eol, vec![]));
+pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), ()> {
+    append::append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+    append::append(
+        &mut compiler.ast,
+        (ElementInfo::CommentSingleLine(val), vec![]),
+    );
+    errors::error_if_parent_is_invalid(compiler)?;
+    append::append(&mut compiler.ast, (ElementInfo::Eol, vec![]));
     Ok(())
 }
 

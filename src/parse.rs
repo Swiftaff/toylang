@@ -11,18 +11,18 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     elements::append::types(compiler, index_of_type)
 }
 
-pub fn parse_current_line(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn current_line(compiler: &mut Compiler) -> Result<(), ()> {
     let tokens = compiler.lines_of_tokens[compiler.current_line].clone();
     if tokens.len() > 0 {
         while compiler.current_line_token < tokens.len() {
-            parse_current_token(compiler, &tokens)?;
+            current_token(compiler, &tokens)?;
             compiler.current_line_token = compiler.current_line_token + 1;
         }
     }
     Ok(())
 }
 
-pub fn parse_current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()> {
+pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()> {
     let current_token = &tokens[compiler.current_line_token];
     let current_token_vec: &Vec<char> = &tokens[compiler.current_line_token].chars().collect();
     if current_token_vec.len() == 0 {
@@ -35,29 +35,29 @@ pub fn parse_current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(
             let func = &compiler.ast.elements[index_of_function];
             match &func.0 {
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
-                    parse_inbuilt_function_call(compiler, &current_token, index_of_function)
+                    inbuilt_function_call(compiler, &current_token, index_of_function)
                 }
                 ElementInfo::FunctionDef(_, _, _, _) => {
-                    parse_function_call(compiler, &current_token, index_of_function)
+                    function_call(compiler, &current_token, index_of_function)
                 }
                 ElementInfo::Arg(_, _, returntype) => {
                     if returntype.contains("&dyn Fn") {
-                        parse_function_call(compiler, &current_token, index_of_function)
+                        function_call(compiler, &current_token, index_of_function)
                     } else {
-                        parse_token_by_first_chars(compiler, &current_token, &current_token_vec)
+                        token_by_first_chars(compiler, &current_token, &current_token_vec)
                     }
                 }
-                _ => parse_token_by_first_chars(compiler, &current_token, &current_token_vec),
+                _ => token_by_first_chars(compiler, &current_token, &current_token_vec),
             }
         }
         _ => match elements::get_inbuilt_type_index_by_name(&mut compiler.ast, &current_token) {
             Some(index_of_type) => types(compiler, index_of_type),
-            _ => parse_token_by_first_chars(compiler, &current_token, &current_token_vec),
+            _ => token_by_first_chars(compiler, &current_token, &current_token_vec),
         },
     }
 }
 
-pub fn parse_token_by_first_chars(
+pub fn token_by_first_chars(
     compiler: &mut Compiler,
     current_token: &String,
     current_token_vec: &Vec<char>,
@@ -69,33 +69,33 @@ pub fn parse_token_by_first_chars(
         None
     };
     match first_char {
-        '\\' => parse_function_definition_start(compiler),
-        ':' => parse_function_definition_end(compiler),
-        '(' => parse_functiontypesig_or_functionreference_start(compiler),
-        ')' => parse_functiontypesig_or_functionreference_end(compiler),
-        '/' => parse_comment_single_line(compiler, current_token_vec),
+        '\\' => function_definition_start(compiler),
+        ':' => function_definition_end(compiler),
+        '(' => functiontypesig_or_functionreference_start(compiler),
+        ')' => functiontypesig_or_functionreference_end(compiler),
+        '/' => comment_single_line(compiler, current_token_vec),
         '=' => {
             if current_token_vec.len() > 1 {
                 return errors::append_error(compiler, 0, 1, ERRORS.assign);
             }
-            parse_assignment(compiler)
+            assignment(compiler)
         }
-        '"' => parse_string(compiler, &current_token),
+        '"' => string(compiler, &current_token),
         //positive numbers
         first_char if is_integer(&first_char.to_string()) => {
             if is_float(&current_token) {
-                parse_float(compiler, &current_token)
+                float(compiler, &current_token)
             } else {
-                parse_int(compiler, &current_token)
+                int(compiler, &current_token)
             }
         }
         //negative numbers
         '-' => match second_char {
             Some(_digit) => {
                 if is_float(&current_token) {
-                    parse_float(compiler, &current_token)
+                    float(compiler, &current_token)
                 } else {
-                    parse_int(compiler, &current_token)
+                    int(compiler, &current_token)
                 }
             }
             None => {
@@ -104,13 +104,13 @@ pub fn parse_token_by_first_chars(
         },
         first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
             //dbg!("constant or constantRef", first_char);
-            parse_constant(compiler, &current_token)
+            constant(compiler, &current_token)
         }
         _ => Err(()),
     }
 }
 
-pub fn parse_comment_single_line(
+pub fn comment_single_line(
     compiler: &mut Compiler,
     current_token_vec: &Vec<char>,
 ) -> Result<(), ()> {
@@ -118,10 +118,10 @@ pub fn parse_comment_single_line(
         return errors::append_error(compiler, 0, 1, ERRORS.comment_single_line);
     }
     let val = concatenate_vec_strings(&compiler.lines_of_tokens[compiler.current_line]);
-    elements::append::comment_single_line(&mut compiler.ast, val)
+    elements::append::comment_single_line(compiler, val)
 }
 
-pub fn parse_string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     if is_string(&current_token) {
         elements::append::string(compiler, current_token)
     } else {
@@ -130,7 +130,7 @@ pub fn parse_string(compiler: &mut Compiler, current_token: &String) -> Result<(
     }
 }
 
-pub fn parse_int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     //dbg!("parse_int - positive only for now");
     let all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
     let chars: Vec<char> = current_token.chars().collect();
@@ -149,9 +149,10 @@ pub fn parse_int(compiler: &mut Compiler, current_token: &String) -> Result<(), 
         Err(_) => errors::append_error(compiler, 0, 1, ERRORS.int_out_of_bounds)?,
     }
     elements::append::int(compiler, current_token)
+    //errors::error_if_parent_is_invalid(compiler)
 }
 
-pub fn parse_float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     if current_token.len() > 0 && is_float(current_token) {
         elements::append::float(compiler, current_token)
     } else {
@@ -159,7 +160,7 @@ pub fn parse_float(compiler: &mut Compiler, current_token: &String) -> Result<()
     }
 }
 
-pub fn parse_constant(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     //dbg!(current_token);
     let el_option = elements::get_element_by_name(&compiler.ast, current_token);
     match el_option {
@@ -224,12 +225,12 @@ pub fn parse_constant(compiler: &mut Compiler, current_token: &String) -> Result
     return elements::append::new_constant_or_arg(compiler, current_token);
 }
 
-pub fn parse_assignment(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     // TODO error checking
     elements::append::assignment(compiler)
 }
 
-pub fn parse_inbuilt_function_call(
+pub fn inbuilt_function_call(
     compiler: &mut Compiler,
     current_token: &String,
     index_of_function: usize,
@@ -238,7 +239,7 @@ pub fn parse_inbuilt_function_call(
     elements::append::inbuilt_function_call(compiler, current_token, index_of_function)
 }
 
-pub fn parse_function_call(
+pub fn function_call(
     compiler: &mut Compiler,
     current_token: &String,
     index_of_function: usize,
@@ -246,11 +247,11 @@ pub fn parse_function_call(
     elements::append::function_call1(compiler, current_token, index_of_function)
 }
 
-pub fn parse_function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::function_definition_start(compiler)
 }
 
-pub fn parse_function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
     /*
     At the point you parse a function definition end,
     and because we don't look ahead when parsing,
@@ -369,11 +370,11 @@ pub fn parse_function_definition_end(compiler: &mut Compiler) -> Result<(), ()> 
 
 //TODO remember to error / or at least check if reusing arg names in nested functions
 
-pub fn parse_functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::functiontypesig_or_functionreference_start(compiler)
 }
 
-pub fn parse_functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
+pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::functiontypesig_or_functionreference_end(compiler)
 }
 
@@ -498,3 +499,220 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
     }
     input[..first_non_whitespace_index].to_string()
 }
+
+#[allow(dead_code)] 
+pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
+    //empty file
+    ["", "fn main() {\r\n}\r\n"],
+    //comment single line
+    ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
+    [
+        "    //    comment    ",
+        "fn main() {\r\n    //    comment\r\n}\r\n",
+    ],
+    //single line function no longer breaks comments
+    [
+        "//= a \\ i64 : 123",
+        "fn main() {\r\n    //= a \\ i64 : 123\r\n}\r\n",
+    ],
+    //string
+    [
+        "\"string\"",
+        "fn main() {\r\n    \"string\".to_string();\r\n}\r\n",
+    ],
+    ["\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"],
+    //int
+    ["1", "fn main() {\r\n    1;\r\n}\r\n"],
+    ["123", "fn main() {\r\n    123;\r\n}\r\n"],
+    ["    123    ", "fn main() {\r\n    123;\r\n}\r\n"],
+    [
+        "9223372036854775807",
+        "fn main() {\r\n    9223372036854775807;\r\n}\r\n",
+    ],
+    //int negative
+    ["-1", "fn main() {\r\n    -1;\r\n}\r\n"],
+    ["-123", "fn main() {\r\n    -123;\r\n}\r\n"],
+    ["    -123    ", "fn main() {\r\n    -123;\r\n}\r\n"],
+    [
+        "-9223372036854775808",
+        "fn main() {\r\n    -9223372036854775808;\r\n}\r\n",
+    ],
+    //float
+    ["1.1", "fn main() {\r\n    1.1;\r\n}\r\n"],
+    ["123.123", "fn main() {\r\n    123.123;\r\n}\r\n"],
+    ["    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n"],
+    [
+        "1234567890.123456789",
+        "fn main() {\r\n    1234567890.123456789;\r\n}\r\n",
+    ],
+    [
+        "1.7976931348623157E+308",
+        "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n",
+    ],
+    //float negative
+    ["-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n"],
+    ["-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n"],
+    ["    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n"],
+    [
+        "-1234567890.123456789",
+        "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n",
+    ],
+    [
+        "-1.7976931348623157E+308",
+        "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
+    ],
+    //internalFunctionCalls
+    ["+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"],
+    ["- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"],
+    ["/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"],
+    //basic arithmetic, assignment, type inference
+    [
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+    ],
+    [
+        "= a + 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n",
+    ],
+    [
+        "= a - 1 2",
+        "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n",
+    ],
+    [
+        "= a - 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n",
+    ],
+    [
+        "= a * 1 2",
+        "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n",
+    ],
+    [
+        "= a * 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n",
+    ],
+    [
+        "= a / 1 2",
+        "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n",
+    ],
+    [
+        "= a / 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n",
+    ],
+    [
+        "= a % 1 2",
+        "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n",
+    ],
+    [
+        "= a % 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n",
+    ],
+    //constant
+    ["a", "fn main() {\r\n    a;\r\n}\r\n"],
+    //assignment
+    [
+        "= a \"string\"",
+        "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n",
+    ],
+    ["= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"],
+    ["= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"],
+    [
+        "= a -1.7976931348623157E+308",
+        "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n",
+    ],
+    [
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+    ],
+    //assignment internalFunctionCalls with references
+    [
+        "= a + 1 2\r\n= b - 3 a",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
+    ],
+    //nested internalFunctionCalls
+    [
+        "= a - + 1 2 3",
+        "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
+    ],
+    [
+        "= a / * - + 1 2 3 4 5",
+        "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n",
+    ],
+    [
+        "= a + 1 * 3 2",
+        "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
+    ],
+    //TODO handle reserved names of i64 by adding to inbuiltfndefs
+
+    //function definitions
+    //function definitions - single line
+    [
+        "= a \\ i64 : 123",
+        "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
+    ],
+    [
+        "= a \\ i64 i64 arg1 : + 123 arg1",
+        "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
+    ],
+    //function definitions - multiline
+    [
+        "= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2",
+        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
+    ],
+    [
+        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n= x + arg1 arg2\r\n+ x arg3",
+        "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
+    ],
+    //function definitions - multiline, nested function calls
+    [
+        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n + arg1 + arg2 arg3",
+        "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
+    ],
+    //function definitions - multiline, constant assignment, nested function calls
+    [
+        "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
+        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
+    ],
+    //function definitions - multiline, several semicolon statements, with final return statement
+    [
+        "= a \\ i64 i64 i64 arg1 arg2 :\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
+        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
+    ],
+    //function definitions - pass functions as arguments
+    //arg1 is a function that takes i64 returns i64, arg2 is an i64
+    //the function body calls arg1 with arg2 as its argument, returning which returns i64
+    [
+        "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 :\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 : + 123 arg3\r\n= c a ( b ) 456",
+        "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
+    ],
+    //type inference
+    //type inference - assignment to constantrefs
+    [
+        "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+        "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+    ],
+    //type inference - assignment to function call
+    [
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+    ],
+    //type inference - assignment to constantrefs of function call
+    [
+        "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+    ],
+    //function calls - zero arguments
+    [
+        "//define function\r\n= a \\ i64 :\r\n123\r\n\r\n//call function\r\na",
+        "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
+    ],
+    //function calls - one argument
+    [
+        "//define function\r\n= a \\ i64 i64 arg1 :\r\narg1\r\n\r\n//call function\r\na 123",
+        "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
+    ],
+    //function calls - two arguments, where one is an evaluated internal function call
+    [
+        "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
+        "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
+    ] 
+];

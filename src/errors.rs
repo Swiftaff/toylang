@@ -1,8 +1,16 @@
+use crate::ast::elements;
+use crate::ast::elements::{Element, ElementInfo};
+use crate::ast::parents;
 use crate::Compiler;
 
 #[derive(Clone, Debug)]
 pub struct Errors {
     pub comment_single_line: &'static str,
+    pub comment_cant_be_child_of_assignment: &'static str,
+    pub comment_cant_be_child_of_constant: &'static str,
+    pub comment_cant_be_child_of_inbuiltfncall: &'static str,
+    pub comment_cant_be_child_of_fncall: &'static str,
+    pub comment_cant_be_child_of_parenthesis: &'static str,
     pub string: &'static str,
     pub assign: &'static str,
     pub int: &'static str,
@@ -16,10 +24,16 @@ pub struct Errors {
     //pub no_valid_integer_arithmetic: &'static str,
     //pub no_valid_expression: &'static str,
     pub constants_are_immutable: &'static str,
+    pub impossible_error: &'static str,
 }
 
 pub const ERRORS: Errors = Errors {
     comment_single_line: "Invalid single line comment: Must begin with two forward slashes '//'",
+    comment_cant_be_child_of_assignment: "Invalid Assignment - comment found instead of constant or function definition",
+    comment_cant_be_child_of_constant: "Invalid Constant Definition - comment found instead of value",
+    comment_cant_be_child_of_inbuiltfncall:"Invalid Inbuilt Function Call - comment found instead of value",
+    comment_cant_be_child_of_fncall:"Invalid Function Call - comment found instead of value",
+    comment_cant_be_child_of_parenthesis:"Invalid Parenthesis - comment found inside parenthesis",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
@@ -32,8 +46,9 @@ pub const ERRORS: Errors = Errors {
     //no_valid_assignment: "No valid assignment found",
     //no_valid_integer_arithmetic: "No valid integer arithmetic found",
     //no_valid_expression: "No valid expression was found",
-    constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant."
-};
+    constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant.",
+    impossible_error: "Oh no, this error should be impossible... 'Well here's another nice mess you've gotten me into.'",
+    };
 
 pub fn append_error(
     compiler: &mut Compiler,
@@ -65,3 +80,117 @@ pub fn append_error(
     compiler.error_stack.push(e);
     Err(())
 }
+
+pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
+    let el = elements::get_last_element(&compiler.ast);
+    let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    dbg!("error_if_parent_is_invalid", &el, &parent);
+    match el.0 {
+        ElementInfo::Root => (),
+        ElementInfo::CommentSingleLine(_) => {
+            error_if_parent_is_invalid_for_commentsingleline(compiler, &parent)?
+        }
+        _ => (),
+    }
+    Ok(())
+}
+
+pub fn error_if_parent_is_invalid_for_commentsingleline(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Constant(_, _) => {
+            append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_constant)
+        }
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Assignment => {
+            append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_assignment)
+        }
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.impossible_error)
+        }
+        ElementInfo::InbuiltFunctionCall(_, _, _) => append_error(
+            compiler,
+            0,
+            1,
+            ERRORS.comment_cant_be_child_of_inbuiltfncall,
+        ),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => {
+            append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_fncall)
+        }
+        ElementInfo::Parens => {
+            append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_parenthesis)
+        }
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+#[allow(dead_code)]
+pub const TEST_CASE_ERRORS: [[&str; 2]; 20] = [
+    //empty file
+    ["", ""],
+    //
+    //comment single line
+    [ERRORS.comment_single_line, "/1/comment"],
+    [ERRORS.comment_cant_be_child_of_assignment, "= //test"],
+    [ERRORS.comment_cant_be_child_of_constant, "= c //test"],
+    [ERRORS.comment_cant_be_child_of_inbuiltfncall, "+ //test"],
+    [
+        ERRORS.comment_cant_be_child_of_fncall,
+        "= myfun \\ i64 i64 arg1 : + arg1 123\r\nmyfun //test",
+    ],
+    [
+        ERRORS.comment_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 i64 // test ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.comment_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( //test ) 123",
+    ],
+    //
+    //string
+    [ERRORS.string, "\""],
+    [ERRORS.string, "\"\"\""],
+    [ERRORS.string, "\"\" \""],
+    //
+    //int
+    [ERRORS.int, "1a"],
+    [ERRORS.int_out_of_bounds, "9223372036854775808"],
+    //
+    //int negative
+    [ERRORS.int, "-1a"],
+    [ERRORS.int_out_of_bounds, "-9223372036854775809"],
+    //
+    //float (errors say int)
+    [ERRORS.int, "1.1.1"],
+    [ERRORS.int, "1.7976931348623157E+309"],
+    //
+    //float negative (errors say int)
+    [ERRORS.int, "-1.1.1"],
+    [ERRORS.int, "-1.7976931348623157E+309"],
+    //
+    //internalFunctionCalls
+    //[ERRORS.int,"+ 1 2.1"],
+    //[ERRORS.int,"- 1.1 2"],
+    //
+    //functionDefinitions
+    //[ERRORS.funcdef_args, "= a \\ :"],
+    //[ERRORS.funcdef_argtypes_first,"= a \\ i64 monkey i64  :"],
+    //
+    //constants are immutable
+    [ERRORS.constants_are_immutable, "= a 123\r\n= a 234"],
+];

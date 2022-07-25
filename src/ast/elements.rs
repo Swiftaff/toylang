@@ -31,6 +31,31 @@ pub enum ElementInfo {
     Unused,
 }
 
+/*
+match ElementInfo - cut-and-paste template
+    ElementInfo::Root =>replaceme,
+    ElementInfo::CommentSingleLine(_) =>replaceme,
+    ElementInfo::Int(_) =>replaceme,
+    ElementInfo::Float(_) =>replaceme,
+    ElementInfo::String(_) =>replaceme,
+    ElementInfo::Arg(_, _, _) =>replaceme,
+    ElementInfo::Constant(_, _) =>replaceme,
+    ElementInfo::ConstantRef(_, _, _) =>replaceme,
+    ElementInfo::Assignment =>replaceme,
+    ElementInfo::InbuiltFunctionDef(_, _, _, _, _) =>replaceme,
+    ElementInfo::InbuiltFunctionCall(_, _, _) =>replaceme,
+    ElementInfo::FunctionDefWIP =>replaceme,
+    ElementInfo::FunctionDef(_, _, _, _) =>replaceme,
+    ElementInfo::FunctionCall(_, _) =>replaceme,
+    ElementInfo::Parens =>replaceme,
+    ElementInfo::Type(_) =>replaceme,
+    // explicitly listing other types rather than using _ to not overlook new types in future.
+    ElementInfo::Eol =>replaceme,
+    ElementInfo::Seol =>replaceme,
+    ElementInfo::Indent =>replaceme,
+    ElementInfo::Unused =>replaceme,
+*/
+
 type Value = String;
 pub type ElIndex = usize;
 type ReturnType = String;
