@@ -54,6 +54,7 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
         &mut compiler.ast,
         (ElementInfo::String(current_token.clone()), vec![]),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     seol_if_last_in_line(compiler)
 }
@@ -197,6 +198,7 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
         &mut compiler.ast,
         (ElementInfo::Int(current_token.clone()), vec![]),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     seol_if_last_in_line(compiler)
 }
@@ -207,6 +209,7 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
         &mut compiler.ast,
         (ElementInfo::Float(current_token.clone()), vec![]),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     seol_if_last_in_line(compiler)
 }

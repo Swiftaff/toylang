@@ -11,6 +11,12 @@ pub struct Errors {
     pub comment_cant_be_child_of_inbuiltfncall: &'static str,
     pub comment_cant_be_child_of_fncall: &'static str,
     pub comment_cant_be_child_of_parenthesis: &'static str,
+    pub int_cant_be_child_of_assignment: &'static str,
+    pub int_cant_be_child_of_parenthesis: &'static str,
+    pub float_cant_be_child_of_assignment: &'static str,
+    pub float_cant_be_child_of_parenthesis: &'static str,
+    pub string_cant_be_child_of_assignment: &'static str,
+    pub string_cant_be_child_of_parenthesis: &'static str,
     pub string: &'static str,
     pub assign: &'static str,
     pub int: &'static str,
@@ -34,6 +40,12 @@ pub const ERRORS: Errors = Errors {
     comment_cant_be_child_of_inbuiltfncall:"Invalid Inbuilt Function Call - comment found instead of value",
     comment_cant_be_child_of_fncall:"Invalid Function Call - comment found instead of value",
     comment_cant_be_child_of_parenthesis:"Invalid Parenthesis - comment found inside parenthesis",
+    int_cant_be_child_of_assignment:"Invalid Assignment - Int found  instead of constant or function definition",
+    int_cant_be_child_of_parenthesis:"Invalid parenthesis - Int found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
+    float_cant_be_child_of_assignment:"Invalid Assignment - Float found  instead of constant or function definition",
+    float_cant_be_child_of_parenthesis:"Invalid parenthesis - Float found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
+    string_cant_be_child_of_assignment:"Invalid Assignment - Float found  instead of constant or function definition",
+    string_cant_be_child_of_parenthesis:"Invalid parenthesis - Float found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
@@ -90,6 +102,10 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::CommentSingleLine(_) => {
             error_if_parent_is_invalid_for_commentsingleline(compiler, &parent)?
         }
+        ElementInfo::Int(_) => error_if_parent_is_invalid_for_int(compiler, &parent)?,
+        ElementInfo::Float(_) => error_if_parent_is_invalid_for_float(compiler, &parent)?,
+        ElementInfo::String(_) => error_if_parent_is_invalid_for_string(compiler, &parent)?,
+        // TODO remaining variants
         _ => (),
     }
     Ok(())
@@ -101,20 +117,14 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_constant)
         }
-        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Assignment => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_assignment)
-        }
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
-            append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::InbuiltFunctionCall(_, _, _) => append_error(
             compiler,
@@ -122,25 +132,128 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
             1,
             ERRORS.comment_cant_be_child_of_inbuiltfncall,
         ),
-        ElementInfo::FunctionDefWIP => Ok(()),
-        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_fncall)
         }
         ElementInfo::Parens => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_parenthesis)
         }
-        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_int(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::Assignment => {
+            append_error(compiler, 0, 1, ERRORS.int_cant_be_child_of_assignment)
+        }
+        ElementInfo::Parens => {
+            append_error(compiler, 0, 1, ERRORS.int_cant_be_child_of_parenthesis)
+        }
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_float(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::Assignment => {
+            append_error(compiler, 0, 1, ERRORS.float_cant_be_child_of_assignment)
+        }
+        ElementInfo::Parens => {
+            append_error(compiler, 0, 1, ERRORS.float_cant_be_child_of_parenthesis)
+        }
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_string(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::Assignment => {
+            append_error(compiler, 0, 1, ERRORS.string_cant_be_child_of_assignment)
+        }
+        ElementInfo::Parens => {
+            append_error(compiler, 0, 1, ERRORS.string_cant_be_child_of_parenthesis)
+        }
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
     }
 }
 
 #[allow(dead_code)]
-pub const TEST_CASE_ERRORS: [[&str; 2]; 20] = [
+pub const TEST_CASE_ERRORS: [[&str; 2]; 29] = [
     //empty file
     ["", ""],
     //
@@ -160,6 +273,33 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 20] = [
     [
         ERRORS.comment_cant_be_child_of_parenthesis,
         "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( //test ) 123",
+    ],
+    [ERRORS.int_cant_be_child_of_assignment, "= 123"],
+    [
+        ERRORS.int_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 123 ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.int_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( 123 ) 123",
+    ],
+    [ERRORS.float_cant_be_child_of_assignment, "= 123.456"],
+    [
+        ERRORS.float_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 123.456 ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.float_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( 123.456 ) 123",
+    ],
+    [ERRORS.string_cant_be_child_of_assignment, "= \"string\""],
+    [
+        ERRORS.string_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 \"string\" ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.string_cant_be_child_of_parenthesis,
+        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( \"string\" ) 123",
     ],
     //
     //string

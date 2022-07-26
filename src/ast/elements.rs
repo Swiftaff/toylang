@@ -9,26 +9,26 @@ use std::fmt;
 #[derive(Clone)]
 
 pub enum ElementInfo {
-    Root,
     CommentSingleLine(Value),               //no children
     Int(Value),                             //no children
     Float(Value),                           //no children
     String(Value),                          //no children
     Arg(Name, Scope, ReturnType),           //no children
-    Constant(Name, ReturnType),             //1 child, value
+    Type(Name),                             //no children
+    Eol,                                    //no children
+    Seol,                                   //no children
+    Indent,                                 //no children
+    Unused,                                 //no children
     ConstantRef(Name, ReturnType, RefName), //no children
+    Constant(Name, ReturnType),             //1 child, value
     Assignment,                             //1 child, constant
-    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //no children
+    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //children = lines of function contents
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
-    FunctionDefWIP,                         //no children
-    FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //no children
-    FunctionCall(Name, ReturnType),         //fndef argnames.len() children
-    Parens,     //either 1 child, for function_ref, or 1+ for function type sig
-    Type(Name), // no children
-    Eol,
-    Seol,
-    Indent,
-    Unused,
+    FunctionDefWIP,                                 //children = lines of function contents
+    FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //children = lines of function contents
+    FunctionCall(Name, ReturnType),                 //fndef argnames.len() children
+    Parens, //either 1 child, for function_ref, or 1+ for function type sig
+    Root,   //children = lines of function contents
 }
 
 /*
