@@ -238,6 +238,7 @@ pub fn inbuilt_function_call(
             vec![],
         ),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     Ok(())

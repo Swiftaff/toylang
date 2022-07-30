@@ -23,6 +23,7 @@ pub struct Errors {
     pub assignment_cant_be_child_of_fncal: &'static str,
     pub assignment_cant_be_child_of_assignment: &'static str,
     pub assignment_cant_be_child_of_parenthesis: &'static str,
+    pub inbuiltfncall_cant_be_child_of_parenthesis: &'static str,
     pub string: &'static str,
     pub assign: &'static str,
     pub int: &'static str,
@@ -60,6 +61,7 @@ pub const ERRORS: Errors = Errors {
     assignment_cant_be_child_of_fncal:"Invalid Function Call - \"=\" found instead of value",
     assignment_cant_be_child_of_assignment: "Invalid Assignment - \"=\" found instead of constant or function definition",
     assignment_cant_be_child_of_parenthesis:"Invalid parenthesis - \"=\" found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
+    inbuiltfncall_cant_be_child_of_parenthesis:"Invalid parenthesis - inbuilt function call found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
@@ -128,6 +130,9 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         },
         ElementInfo::Assignment =>{
             error_if_parent_is_invalid_for_assignment(compiler, &parent)?
+        }
+        ElementInfo::InbuiltFunctionCall(_, _, _) =>{
+            error_if_parent_is_invalid_for_inbuiltfncall(compiler, &parent)?
         }
         // TODO remaining variants
         _ => (),
@@ -383,8 +388,39 @@ pub fn error_if_parent_is_invalid_for_assignment(
     }
 }
 
+
+pub fn error_if_parent_is_invalid_for_inbuiltfncall(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::Assignment => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.inbuiltfncall_cant_be_child_of_parenthesis),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+
 #[allow(dead_code)]
-pub const TEST_CASE_ERRORS: [[&str; 2]; 38] = [
+pub const TEST_CASE_ERRORS: [[&str; 2]; 40] = [
     //empty file
     ["", ""],
     //
@@ -455,6 +491,14 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 38] = [
     [
         ERRORS.assignment_cant_be_child_of_parenthesis,
         "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( = ) 123",
+    ],
+    [
+        ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( + ) 123",
     ],
     
     //
