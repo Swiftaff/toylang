@@ -269,6 +269,7 @@ pub fn function_call1(
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
@@ -362,8 +363,6 @@ pub fn function_ref_or_call(
             // if parent is parens, then this is just a function reference
             // don't treat it like a functionCall,
             // just change the parent to be a ConstantRef
-
-            let parent_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             let new_constant_ref: Element = (
                 ElementInfo::ConstantRef(
                     current_token.clone(),
@@ -372,8 +371,11 @@ pub fn function_ref_or_call(
                 ),
                 [].to_vec(),
             );
+            //don't do this - already checked if parent is valid - it will throw a fn in parens error
+            //errors::error_if_parent_is_invalid(compiler)?;
+
+            let parent_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             compiler.ast.elements[parent_ref] = new_constant_ref;
-            //compiler.ast.outdent();
             return seol_if_last_in_line(compiler);
         }
         _ => {
@@ -397,6 +399,7 @@ pub fn function_call(
             vec![],
         ),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     if args > 0 {
         parents::indent::indent(&mut compiler.ast);
     }
