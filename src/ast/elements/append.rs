@@ -269,7 +269,6 @@ pub fn function_call1(
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
-    //self.outdent_if_last_expected_child();
     parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
@@ -277,6 +276,7 @@ pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::Parens, vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
     Ok(())
 }
