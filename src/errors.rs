@@ -17,6 +17,12 @@ pub struct Errors {
     pub float_cant_be_child_of_parenthesis: &'static str,
     pub string_cant_be_child_of_assignment: &'static str,
     pub string_cant_be_child_of_parenthesis: &'static str,
+    pub constantref_cant_be_child_of_parenthesis: &'static str,
+    pub assignment_cant_be_child_of_constant: &'static str,
+    pub assignment_cant_be_child_of_inbuiltfncall: &'static str,
+    pub assignment_cant_be_child_of_fncal: &'static str,
+    pub assignment_cant_be_child_of_assignment: &'static str,
+    pub assignment_cant_be_child_of_parenthesis: &'static str,
     pub string: &'static str,
     pub assign: &'static str,
     pub int: &'static str,
@@ -30,6 +36,7 @@ pub struct Errors {
     //pub no_valid_integer_arithmetic: &'static str,
     //pub no_valid_expression: &'static str,
     pub constants_are_immutable: &'static str,
+    pub constant_undefined: &'static str,
     pub impossible_error: &'static str,
 }
 
@@ -46,6 +53,13 @@ pub const ERRORS: Errors = Errors {
     float_cant_be_child_of_parenthesis:"Invalid parenthesis - Float found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     string_cant_be_child_of_assignment:"Invalid Assignment - Float found  instead of constant or function definition",
     string_cant_be_child_of_parenthesis:"Invalid parenthesis - Float found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
+    constantref_cant_be_child_of_parenthesis:"Invalid Constant Reference - only Types and Function names should be found inside parenthesis",
+    constant_undefined:"Invalid Constant Definition - this constant has not previously been defined, so cannot be used anywhere except in a new definition, e.g. = a 123",
+    assignment_cant_be_child_of_constant:"Invalid Constant Definition - \"=\" can't be the value of this constant",
+    assignment_cant_be_child_of_inbuiltfncall:"Invalid Inbuilt Function Call - \"=\" found instead of value",
+    assignment_cant_be_child_of_fncal:"Invalid Function Call - \"=\" found instead of value",
+    assignment_cant_be_child_of_assignment: "Invalid Assignment - \"=\" found instead of constant or function definition",
+    assignment_cant_be_child_of_parenthesis:"Invalid parenthesis - \"=\" found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
@@ -105,6 +119,16 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::Int(_) => error_if_parent_is_invalid_for_int(compiler, &parent)?,
         ElementInfo::Float(_) => error_if_parent_is_invalid_for_float(compiler, &parent)?,
         ElementInfo::String(_) => error_if_parent_is_invalid_for_string(compiler, &parent)?,
+        ElementInfo::Arg(_, _, _) => error_if_parent_is_invalid_for_arg(compiler, &parent)?,
+        ElementInfo::ConstantRef(_, _, _) => {
+            error_if_parent_is_invalid_for_constantref(compiler, &parent)?
+        },
+        ElementInfo::Constant(_, _) => {
+            error_if_parent_is_invalid_for_constant(compiler, &parent)?
+        },
+        ElementInfo::Assignment =>{
+            error_if_parent_is_invalid_for_assignment(compiler, &parent)?
+        }
         // TODO remaining variants
         _ => (),
     }
@@ -252,8 +276,115 @@ pub fn error_if_parent_is_invalid_for_string(
     }
 }
 
+pub fn error_if_parent_is_invalid_for_arg(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::Root => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.impossible_error)
+        }
+        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.impossible_error)
+        }
+        ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.impossible_error),
+
+        ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_constantref(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.constants_are_immutable),
+        ElementInfo::Parens => append_error(
+            compiler,
+            0,
+            1,
+            ERRORS.constantref_cant_be_child_of_parenthesis,
+        ),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_constant(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Assignment => Ok(()),
+        _ => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_assignment(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_constant),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_inbuiltfncall),
+        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_fncal),
+        ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_assignment),
+        ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_parenthesis),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
 #[allow(dead_code)]
-pub const TEST_CASE_ERRORS: [[&str; 2]; 29] = [
+pub const TEST_CASE_ERRORS: [[&str; 2]; 38] = [
     //empty file
     ["", ""],
     //
@@ -301,6 +432,31 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 29] = [
         ERRORS.string_cant_be_child_of_parenthesis,
         "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( \"string\" ) 123",
     ],
+    [
+        ERRORS.constantref_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.constantref_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( a ) 123",
+    ],
+    [ERRORS.constant_undefined, "a"],
+    [ERRORS.constants_are_immutable, "= a 123\r\n= a 234"],
+    // assignment cant be child of most things
+    // constant
+    [ERRORS.assignment_cant_be_child_of_constant, "= a ="],
+    [ERRORS.assignment_cant_be_child_of_inbuiltfncall, "+ 123 ="],
+    [ERRORS.assignment_cant_be_child_of_fncal, "= myfun \\ i64 i64 arg1 : + arg1 123\r\nmyfun = 123"],
+    [ERRORS.assignment_cant_be_child_of_assignment, "= ="],
+    [
+        ERRORS.assignment_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 : arg1 123",
+    ],
+    [
+        ERRORS.assignment_cant_be_child_of_parenthesis,
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( = ) 123",
+    ],
+    
     //
     //string
     [ERRORS.string, "\""],
@@ -331,6 +487,5 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 29] = [
     //[ERRORS.funcdef_args, "= a \\ :"],
     //[ERRORS.funcdef_argtypes_first,"= a \\ i64 monkey i64  :"],
     //
-    //constants are immutable
-    [ERRORS.constants_are_immutable, "= a 123\r\n= a 234"],
+    
 ];

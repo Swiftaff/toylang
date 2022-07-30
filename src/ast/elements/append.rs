@@ -1,5 +1,5 @@
 use crate::ast::elements;
-use crate::ast::elements::{append, Element, ElementInfo};
+use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
 use crate::ast::parents::outdent;
 use crate::errors;
@@ -25,7 +25,7 @@ pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
 pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     let el = compiler.ast.elements[index_of_type].clone();
-    append::append(&mut compiler.ast, el);
+    append(&mut compiler.ast, el);
     Ok(())
 }
 
@@ -33,18 +33,18 @@ pub fn indent_if_first_in_line(compiler: &mut Compiler) {
     //or if first part of the expression in a single line function (after the colon)
     //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
     if compiler.current_line_token == 0 {
-        append::append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+        append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     }
 }
 
 pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), ()> {
-    append::append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
-    append::append(
+    append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+    append(
         &mut compiler.ast,
         (ElementInfo::CommentSingleLine(val), vec![]),
     );
     errors::error_if_parent_is_invalid(compiler)?;
-    append::append(&mut compiler.ast, (ElementInfo::Eol, vec![]));
+    append(&mut compiler.ast, (ElementInfo::Eol, vec![]));
     Ok(())
 }
 
@@ -186,7 +186,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         // then don't add the semicolon, just the EOL
         if !is_end_of_return_statement_of_a_func_def {
             //self.ast.append((ElementInfo::Eol, vec![]));
-            append::append(&mut compiler.ast, (ElementInfo::Seol, vec![]));
+            append(&mut compiler.ast, (ElementInfo::Seol, vec![]));
         }
     }
     Ok(())
@@ -217,6 +217,7 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
 pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, ((ElementInfo::Assignment), vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     Ok(())
@@ -301,6 +302,7 @@ pub fn constant_ref(
             vec![],
         ),
     );
+    errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     seol_if_last_in_line(compiler)
 }
@@ -321,6 +323,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
                     vec![],
                 ),
             );
+            errors::error_if_parent_is_invalid(compiler)?;
         }
         _ => {
             append(
@@ -330,7 +333,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
                     vec![],
                 ),
             );
-            //self.outdent_if_last_expected_child();
+            errors::error_if_parent_is_invalid(compiler)?;
             parents::indent::indent(&mut compiler.ast);
         }
     }

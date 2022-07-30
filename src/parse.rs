@@ -607,7 +607,7 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
         "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n",
     ],
     //constant
-    ["a", "fn main() {\r\n    a;\r\n}\r\n"],
+    ["= a 123\r\na", "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n"],
     //assignment
     [
         "= a \"string\"",
