@@ -70,16 +70,26 @@ pub fn token_by_first_chars(
     };
     match first_char {
         '\\' => function_definition_start(compiler),
-        ':' => function_definition_end(compiler),
+        //':' => function_definition_end(compiler),
         '(' => functiontypesig_or_functionreference_start(compiler),
         ')' => functiontypesig_or_functionreference_end(compiler),
         '/' => comment_single_line(compiler, current_token_vec),
         '=' => {
-            if current_token_vec.len() > 1 {
-                return errors::append_error(compiler, 0, 1, ERRORS.assign);
-            }
-            assignment(compiler)
-        }
+            dbg!("here1",&compiler.lines_of_chars);
+            match second_char {
+            Some(second) =>{
+                dbg!("here2");
+                if second=='>' {
+                    dbg!("here3");
+                    return function_definition_end(compiler);
+                }
+                else {
+                    return errors::append_error(compiler, 0, 1, ERRORS.assign);
+                }
+            },
+            _=>assignment(compiler)
+        }},           
+        
         '"' => string(compiler, &current_token),
         //positive numbers
         first_char if is_integer(&first_char.to_string()) => {
@@ -502,6 +512,7 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 
 #[allow(dead_code)] 
 pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
+    
     //empty file
     ["", "fn main() {\r\n}\r\n"],
     //comment single line
@@ -512,8 +523,8 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
     ],
     //single line function no longer breaks comments
     [
-        "//= a \\ i64 : 123",
-        "fn main() {\r\n    //= a \\ i64 : 123\r\n}\r\n",
+        "//= a \\ i64 => 123",
+        "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n",
     ],
     //string
     [
@@ -646,42 +657,42 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
     //function definitions
     //function definitions - single line
     [
-        "= a \\ i64 : 123",
+        "= a \\ i64 => 123",
         "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
     ],
     [
-        "= a \\ i64 i64 arg1 : + 123 arg1",
+        "= a \\ i64 i64 arg1 => + 123 arg1",
         "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
     ],
     //function definitions - multiline
     [
-        "= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2",
+        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2",
         "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
     ],
     [
-        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n= x + arg1 arg2\r\n+ x arg3",
+        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3",
         "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
     ],
     //function definitions - multiline, nested function calls
     [
-        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 :\r\n + arg1 + arg2 arg3",
+        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3",
         "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
     ],
     //function definitions - multiline, constant assignment, nested function calls
     [
-        "= a \\ i64 i64 i64 arg1 arg2 :\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
+        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
         "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
     ],
     //function definitions - multiline, several semicolon statements, with final return statement
     [
-        "= a \\ i64 i64 i64 arg1 arg2 :\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
+        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
         "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
     ],
     //function definitions - pass functions as arguments
     //arg1 is a function that takes i64 returns i64, arg2 is an i64
     //the function body calls arg1 with arg2 as its argument, returning which returns i64
     [
-        "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 :\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 : + 123 arg3\r\n= c a ( b ) 456",
+        "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
         "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
     ],
     //type inference
@@ -701,18 +712,23 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
         "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
     ],
     //function calls - zero arguments
+
+    // TODO function call void/null/() return
+    
     [
-        "//define function\r\n= a \\ i64 :\r\n123\r\n\r\n//call function\r\na",
+        "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na",
         "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
     ],
+    
     //function calls - one argument
     [
-        "//define function\r\n= a \\ i64 i64 arg1 :\r\narg1\r\n\r\n//call function\r\na 123",
+        "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123",
         "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
     ],
     //function calls - two arguments, where one is an evaluated internal function call
     [
-        "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 :\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
+        "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
         "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
-    ] 
+    ]
+    
 ];

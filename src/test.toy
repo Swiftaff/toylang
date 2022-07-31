@@ -1,5 +1,5 @@
-= a \ (i64 i64) i64 i64 arg1 arg2 : arg1 arg2
-= b \ i64 i64 arg1 : + 123 arg1
+= a \ (i64 i64) i64 i64 arg1 arg2 => arg1 arg2
+= b \ i64 i64 arg1 => + 123 arg1
 = c a (b) 456
 
 //fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {

@@ -119,14 +119,14 @@ fn main() {
 ```
 // single line functions
 // one i64 argument, returns i64
-= function_name \ i64 i64 arg1 : + 123 arg1
-//                ^       ^      ^_return expression
+= function_name \ i64 i64 arg1 => + 123 arg1
+//                ^       ^       ^_return expression
 //                 \       \_ argument names
 //                  \_argument types, return type last
 
 // multi line functions
 // two i64 arguments, returns i64
-= multiline_fn_name \ i64 i64 i64 arg1 arg2 :
+= multiline_fn_name \ i64 i64 i64 arg1 arg2 =>
 = x + arg1 123
 = y - x arg2
 = z * y 10
@@ -141,7 +141,7 @@ z
 // which takes an i64 and returns an i64
 // second argument is an i64
 // and function returns an i64
-= take_fn_as_first_parameter \ (i64 i64) i64 i64 arg1 arg2 :
+= take_fn_as_first_parameter \ (i64 i64) i64 i64 arg1 arg2 =>
 
 // then the function body calls the arg1 with arg2 as the parameter
 arg1 arg2

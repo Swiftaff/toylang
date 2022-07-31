@@ -120,8 +120,9 @@ impl Compiler {
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
+            let d = if index_to + 1 < char_vec.len() {char_vec[index_to + 1]} else {' '};
             let incr =
-                if index_to + 1 < char_vec.len() && c == '\r' && char_vec[index_to + 1] == '\n' {
+                if index_to + 1 < char_vec.len() && ((c == '\r' && char_vec[index_to + 1] == '\n')|| c=='=' && d=='>') {
                     2
                 } else {
                     1
@@ -134,13 +135,15 @@ impl Compiler {
             let is_a_comment_line = this_line_so_far.len() > 1
                 && this_line_so_far[0] == '/'
                 && this_line_so_far[1] == '/';
-            let is_colon_for_singlelinefunction = c == ':' && !is_a_comment_line;
-
+            let is_colon_for_singlelinefunction = c == '=' && d == '>' && !is_a_comment_line;
+            dbg!(c,d);
             if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
                     char_vec[index_from
                         ..index_to
-                            + (if eof || is_colon_for_singlelinefunction {
+                            + (if is_colon_for_singlelinefunction {
+                                2
+                            } else if eof {
                                 1
                             } else {
                                 0
@@ -326,6 +329,7 @@ mod tests {
         test_run_errors();
     }
 
+    #[test]
     fn test_run_passes() {
         for test in parse::TEST_CASE_PASSES {
             let input = test[0];
@@ -342,6 +346,7 @@ mod tests {
         }
     }
 
+    #[test]
     fn test_run_errors() {
         for test in errors::TEST_CASE_ERRORS {
             let input = test[1];
@@ -362,8 +367,14 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_set_lines_of_tokens() {
+
+    }
+
     // cargo watch -x "test"
     // cargo watch -x "test test_run"
+    // cargo watch -x "test test_run_passes"
     // cargo watch -x "test test_run -- --show-output"
     // cargo watch -x "test test_is_float -- --show-output"
 

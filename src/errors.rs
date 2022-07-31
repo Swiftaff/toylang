@@ -122,7 +122,7 @@ pub fn append_error(
 pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
     let el = elements::get_last_element(&compiler.ast);
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
-    dbg!("error_if_parent_is_invalid", &el, &parent);
+    //dbg!("error_if_parent_is_invalid", &el, &parent);
     match el.0 {
         ElementInfo::Root => (),
         ElementInfo::CommentSingleLine(_) => {
@@ -545,50 +545,50 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     [ERRORS.comment_cant_be_child_of_inbuiltfncall, "+ //test"],
     [
         ERRORS.comment_cant_be_child_of_fncall,
-        "= myfun \\ i64 i64 arg1 : + arg1 123\r\nmyfun //test",
+        "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun //test",
     ],
     [
         ERRORS.comment_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 // test ) i64 arg1 : arg1 123",
+        "= myfun \\ ( i64 i64 // test ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.comment_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( //test ) 123",
+        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( //test ) 123",
     ],
     [ERRORS.int_cant_be_child_of_assignment, "= 123"],
     [
         ERRORS.int_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 123 ) i64 arg1 : arg1 123",
+        "= myfun \\ ( i64 123 ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.int_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( 123 ) 123",
+        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123 ) 123",
     ],
     [ERRORS.float_cant_be_child_of_assignment, "= 123.456"],
     [
         ERRORS.float_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 123.456 ) i64 arg1 : arg1 123",
+        "= myfun \\ ( i64 123.456 ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.float_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( 123.456 ) 123",
+        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123.456 ) 123",
     ],
     [ERRORS.string_cant_be_child_of_assignment, "= \"string\""],
     [
         ERRORS.string_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 \"string\" ) i64 arg1 : arg1 123",
+        "= myfun \\ ( i64 \"string\" ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.string_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( \"string\" ) 123",
+        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( \"string\" ) 123",
     ],
     [
         ERRORS.constantref_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 : arg1 123",
+        "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.constantref_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( a ) 123",
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123",
     ],
     [ERRORS.constant_undefined, "a"],
     [ERRORS.constants_are_immutable, "= a 123\r\n= a 234"],
@@ -596,34 +596,34 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     // constant
     [ERRORS.assignment_cant_be_child_of_constant, "= a ="],
     [ERRORS.assignment_cant_be_child_of_inbuiltfncall, "+ 123 ="],
-    [ERRORS.assignment_cant_be_child_of_fncal, "= myfun \\ i64 i64 arg1 : + arg1 123\r\nmyfun = 123"],
+    [ERRORS.assignment_cant_be_child_of_fncal, "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun = 123"],
     [ERRORS.assignment_cant_be_child_of_assignment, "= ="],
     [
         ERRORS.assignment_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 : arg1 123",
+        "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.assignment_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( = ) 123",
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( = ) 123",
     ],
     [
         ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 : arg1 123",
+        "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 => arg1 123",
     ],
     [
         ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 : arg1 123\r\nmyfun ( + ) 123",
+        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( + ) 123",
     ],
     // fncall_cant_be_child_of_parenthesis
     // but fails with other error funcdef_argtypes_first
     [
         ERRORS.funcdef_argtypes_first,
-        "= myfun1 \\ i64 i64 arg1 : + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 : arg2 123",
+        "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123",
     ],
     //but not here
     //[
     //    ERRORS.fncall_cant_be_child_of_parenthesis,
-    //    "= myfun1 \\ i64 i64 arg1 : + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 : arg2 123\r\nmyfun2 ( myfun1 ) 123",
+    //    "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 => arg2 123\r\nmyfun2 ( myfun1 ) 123",
     //],
     [
         ERRORS.parenthesis_cant_be_child_of_root,
@@ -639,7 +639,7 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     ],
     [
         ERRORS.fndefwip_can_only_be_child_of_constant,
-        "\\ i64 : 123",
+        "\\ i64 => 123",
     ],
     [
         ERRORS.fndefwip_can_only_be_child_of_constant,
@@ -647,7 +647,7 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     ],
     [
         ERRORS.fndefwip_can_only_be_child_of_constant,
-        "= myfun \\ i64 i64 arg1 : + arg1 123\r\nmyfun \\",
+        "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun \\",
     ],
     // fndefwip_can_only_be_child_of_constant
     // but fails with other error parens_of_assign
@@ -657,7 +657,7 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     ],
     [
         ERRORS.fndefwip_can_only_be_child_of_constant,
-        "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 : arg1 123\r\nmyfun ( a ) 123",
+        "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123",
     ],
     [
         ERRORS.fndefwip_can_only_be_child_of_constant,
@@ -690,8 +690,8 @@ pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
     //[ERRORS.int,"- 1.1 2"],
     //
     //functionDefinitions
-    //[ERRORS.funcdef_args, "= a \\ :"],
-    //[ERRORS.funcdef_argtypes_first,"= a \\ i64 monkey i64  :"],
+    //[ERRORS.funcdef_args, "= a \\ =>"],
+    //[ERRORS.funcdef_argtypes_first,"= a \\ i64 monkey i64  =>"],
     //
     
 ];
