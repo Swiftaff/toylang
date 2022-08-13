@@ -136,14 +136,17 @@ fn main() {
 // the return value of the function
 z
 
-// use parenthesis to pass a function as an argument - becomes a &dyn Fn
-// first argument in parenthesis defines a single argument which is a function
+// use parenthesis to pass a function
+// as an argument - becomes a &dyn Fn
+// first argument in parenthesis defines
+// a single argument which is a function
 // which takes an i64 and returns an i64
 // second argument is an i64
 // and function returns an i64
 = take_fn_as_first_parameter \ (i64 i64) i64 i64 arg1 arg2 =>
 
-// then the function body calls the arg1 with arg2 as the parameter
+// then the function body calls the
+// arg1 with arg2 as the parameter
 arg1 arg2
 
 // function calls
