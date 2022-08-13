@@ -102,6 +102,8 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Seol => (),
             ElementInfo::Indent => (),
             ElementInfo::Unused => (),
+            ElementInfo::LoopForRangeWIP => (),
+            ElementInfo::LoopForRange(_,_,_) => (),
         }
     }
 }
@@ -171,10 +173,13 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                                     ElementInfo::Seol => (),
                                     ElementInfo::Indent => (),
                                     ElementInfo::Unused => (),
+                                    ElementInfo::LoopForRangeWIP => (),
+                                    ElementInfo::LoopForRange(_,_,_)=>()
                                 }
                             }
                             _ => (),
                         }
+                        //dbg!("here",parent_of_first_el_option,is_end_of_return_statement_of_a_func_def);
                         break;
                     }
                 }
@@ -186,6 +191,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         // then don't add the semicolon, just the EOL
         if !is_end_of_return_statement_of_a_func_def {
             //self.ast.append((ElementInfo::Eol, vec![]));
+            //dbg!("here",parent_of_first_el_option);
             append(&mut compiler.ast, (ElementInfo::Seol, vec![]));
         }
     }
@@ -269,6 +275,14 @@ pub fn function_call1(
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
+    parents::indent::indent(&mut compiler.ast);
+    Ok(())
+}
+
+pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
+    indent_if_first_in_line(compiler);
+    append(&mut compiler.ast, (ElementInfo::LoopForRangeWIP, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
     Ok(())

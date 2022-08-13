@@ -24,11 +24,13 @@ pub enum ElementInfo {
     Assignment,                             //1 child, constant
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //children = lines of function contents
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
-    FunctionDefWIP,                                 //children = lines of function contents
+    FunctionDefWIP,                         //children = lines of function contents
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //children = lines of function contents
-    FunctionCall(Name, ReturnType),                 //fndef argnames.len() children
+    FunctionCall(Name, ReturnType),         //fndef argnames.len() children
     Parens, //either 1 child, for function_ref, or 1+ for function type sig
-    Root,   //children = lines of function contents
+    LoopForRangeWIP,                        //children = lines of loop contents
+    LoopForRange(Name, From, To),           //children = lines of loop contents      
+    Root,                                   //children = lines of function contents
 }
 
 /*
@@ -58,6 +60,8 @@ match ElementInfo - cut-and-paste template
 
 type Value = String;
 pub type ElIndex = usize;
+type From = usize;
+type To = usize;
 type ReturnType = String;
 type Name = String;
 type RefName = String;
@@ -229,6 +233,8 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Seol => (),
             ElementInfo::Indent => (),
             ElementInfo::Unused => (),
+            ElementInfo::LoopForRangeWIP =>(),
+            ElementInfo::LoopForRange(_,_,_) => (),
         }
         //dbg!(el_index, &ast.elements[el_index].0);
     }
@@ -270,6 +276,8 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Seol => (),
         ElementInfo::Indent => (),
         ElementInfo::Unused => (),
+        ElementInfo::LoopForRangeWIP =>(),
+        ElementInfo::LoopForRange(_,_,_) =>()
     }
     get_elementinfo_type(ast, el_info)
 }
@@ -401,6 +409,8 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Seol => undefined,
         ElementInfo::Indent => undefined,
         ElementInfo::Unused => undefined,
+        ElementInfo::LoopForRangeWIP =>undefined,
+        ElementInfo::LoopForRange(_,_,_) => undefined
     }
 }
 
@@ -574,6 +584,8 @@ impl fmt::Debug for ElementInfo {
                 format!("Type: {}", name)
             }
             ElementInfo::Unused => "Unused".to_string(),
+            ElementInfo::LoopForRangeWIP =>format!("LoopForRangeWIP"),
+            ElementInfo::LoopForRange(name, from,to) => format!("Loop For {} in {} to {}", name, from, to)
         };
         write!(f, "{}", el_debug)
     }

@@ -76,6 +76,8 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::Seol => (),
                 ElementInfo::Indent => (),
                 ElementInfo::Unused => (),
+                ElementInfo::LoopForRangeWIP =>(),
+                ElementInfo::LoopForRange(_,_,_) => (),
             }
         }
         _ => (),

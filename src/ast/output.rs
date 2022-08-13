@@ -199,6 +199,8 @@ pub fn get_output_for_element_index(
             }
             format!("({})", output)
         }
+        ElementInfo::LoopForRangeWIP => "".to_string(),
+        ElementInfo::LoopForRange(name, from,to) => format!("For {} in {}..{} {{\r\n",name, from,to),
         ElementInfo::Eol => format!("\r\n"),
         ElementInfo::Seol => format!(";\r\n"),
         ElementInfo::Indent => parents::get_indent(ast),
@@ -283,6 +285,9 @@ pub fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
         let element_string = match element.0 {
             ElementInfo::FunctionDef(_, _, _, _) => {
                 format!("\r\n{}}}\r\n", parents::get_indent(ast))
+            }
+            ElementInfo::LoopForRange(_, _, _) => {
+                format!(";\r\n{}}}", parents::get_indent(ast))
             }
             _ => "".to_string(),
         };

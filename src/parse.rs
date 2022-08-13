@@ -1,7 +1,7 @@
 use crate::ast::parents;
 use crate::elements;
 use crate::elements::{Element, ElementInfo};
-use crate::errors;
+use crate::errors::{self, append_error};
 use crate::errors::ERRORS;
 use crate::Compiler;
 use crate::Tokens;
@@ -70,26 +70,29 @@ pub fn token_by_first_chars(
     };
     match first_char {
         '\\' => function_definition_start(compiler),
-        //':' => function_definition_end(compiler),
         '(' => functiontypesig_or_functionreference_start(compiler),
         ')' => functiontypesig_or_functionreference_end(compiler),
         '/' => comment_single_line(compiler, current_token_vec),
-        '=' => {
-            dbg!("here1",&compiler.lines_of_chars);
-            match second_char {
-            Some(second) =>{
-                dbg!("here2");
-                if second=='>' {
-                    dbg!("here3");
+        '=' => match second_char {
+            Some(second) => {
+                if second == '>' {
                     return function_definition_end(compiler);
-                }
-                else {
+                } else {
                     return errors::append_error(compiler, 0, 1, ERRORS.assign);
                 }
-            },
-            _=>assignment(compiler)
-        }},           
-        
+            }
+            _ => assignment(compiler),
+        },
+        '.' => match second_char {
+            Some(second) => {
+                if second == '.' {
+                    return loop_for_range_start(compiler);
+                } else {
+                    return errors::append_error(compiler, 0, 1, ERRORS.loop_for);
+                }
+            }
+            _ => loop_end(compiler),
+        },
         '"' => string(compiler, &current_token),
         //positive numbers
         first_char if is_integer(&first_char.to_string()) => {
@@ -227,6 +230,8 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::Seol, _)) => (),
                 Some((ElementInfo::Indent, _)) => (),
                 Some((ElementInfo::Unused, _)) => (),
+                Some((ElementInfo::LoopForRangeWIP, _)) => (),
+                Some((ElementInfo::LoopForRange(_, _, _), _)) => (),
                 None => (),
             }
         }
@@ -259,6 +264,83 @@ pub fn function_call(
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::function_definition_start(compiler)
+}
+
+pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
+    elements::append::loop_for_range_start(compiler)
+}
+
+pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
+    /* At the point you parse a loop end,
+       and because we don't look ahead when parsing,
+       the Ast thinks this is what has been parsed
+
+       - example for a LoopForRange
+    21: LoopForRangeWIP [ 22, 24, 25, 26, ... ]
+    22: Constant: b (i64) [ 23, ]
+    23: Int: 5 [ ]
+    24: Int: 100 [ ]
+    25: Seol [ ]
+    26: Indent [ ]
+    ... remaining loop contents
+    */
+    // We need to change this to
+    /*
+    21: LoopForRange: b 5 100 [ ]
+    22: Unused
+    23: Unused
+    24: Unused
+    25: Unused
+    26: Unused
+    ...
+    */
+    
+    //get parent LoopForRange
+    let mut loopforrangewip_ref = 0;
+    for n in (0..compiler.ast.elements.len()).rev() {
+        let el = compiler.ast.elements[n].clone();
+        match el.0 {
+            ElementInfo::LoopForRangeWIP =>{
+                loopforrangewip_ref = n;
+                break;
+            },
+            _=>()
+        }
+    }
+    if loopforrangewip_ref==0 {
+        return append_error(compiler, 0, 1, ERRORS.loopfor_end_but_no_start);
+    }
+    let loopforrangewip = compiler.ast.elements[loopforrangewip_ref].clone();
+    //check it has two children, 1. const (with its child first int) 2. second int
+    if loopforrangewip.1.len() < 3 {
+        return append_error(compiler, 0, 1, ERRORS.loopfor_malformed);
+    }
+    let first_child = compiler.ast.elements[loopforrangewip.1[0]].clone();
+    let second_child = compiler.ast.elements[loopforrangewip.1[1]].clone();
+    match (first_child.0,second_child.0) {
+        (ElementInfo::Constant(name, _),ElementInfo::Int(to)) => {
+            //rename LoopForRange with name, from, to
+            let const_children = first_child.1;
+            if const_children.len()==1{
+                let const_child = compiler.ast.elements[const_children[0]].clone();
+                match const_child.0 {
+                    ElementInfo::Int(from)=>{
+                        let new_loopforrange = ElementInfo::LoopForRange(name, from.parse::<usize>().unwrap(), to.parse::<usize>().unwrap());
+                        let mut new_loopforrange_children = loopforrangewip.1;
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        compiler.ast.elements[loopforrangewip_ref] = (new_loopforrange, new_loopforrange_children);
+                        Ok(())
+                    }
+                    _=> append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
+                }
+            } else {
+                append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
+            }
+        },
+        _ => append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
+    }
 }
 
 pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
@@ -510,9 +592,9 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
     input[..first_non_whitespace_index].to_string()
 }
 
-#[allow(dead_code)] 
-pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
-    
+#[allow(dead_code)]
+pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [ //62] = [
+    /*
     //empty file
     ["", "fn main() {\r\n}\r\n"],
     //comment single line
@@ -729,6 +811,11 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 61] = [
     [
         "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
         "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
+    ],
+    */
+    // Loops - for loops
+    [
+        "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.",
+        "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n",
     ]
-    
 ];

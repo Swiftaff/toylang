@@ -68,25 +68,53 @@ z
 = b \ i64 i64 arg1 => + 123 arg1
 = c a (b) 456
 
-//fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {
-//  arg1(arg2)
-//}
-//fn b(arg1: i64) -> i64 {
-//  123 + arg1
-//}
-//let c = a(b, 456);
+// Should we even be doing loops in a functional language
+// Likely not
 
-// for loops
+// Loops - Loop
 
-//.. 0 100
-//= a + a 1
-//..
+  // loop { }
+  //..
+  //= a + a b
+  // continue
+  //..>
+  // break
+  //..*
+  //.
 
-//.. 100 0
-//= a - a 1
-//..
+// Loops - While
 
-//= c 0
-//= b [ 0 1 2 3 ]
-//.. 0 len b
-//= c + c 1
+  // while bool {}
+  //..? bool
+  //= a + a b
+  //.
+  
+// Loops - For-in
+
+  // for b in 0..100 (forward loop)
+  //.. b 0 100
+  //= a + a b
+  //.
+
+  // for b in (0..100).rev() (reverse loop)
+  //..- b 100 0
+  //= a - a b
+  //.
+
+// Loops - For-of
+
+  //= c 0
+  //= b [ 0 1 2 3 ]
+  // should get len of b automatically (forward loop)
+  //..= d i b
+  //= c + c d
+  //i
+  //.
+
+  //= c 0
+  //= b [ 0 1 2 3 ]
+  // should get len of b automatically (reverse loop)
+  //..=- d i b
+  //= c + c d
+  //i
+  //.

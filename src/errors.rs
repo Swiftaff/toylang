@@ -43,6 +43,10 @@ pub struct Errors {
     //pub no_valid_expression: &'static str,
     pub constants_are_immutable: &'static str,
     pub constant_undefined: &'static str,
+    pub loop_for: &'static str,
+    pub loopfor_cant_be_child: &'static str,
+    pub loopfor_end_but_no_start: &'static str,
+    pub loopfor_malformed: &'static str,
     pub impossible_error: &'static str,
 }
 
@@ -72,6 +76,9 @@ pub const ERRORS: Errors = Errors {
     parenthesis_cant_be_child_of_constant:"Invalid parenthesis - parenthesis found as value of constant. Can only use in a function definition, or a function name as a reference",
     parenthesis_cant_be_child_of_assignment:"Invalid parenthesis - parenthesis found as value of assignment. Can only use in a function definition, or a function name as a reference",
     fndefwip_can_only_be_child_of_constant:"Invalid Function Definition - \"\\\" found, which defines start of a function. Can only be used after a constant, i.e. = fn_name \\ i64 i64 arg1 : + arg1 123",
+    loopfor_cant_be_child:"Invalid For Loop - can't be placed here",
+    loopfor_end_but_no_start:"Invalid End For Loop found - can't find start of for loop",
+    loopfor_malformed:"Invalid For Loop - is missing key parts like variable name, start or end of range",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
@@ -85,6 +92,7 @@ pub const ERRORS: Errors = Errors {
     //no_valid_integer_arithmetic: "No valid integer arithmetic found",
     //no_valid_expression: "No valid expression was found",
     constants_are_immutable: "Constants are immutable. You may be trying to assign a value to a constant that has already been defined. Try renaming this as a new constant.",
+    loop_for:"Found character after \".\" For loops start with \"..\"",
     impossible_error: "Oh no, this error should be impossible... 'Well here's another nice mess you've gotten me into.'",
     };
 
@@ -150,6 +158,12 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::Parens =>{
             error_if_parent_is_invalid_for_parenthesis(compiler, &parent)?
         }
+        ElementInfo::LoopForRangeWIP => {
+            error_if_parent_is_invalid_for_loopfor(compiler, &parent)?
+        }
+        ElementInfo::LoopForRange(_,_,_) =>{
+            error_if_parent_is_invalid_for_loopfor(compiler, &parent)?
+        }
         // TODO remaining variants
         ElementInfo::Type(_) =>(),
         ElementInfo::Eol =>(),
@@ -174,6 +188,8 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_, _,_) => Ok(()),
         ElementInfo::Constant(_, _) => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_constant)
         }
@@ -219,6 +235,8 @@ pub fn error_if_parent_is_invalid_for_int(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_, _,_) => Ok(()),
         ElementInfo::Assignment => {
             append_error(compiler, 0, 1, ERRORS.int_cant_be_child_of_assignment)
         }
@@ -252,6 +270,8 @@ pub fn error_if_parent_is_invalid_for_float(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_, _,_) => Ok(()),
         ElementInfo::Assignment => {
             append_error(compiler, 0, 1, ERRORS.float_cant_be_child_of_assignment)
         }
@@ -285,6 +305,8 @@ pub fn error_if_parent_is_invalid_for_string(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_, _,_) => Ok(()),
         ElementInfo::Assignment => {
             append_error(compiler, 0, 1, ERRORS.string_cant_be_child_of_assignment)
         }
@@ -324,7 +346,8 @@ pub fn error_if_parent_is_invalid_for_arg(
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.impossible_error),
-
+        ElementInfo::LoopForRangeWIP =>append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::LoopForRange(_, _,_) =>  append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -359,6 +382,8 @@ pub fn error_if_parent_is_invalid_for_constantref(
             1,
             ERRORS.constantref_cant_be_child_of_parenthesis,
         ),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
         // explicitly listing other types rather than using _ to not overlook new types in future.
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -380,6 +405,8 @@ pub fn error_if_parent_is_invalid_for_constant(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Assignment => Ok(()),
+        ElementInfo::LoopForRangeWIP => Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
         _ => append_error(compiler, 0, 1, ERRORS.constant_undefined),
     }
 }
@@ -392,6 +419,8 @@ pub fn error_if_parent_is_invalid_for_assignment(
         ElementInfo::Root => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
         ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_constant),
         ElementInfo::InbuiltFunctionCall(_, _, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_inbuiltfncall),
         ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_fncal),
@@ -426,6 +455,8 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
         ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.inbuiltfncall_cant_be_child_of_parenthesis),
         // explicitly listing other types rather than using _ to not overlook new types in future.
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -455,6 +486,8 @@ pub fn error_if_parent_is_invalid_for_fncall(
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
         ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.fncall_cant_be_child_of_parenthesis),
         // TODO need to allow parens for functionref
         // explicitly listing other types rather than using _ to not overlook new types in future.
@@ -482,10 +515,43 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child),
         ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.fncall_cant_be_child_of_parenthesis),
         ElementInfo::Root => append_error(compiler, 0, 1, ERRORS.parenthesis_cant_be_child_of_root),
         ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.parenthesis_cant_be_child_of_constant),
         ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.parenthesis_cant_be_child_of_assignment),
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+    }
+}
+
+pub fn error_if_parent_is_invalid_for_loopfor(
+    compiler: &mut Compiler,
+    parent: &Element,
+) -> Result<(), ()> {
+    match parent.0 {
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) => Ok(()),
+        ElementInfo::Root => Ok(()),
+        ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child),
+        ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child),
+        ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child),
         // explicitly listing other types rather than using _ to not overlook new types in future.
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -510,6 +576,8 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
         ElementInfo::Constant(_,_) => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::LoopForRangeWIP =>Ok(()),
+        ElementInfo::LoopForRange(_,_,_) =>append_error(compiler, 0, 1, ERRORS.fndefwip_can_only_be_child_of_constant),
         ElementInfo::Root =>append_error(compiler, 0, 1, ERRORS.fndefwip_can_only_be_child_of_constant),
         ElementInfo::InbuiltFunctionCall(_, _, _) => append_error(compiler, 0, 1, ERRORS.fndefwip_can_only_be_child_of_constant),
         ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.fndefwip_can_only_be_child_of_constant),

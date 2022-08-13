@@ -136,7 +136,6 @@ impl Compiler {
                 && this_line_so_far[0] == '/'
                 && this_line_so_far[1] == '/';
             let is_colon_for_singlelinefunction = c == '=' && d == '>' && !is_a_comment_line;
-            dbg!(c,d);
             if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
                     char_vec[index_from
