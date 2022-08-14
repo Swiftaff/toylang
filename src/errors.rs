@@ -478,6 +478,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
+        ElementInfo::Println => Ok(()),
         ElementInfo::Parens => append_error(
             compiler,
             0,
@@ -496,7 +497,6 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Println => append_error(compiler, 0, 1, ERRORS.impossible_error),
     }
 }
 
@@ -531,7 +531,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
         ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::ConstantRef(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Println => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Println => Ok(()),
     }
 }
 
@@ -719,154 +719,186 @@ pub fn error_if_parent_is_invalid_for_println(
 }
 
 #[allow(dead_code)]
-pub const TEST_CASE_ERRORS: [[&str; 2]; 50] = [
-    //empty file
-    ["", ""],
-    //
-    //comment single line
-    [ERRORS.comment_single_line, "/1/comment"],
-    [ERRORS.comment_cant_be_child_of_assignment, "= //test"],
-    [ERRORS.comment_cant_be_child_of_constant, "= c //test"],
-    [ERRORS.comment_cant_be_child_of_inbuiltfncall, "+ //test"],
-    [
-        ERRORS.comment_cant_be_child_of_fncall,
-        "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun //test",
+pub fn test_case_errors() -> Vec<Vec<String>> {
+    vec![
+        //empty file
+        vec!["".to_string(), "".to_string()],
+        //
+        //comment single line
+        vec![
+            ERRORS.comment_single_line.to_string(),
+            "/1/comment".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_assignment.to_string(),
+            "= //test".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_constant.to_string(),
+            "= c //test".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_inbuiltfncall.to_string(),
+            "+ //test".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_fncall.to_string(),
+            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun //test".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 i64 // test ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( //test ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.int_cant_be_child_of_assignment.to_string(),
+            "= 123".to_string(),
+        ],
+        vec![
+            ERRORS.int_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 123 ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.int_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123 ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.float_cant_be_child_of_assignment.to_string(),
+            "= 123.456".to_string(),
+        ],
+        vec![
+            ERRORS.float_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 123.456 ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.float_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123.456 ) 123".to_string(),
+        ],
+        vec![ERRORS.string_cant_be_child_of_assignment.to_string(), "= \"string\"".to_string()],
+        vec![
+            ERRORS.string_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 \"string\" ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.string_cant_be_child_of_parenthesis.to_string(),
+            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( \"string\" ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
+        ],
+        vec![ERRORS.constant_undefined.to_string(), "a".to_string()],
+        vec![ERRORS.constants_are_immutable.to_string(), "= a 123\r\n= a 234".to_string()],
+        // assignment cant be child of most things
+        // constant
+        vec![ERRORS.assignment_cant_be_child_of_constant.to_string(), "= a =".to_string()],
+        vec![ERRORS.assignment_cant_be_child_of_inbuiltfncall.to_string(), "+ 123 =".to_string()],
+        vec![
+            ERRORS.assignment_cant_be_child_of_fncal.to_string(),
+            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun = 123".to_string(),
+        ],
+        vec![ERRORS.assignment_cant_be_child_of_assignment.to_string(), "= =".to_string()],
+        vec![
+            ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( = ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 => arg1 123".to_string(),
+        ],
+        vec![
+            ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
+            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( + ) 123".to_string(),
+        ],
+        // fncall_cant_be_child_of_parenthesis
+        // but fails with other error funcdef_argtypes_first
+        vec![
+        ERRORS.funcdef_argtypes_first.to_string(),
+        "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123".to_string(),
     ],
-    [
-        ERRORS.comment_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 // test ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.comment_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( //test ) 123",
-    ],
-    [ERRORS.int_cant_be_child_of_assignment, "= 123"],
-    [
-        ERRORS.int_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 123 ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.int_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123 ) 123",
-    ],
-    [ERRORS.float_cant_be_child_of_assignment, "= 123.456"],
-    [
-        ERRORS.float_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 123.456 ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.float_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123.456 ) 123",
-    ],
-    [ERRORS.string_cant_be_child_of_assignment, "= \"string\""],
-    [
-        ERRORS.string_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 \"string\" ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.string_cant_be_child_of_parenthesis,
-        "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( \"string\" ) 123",
-    ],
-    [
-        ERRORS.constantref_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.constantref_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123",
-    ],
-    [ERRORS.constant_undefined, "a"],
-    [ERRORS.constants_are_immutable, "= a 123\r\n= a 234"],
-    // assignment cant be child of most things
-    // constant
-    [ERRORS.assignment_cant_be_child_of_constant, "= a ="],
-    [ERRORS.assignment_cant_be_child_of_inbuiltfncall, "+ 123 ="],
-    [
-        ERRORS.assignment_cant_be_child_of_fncal,
-        "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun = 123",
-    ],
-    [ERRORS.assignment_cant_be_child_of_assignment, "= ="],
-    [
-        ERRORS.assignment_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.assignment_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( = ) 123",
-    ],
-    [
-        ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 => arg1 123",
-    ],
-    [
-        ERRORS.inbuiltfncall_cant_be_child_of_parenthesis,
-        "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( + ) 123",
-    ],
-    // fncall_cant_be_child_of_parenthesis
-    // but fails with other error funcdef_argtypes_first
-    [
-        ERRORS.funcdef_argtypes_first,
-        "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123",
-    ],
-    //but not here
-    //[
-    //    ERRORS.fncall_cant_be_child_of_parenthesis,
-    //    "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 => arg2 123\r\nmyfun2 ( myfun1 ) 123",
-    //],
-    [ERRORS.parenthesis_cant_be_child_of_root, "( i64 )"],
-    [ERRORS.parenthesis_cant_be_child_of_constant, "= x ( i64 )"],
-    [
-        ERRORS.parenthesis_cant_be_child_of_assignment,
-        "= ( i64 ) 123",
-    ],
-    [
-        ERRORS.fndefwip_can_only_be_child_of_constant,
-        "\\ i64 => 123",
-    ],
-    [ERRORS.fndefwip_can_only_be_child_of_constant, "+ 123 \\"],
-    [
-        ERRORS.fndefwip_can_only_be_child_of_constant,
-        "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun \\",
-    ],
-    // fndefwip_can_only_be_child_of_constant
-    // but fails with other error parens_of_assign
-    [
-        ERRORS.parenthesis_cant_be_child_of_assignment,
-        "= ( \\ ) 123",
-    ],
-    [
-        ERRORS.fndefwip_can_only_be_child_of_constant,
-        "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123",
-    ],
-    [ERRORS.fndefwip_can_only_be_child_of_constant, "= \\ 123"],
-    //
-    //string
-    [ERRORS.string, "\""],
-    [ERRORS.string, "\"\"\""],
-    [ERRORS.string, "\"\" \""],
-    //
-    //int
-    [ERRORS.int, "1a"],
-    [ERRORS.int_out_of_bounds, "9223372036854775808"],
-    //
-    //int negative
-    [ERRORS.int, "-1a"],
-    [ERRORS.int_out_of_bounds, "-9223372036854775809"],
-    //
-    //float (errors say int)
-    [ERRORS.int, "1.1.1"],
-    [ERRORS.int, "1.7976931348623157E+309"],
-    //
-    //float negative (errors say int)
-    [ERRORS.int, "-1.1.1"],
-    [ERRORS.int, "-1.7976931348623157E+309"],
-    //
-    //internalFunctionCalls
-    //[ERRORS.int,"+ 1 2.1"],
-    //[ERRORS.int,"- 1.1 2"],
-    //
-    //functionDefinitions
-    //[ERRORS.funcdef_args, "= a \\ =>"],
-    //[ERRORS.funcdef_argtypes_first,"= a \\ i64 monkey i64  =>"],
-    //
-];
+        //but not here
+        //[
+        //    ERRORS.fncall_cant_be_child_of_parenthesis.to_string(),
+        //    "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 => arg2 123\r\nmyfun2 ( myfun1 ) 123".to_string(),
+        //],
+        vec![ERRORS.parenthesis_cant_be_child_of_root.to_string(), "( i64 )".to_string()],
+        vec![ERRORS.parenthesis_cant_be_child_of_constant.to_string(), "= x ( i64 )".to_string()],
+        vec![
+            ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
+            "= ( i64 ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+            "\\ i64 => 123".to_string(),
+        ],
+        vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "+ 123 \\".to_string()],
+        vec![
+            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun \\".to_string(),
+        ],
+        // fndefwip_can_only_be_child_of_constant
+        // but fails with other error parens_of_assign
+        vec![
+            ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
+            "= ( \\ ) 123".to_string(),
+        ],
+        vec![
+            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+            "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
+        ],
+        vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "= \\ 123".to_string()],
+        //
+        //string
+        vec![ERRORS.string.to_string(), "\"".to_string()],
+        vec![ERRORS.string.to_string(), "\"\"\"".to_string()],
+        vec![ERRORS.string.to_string(), "\"\" \"".to_string()],
+        //
+        //int
+        vec![ERRORS.int.to_string(), "1a".to_string()],
+        vec![
+            ERRORS.int_out_of_bounds.to_string(),
+            "9223372036854775808".to_string(),
+        ],
+        //
+        //int negative
+        vec![ERRORS.int.to_string(), "-1a".to_string()],
+        vec![
+            ERRORS.int_out_of_bounds.to_string(),
+            "-9223372036854775809".to_string(),
+        ],
+        //
+        //float (errors say int)
+        vec![ERRORS.int.to_string(), "1.1.1".to_string()],
+        vec![
+            ERRORS.int.to_string(),
+            "1.7976931348623157E+309".to_string(),
+        ],
+        //
+        //float negative (errors say int)
+        vec![ERRORS.int.to_string(), "-1.1.1".to_string()],
+        vec![
+            ERRORS.int.to_string(),
+            "-1.7976931348623157E+309".to_string(),
+        ],
+        //
+        //internalFunctionCalls
+        //[ERRORS.int.to_string(),"+ 1 2.1".to_string()],
+        //[ERRORS.int.to_string(),"- 1.1 2".to_string()],
+        //
+        //functionDefinitions
+        //[ERRORS.funcdef_args.to_string(), "= a \\ =>".to_string()],
+        //[ERRORS.funcdef_argtypes_first.to_string(),"= a \\ i64 monkey i64  =>".to_string()],
+        //
+    ]
+}

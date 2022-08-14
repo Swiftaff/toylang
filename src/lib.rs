@@ -120,13 +120,18 @@ impl Compiler {
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
-            let d = if index_to + 1 < char_vec.len() {char_vec[index_to + 1]} else {' '};
-            let incr =
-                if index_to + 1 < char_vec.len() && ((c == '\r' && char_vec[index_to + 1] == '\n')|| c=='=' && d=='>') {
-                    2
-                } else {
-                    1
-                };
+            let d = if index_to + 1 < char_vec.len() {
+                char_vec[index_to + 1]
+            } else {
+                ' '
+            };
+            let incr = if index_to + 1 < char_vec.len()
+                && ((c == '\r' && char_vec[index_to + 1] == '\n') || c == '=' && d == '>')
+            {
+                2
+            } else {
+                1
+            };
             let eof = index_to == char_vec.len() - 1;
 
             // split line at colon for single line functions (after args, before body of function)
@@ -330,15 +335,15 @@ mod tests {
 
     #[test]
     fn test_run_passes() {
-        for test in parse::TEST_CASE_PASSES {
-            let input = test[0];
-            let output = test[1];
+        for test in parse::test_case_passes() {
+            let input = &test[0];
+            let output = &test[1];
             let mut c = mock_compiler();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
                     //dbg!(&c.ast, input, output);
-                    assert_eq!(c.ast.output, output);
+                    assert_eq!(&c.ast.output, output);
                 }
                 Err(_e) => assert!(false, "error should not exist"),
             }
@@ -347,9 +352,9 @@ mod tests {
 
     #[test]
     fn test_run_errors() {
-        for test in errors::TEST_CASE_ERRORS {
-            let input = test[1];
-            let error = test[0]; //opposite of passes, just so that errors line up nicely in errors::TEST_CASE_ERRORS source!
+        for test in errors::test_case_errors() {
+            let input = &test[1];
+            let error = &test[0]; //opposite of passes, just so that errors line up nicely in errors::TEST_CASE_ERRORS source!
             let mut c = mock_compiler();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
@@ -367,9 +372,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_lines_of_tokens() {
-
-    }
+    fn test_set_lines_of_tokens() {}
 
     // cargo watch -x "test"
     // cargo watch -x "test test_run"

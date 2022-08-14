@@ -238,7 +238,7 @@ pub fn get_output_for_element_index(
                 let child = get_output_for_element_index(ast, child_ref, false);
                 output = format!("{}{}", output, child);
             }
-            format!("println!(\"{{}}\",{})", output)
+            format!("println!(\"{{}}\", {})", output)
         }
     }
 }

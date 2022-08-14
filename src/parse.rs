@@ -607,233 +607,264 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 }
 
 #[allow(dead_code)]
-pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [
-    //61] = [
-    /*
-    //empty file
-    ["", "fn main() {\r\n}\r\n"],
-    //comment single line
-    ["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
-    [
-        "    //    comment    ",
-        "fn main() {\r\n    //    comment\r\n}\r\n",
-    ],
-    //single line function no longer breaks comments
-    [
-        "//= a \\ i64 => 123",
-        "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n",
-    ],
-    //string
-    [
-        "\"string\"",
-        "fn main() {\r\n    \"string\".to_string();\r\n}\r\n",
-    ],
-    ["\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"],
-    //int
-    ["1", "fn main() {\r\n    1;\r\n}\r\n"],
-    ["123", "fn main() {\r\n    123;\r\n}\r\n"],
-    ["    123    ", "fn main() {\r\n    123;\r\n}\r\n"],
-    [
-        "9223372036854775807",
-        "fn main() {\r\n    9223372036854775807;\r\n}\r\n",
-    ],
-    //int negative
-    ["-1", "fn main() {\r\n    -1;\r\n}\r\n"],
-    ["-123", "fn main() {\r\n    -123;\r\n}\r\n"],
-    ["    -123    ", "fn main() {\r\n    -123;\r\n}\r\n"],
-    [
-        "-9223372036854775808",
-        "fn main() {\r\n    -9223372036854775808;\r\n}\r\n",
-    ],
-    //float
-    ["1.1", "fn main() {\r\n    1.1;\r\n}\r\n"],
-    ["123.123", "fn main() {\r\n    123.123;\r\n}\r\n"],
-    ["    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n"],
-    [
-        "1234567890.123456789",
-        "fn main() {\r\n    1234567890.123456789;\r\n}\r\n",
-    ],
-    [
-        "1.7976931348623157E+308",
-        "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n",
-    ],
-    //float negative
-    ["-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n"],
-    ["-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n"],
-    ["    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n"],
-    [
-        "-1234567890.123456789",
-        "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n",
-    ],
-    [
-        "-1.7976931348623157E+308",
-        "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
-    ],
-    //internalFunctionCalls
-    ["+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"],
-    ["- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"],
-    ["/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"],
-    //basic arithmetic, assignment, type inference
-    [
-        "= a + 1 2",
-        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
-    ],
-    [
-        "= a + 1.1 2.2",
-        "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n",
-    ],
-    [
-        "= a - 1 2",
-        "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n",
-    ],
-    [
-        "= a - 1.1 2.2",
-        "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n",
-    ],
-    [
-        "= a * 1 2",
-        "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n",
-    ],
-    [
-        "= a * 1.1 2.2",
-        "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n",
-    ],
-    [
-        "= a / 1 2",
-        "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n",
-    ],
-    [
-        "= a / 1.1 2.2",
-        "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n",
-    ],
-    [
-        "= a % 1 2",
-        "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n",
-    ],
-    [
-        "= a % 1.1 2.2",
-        "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n",
-    ],
-    //constant
-    ["= a 123\r\na", "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n"],
-    //assignment
-    [
-        "= a \"string\"",
-        "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n",
-    ],
-    ["= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"],
-    ["= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"],
-    [
-        "= a -1.7976931348623157E+308",
-        "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n",
-    ],
-    [
-        "= a + 1 2",
-        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
-    ],
-    //assignment internalFunctionCalls with references
-    [
-        "= a + 1 2\r\n= b - 3 a",
-        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
-    ],
-    //nested internalFunctionCalls
-    [
-        "= a - + 1 2 3",
-        "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
-    ],
-    [
-        "= a / * - + 1 2 3 4 5",
-        "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n",
-    ],
-    [
-        "= a + 1 * 3 2",
-        "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
-    ],
-    //TODO handle reserved names of i64 by adding to inbuiltfndefs
+pub fn test_case_passes() -> Vec<Vec<String>> {
+    vec![
+        /*
+        //empty file
+        ["".to_string(), "fn main() {\r\n}\r\n".to_string()],
+        //comment single line
+        ["//comment".to_string(), "fn main() {\r\n    //comment\r\n}\r\n".to_string()],
+        [
+            "    //    comment    ".to_string(),
+            "fn main() {\r\n    //    comment\r\n}\r\n".to_string(),
+        ],
+        //single line function no longer breaks comments
+        [
+            "//= a \\ i64 => 123".to_string(),
+            "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n".to_string(),
+        ],
+        //string
+        [
+            "\"string\"".to_string(),
+            "fn main() {\r\n    \"string\".to_string();\r\n}\r\n".to_string(),
+        ],
+        ["\"\"".to_string(), "fn main() {\r\n    \"\".to_string();\r\n}\r\n".to_string()],
+        //int
+        ["1".to_string(), "fn main() {\r\n    1;\r\n}\r\n".to_string()],
+        ["123".to_string(), "fn main() {\r\n    123;\r\n}\r\n".to_string()],
+        ["    123    ".to_string(), "fn main() {\r\n    123;\r\n}\r\n".to_string()],
+        [
+            "9223372036854775807".to_string(),
+            "fn main() {\r\n    9223372036854775807;\r\n}\r\n".to_string(),
+        ],
+        //int negative
+        ["-1".to_string(), "fn main() {\r\n    -1;\r\n}\r\n".to_string()],
+        ["-123".to_string(), "fn main() {\r\n    -123;\r\n}\r\n".to_string()],
+        ["    -123    ".to_string(), "fn main() {\r\n    -123;\r\n}\r\n".to_string()],
+        [
+            "-9223372036854775808".to_string(),
+            "fn main() {\r\n    -9223372036854775808;\r\n}\r\n".to_string(),
+        ],
+        //float
+        ["1.1".to_string(), "fn main() {\r\n    1.1;\r\n}\r\n".to_string()],
+        ["123.123".to_string(), "fn main() {\r\n    123.123;\r\n}\r\n".to_string()],
+        ["    123.123    ".to_string(), "fn main() {\r\n    123.123;\r\n}\r\n".to_string()],
+        [
+            "1234567890.123456789".to_string(),
+            "fn main() {\r\n    1234567890.123456789;\r\n}\r\n".to_string(),
+        ],
+        [
+            "1.7976931348623157E+308".to_string(),
+            "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n".to_string(),
+        ],
+        //float negative
+        ["-1.1".to_string(), "fn main() {\r\n    -1.1;\r\n}\r\n".to_string()],
+        ["-123.123".to_string(), "fn main() {\r\n    -123.123;\r\n}\r\n".to_string()],
+        ["    -123.123    ".to_string(), "fn main() {\r\n    -123.123;\r\n}\r\n".to_string()],
+        [
+            "-1234567890.123456789".to_string(),
+            "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n".to_string(),
+        ],
+        [
+            "-1.7976931348623157E+308".to_string(),
+            "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n".to_string(),
+        ],
+        //internalFunctionCalls
+        ["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
+        ["- 1.1 2.2".to_string(), "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n".to_string()],
+        ["/ 9 3".to_string(), "fn main() {\r\n    9 / 3;\r\n}\r\n".to_string()],
+        //basic arithmetic, assignment, type inference
+        [
+            "= a + 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a + 1.1 2.2".to_string(),
+            "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a - 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a - 1.1 2.2".to_string(),
+            "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a * 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a * 1.1 2.2".to_string(),
+            "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a / 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a / 1.1 2.2".to_string(),
+            "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a % 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a % 1.1 2.2".to_string(),
+            "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n".to_string(),
+        ],
+        //constant
+        ["= a 123\r\na".to_string(), "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n".to_string()],
+        //assignment
+        [
+            "= a \"string\"".to_string(),
+            "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n".to_string(),
+        ],
+        ["= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n".to_string()],
+        ["= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n".to_string()],
+        [
+            "= a -1.7976931348623157E+308".to_string(),
+            "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a + 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+        ],
+        //assignment internalFunctionCalls with references
+        [
+            "= a + 1 2\r\n= b - 3 a".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n".to_string(),
+        ],
+        //nested internalFunctionCalls
+        [
+            "= a - + 1 2 3".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a / * - + 1 2 3 4 5".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a + 1 * 3 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n".to_string(),
+        ],
+        //TODO handle reserved names of i64 by adding to inbuiltfndefs
 
-    //function definitions
-    //function definitions - single line
-    [
-        "= a \\ i64 => 123",
-        "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
-    ],
-    [
-        "= a \\ i64 i64 arg1 => + 123 arg1",
-        "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
-    ],
-    //function definitions - multiline
-    [
-        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2",
-        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
-    ],
-    [
-        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3",
-        "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
-    ],
-    //function definitions - multiline, nested function calls
-    [
-        "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3",
-        "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
-    ],
-    //function definitions - multiline, constant assignment, nested function calls
-    [
-        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
-        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
-    ],
-    //function definitions - multiline, several semicolon statements, with final return statement
-    [
-        "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
-        "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
-    ],
-    //function definitions - pass functions as arguments
-    //arg1 is a function that takes i64 returns i64, arg2 is an i64
-    //the function body calls arg1 with arg2 as its argument, returning which returns i64
-    [
-        "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
-        "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
-    ],
-    //type inference
-    //type inference - assignment to constantrefs
-    [
-        "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
-        "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
-    ],
-    //type inference - assignment to function call
-    [
-        "= a + 1 2",
-        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
-    ],
-    //type inference - assignment to constantrefs of function call
-    [
-        "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
-        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
-    ],
-    //function calls - zero arguments
+        //function definitions
+        //function definitions - single line
+        [
+            "= a \\ i64 => 123".to_string(),
+            "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a \\ i64 i64 arg1 => + 123 arg1".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n".to_string(),
+        ],
+        //function definitions - multiline
+        [
+            "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n".to_string(),
+        ],
+        [
+            "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n".to_string(),
+        ],
+        //function definitions - multiline, nested function calls
+        [
+            "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n".to_string(),
+        ],
+        //function definitions - multiline, constant assignment, nested function calls
+        [
+            "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n".to_string(),
+        ],
+        //function definitions - multiline, several semicolon statements, with final return statement
+        [
+            "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n".to_string(),
+        ],
+        //function definitions - pass functions as arguments
+        //arg1 is a function that takes i64 returns i64, arg2 is an i64
+        //the function body calls arg1 with arg2 as its argument, returning which returns i64
+        [
+            "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456".to_string(),
+            "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n".to_string(),
+        ],
+        //type inference
+        //type inference - assignment to constantrefs
+        [
+            "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
+            "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
+        ],
+        //type inference - assignment to function call
+        [
+            "= a + 1 2".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+        ],
+        //type inference - assignment to constantrefs of function call
+        [
+            "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
+        ],
+        //function calls - zero arguments
 
-    // TODO function call void/null/() return
+        // TODO function call void/null/() return
 
-    [
-        "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na",
-        "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
-    ],
+        [
+            "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na".to_string(),
+            "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n".to_string(),
+        ],
 
-    //function calls - one argument
-    [
-        "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123",
-        "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
-    ],
-    //function calls - two arguments, where one is an evaluated internal function call
-    [
-        "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
-        "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
-    ],
+        //function calls - one argument
+        [
+            "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123".to_string(),
+            "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n".to_string(),
+        ],
+        //function calls - two arguments, where one is an evaluated internal function call
+        [
+            "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789".to_string(),
+            "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n".to_string(),
+        ],
 
-    // Loops - for loops
-    //[
-    //    "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.",
-    //    "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n",
-    //]
-    */
-    // Println
-    ["@ 1", "fn main() {\r\n    println!(\"{}\",1);\r\n}\r\n"],
-];
+        // Loops - for loops
+        //[
+        //    "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.".to_string(),
+        //    "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n".to_string(),
+        //]
+        */
+        // Println
+        /*
+        vec![
+            "@ 1".to_string(),
+            "fn main() {\r\n    println!(\"{}\", 1);\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "@ 1.23".to_string(),
+            "fn main() {\r\n    println!(\"{}\", 1.23);\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "@ \"Hello, world\"".to_string(),
+            "fn main() {\r\n    println!(\"{}\", \"Hello, world\".to_string());\r\n}\r\n"
+                .to_string(),
+        ],
+        vec![
+            "@ + 1 2".to_string(),
+            "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "= a 1\r\n@ a".to_string(),
+            "fn main() {\r\n    let a: i64 = 1;\r\n    println!(\"{}\", a);\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "= a 1\r\n= b a\r\n@ b".to_string(),
+            "fn main() {\r\n    let a: i64 = 1;\r\n    let b: i64 = a;\r\n    println!(\"{}\", b);\r\n}\r\n".to_string(),
+        ],
+        */
+        vec![
+            "= a \\ i64 => 1\r\n@ a".to_string(),
+            "fn main() {\r\n    fn a() -> i64 {\r\n        1\r\n    }\r\n    println!(\"{}\", a());\r\n}\r\n".to_string(),
+        ],
+    ]
+}

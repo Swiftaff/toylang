@@ -52,9 +52,8 @@ pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     append(&mut compiler.ast, (ElementInfo::Println, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
-    outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
@@ -96,7 +95,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
                 outdent::within_fndef_from_return_expression(compiler);
             }
             ElementInfo::FunctionCall(name, _) => {
-                outdent::fncall_from_fndef_or_arg(compiler, current_parent, name);
+                outdent::fncall(compiler, current_parent, name);
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
@@ -124,8 +123,15 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
     let mut append_seol: bool = true;
-
+    dbg!(
+        &compiler.ast.elements[compiler.ast.elements.len() - 1],
+        is_last_token_in_this_line,
+        compiler.current_line_token,
+        compiler.lines_of_tokens[compiler.current_line].len() - 1,
+        &compiler.ast
+    );
     if is_last_token_in_this_line {
+        dbg!("last");
         for el_index in (0..compiler.ast.elements.len()).rev() {
             let el = &compiler.ast.elements[el_index];
             match el.0 {
@@ -134,77 +140,32 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
 
                     if el_index != compiler.ast.elements.len() - 1 {
                         let first_element_after_indent_ref = el_index + 1;
-                        /*
+
                         let first_element = &compiler.ast.elements[first_element_after_indent_ref];
                         match first_element {
-                        //    (ElementInfo::Println, _) => {
-                                dbg!("PRINTLN");
+                            (ElementInfo::Println, _) => {
+                                dbg!("PRINTLN - InbuiltFunctionCall");
                                 //append_seol = false;
                             }
                             _ => (),
                         }
-                        */
 
                         let parent_of_first_el_option =
                             parents::get_current_parent_element_from_element_children_search(
                                 &mut compiler.ast,
                                 first_element_after_indent_ref,
                             );
-                        dbg!("LAST", &parent_of_first_el_option);
+                        let first_element_after_indent_el =
+                            &compiler.ast.elements[first_element_after_indent_ref];
+
                         match parent_of_first_el_option {
                             Some((ElementInfo::FunctionDef(_, _, _, _), _)) => {
-                                // confirm this line is a statement from a func def
-
-                                let first_element_after_indent_el =
-                                    &compiler.ast.elements[first_element_after_indent_ref];
-                                match first_element_after_indent_el.0 {
-                                    // confirm this statement is a return statement
-                                    // i.e. must be one of these types
-                                    ElementInfo::Int(_) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::Float(_) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::String(_) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::Constant(_, _) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::ConstantRef(_, _, _) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::InbuiltFunctionCall(_, _, _) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::FunctionCall(_, _) => {
-                                        append_seol = false;
-                                    }
-                                    ElementInfo::Parens => {
-                                        append_seol = false;
-                                    }
-                                    // explicitly listing other types rather than using _ to not overlook new types in future
-                                    ElementInfo::Root => (),
-                                    ElementInfo::CommentSingleLine(_) => (),
-                                    ElementInfo::Arg(_, _, _) => (),
-                                    ElementInfo::Assignment => (),
-                                    ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
-                                    ElementInfo::FunctionDefWIP => (),
-                                    ElementInfo::FunctionDef(_, _, _, _) => (),
-                                    ElementInfo::Type(_) => (),
-                                    ElementInfo::Eol => (),
-                                    ElementInfo::Seol => (),
-                                    ElementInfo::Indent => (),
-                                    ElementInfo::Unused => (),
-                                    ElementInfo::LoopForRangeWIP => (),
-                                    ElementInfo::LoopForRange(_, _, _) => (),
-                                    ElementInfo::Println => (),
+                                if is_return_expression(&first_element_after_indent_el.0) {
+                                    append_seol = false;
                                 }
                             }
                             _ => (),
                         }
-                        //dbg!("here",parent_of_first_el_option,is_end_of_return_statement_of_a_func_def);
                         break;
                     }
                 }
@@ -213,7 +174,6 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         }
 
         // if is the last return expression of a func_def
-        // or argmuent to println
         // then don't add the semicolon, just the EOL
         if append_seol {
             //self.ast.append((ElementInfo::Eol, vec![]));
@@ -222,6 +182,35 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         }
     }
     Ok(())
+}
+
+pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
+    match elinfo {
+        ElementInfo::Int(_) => true,
+        ElementInfo::Float(_) => true,
+        ElementInfo::String(_) => true,
+        ElementInfo::Constant(_, _) => true,
+        ElementInfo::ConstantRef(_, _, _) => true,
+        ElementInfo::InbuiltFunctionCall(_, _, _) => true,
+        ElementInfo::FunctionCall(_, _) => true,
+        ElementInfo::Parens => true,
+        // explicitly listing other types rather than using _ to not overlook new types in future
+        ElementInfo::Root => false,
+        ElementInfo::CommentSingleLine(_) => false,
+        ElementInfo::Arg(_, _, _) => false,
+        ElementInfo::Assignment => false,
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => false,
+        ElementInfo::FunctionDefWIP => false,
+        ElementInfo::FunctionDef(_, _, _, _) => false,
+        ElementInfo::Type(_) => false,
+        ElementInfo::Eol => false,
+        ElementInfo::Seol => false,
+        ElementInfo::Indent => false,
+        ElementInfo::Unused => false,
+        ElementInfo::LoopForRangeWIP => false,
+        ElementInfo::LoopForRange(_, _, _) => false,
+        ElementInfo::Println => false,
+    }
 }
 
 pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
@@ -274,6 +263,7 @@ pub fn inbuilt_function_call(
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     Ok(())
+    //seol_if_last_in_line(compiler)
 }
 
 pub fn function_call1(
@@ -296,6 +286,7 @@ pub fn function_call1(
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     Ok(())
+    //seol_if_last_in_line(compiler)
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {

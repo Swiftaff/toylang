@@ -138,25 +138,30 @@ pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String
     }
 }
 
-pub fn fncall_from_fndef_or_arg(compiler: &mut Compiler, current_parent: Element, name: String) {
-    if let Some(index) = elements::get_function_index_by_name(&mut compiler.ast, &name) {
-        let fndef = &compiler.ast.elements[index];
-        match &fndef.0 {
-            ElementInfo::FunctionDef(_, argnames, _, _) => {
-                let args = argnames.clone().len();
-                functiondef(compiler, current_parent.1.len(), args);
-            }
-            ElementInfo::Arg(_, _, returntype) => {
-                let r = returntype.clone();
-                arg(compiler, &r, current_parent.1.len());
-            }
-            _ => (),
+pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
+    match current_parent.0 {
+        ElementInfo::Println => println(compiler, current_parent),
+        _ => {
+            if let Some(index) = elements::get_function_index_by_name(&mut compiler.ast, &name) {
+                let fndef = &compiler.ast.elements[index];
+                match &fndef.0 {
+                    ElementInfo::FunctionDef(_, argnames, _, _) => {
+                        let args = argnames.clone().len();
+                        functiondef(compiler, current_parent.1.len(), args);
+                    }
+                    ElementInfo::Arg(_, _, returntype) => {
+                        let r = returntype.clone();
+                        arg(compiler, &r, current_parent.1.len());
+                    }
+                    _ => (),
+                }
+            };
         }
     }
 }
 
 pub fn println(compiler: &mut Compiler, current_parent: Element) {
-    //dbg!("Println");
+    dbg!("outdent.println");
     if current_parent.1.len() > 0 {
         outdent(compiler);
     }
