@@ -48,7 +48,8 @@ z
 //= m2 \ (i64 i64) i64 i64 arg1 arg2 =>
 //arg1 arg2
 
-// println!
+// Output - Print
+
 //@ "Hello, world!"
 //@ 123
 //@ 123.12

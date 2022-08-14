@@ -48,6 +48,15 @@ pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), (
     Ok(())
 }
 
+pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
+    append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+    append(&mut compiler.ast, (ElementInfo::Println, vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
+    outdent_if_last_expected_child(compiler);
+    parents::indent::indent(&mut compiler.ast);
+    Ok(())
+}
+
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(
@@ -71,6 +80,9 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
         let current_parent = compiler.ast.elements[current_parent_ref].clone();
         //dbg!("---", &compiler.ast);
         match current_parent.0.clone() {
+            ElementInfo::Println => {
+                outdent::println(compiler, current_parent);
+            }
             ElementInfo::Constant(_, _) => {
                 outdent::constant(compiler, current_parent);
             }
@@ -103,7 +115,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Indent => (),
             ElementInfo::Unused => (),
             ElementInfo::LoopForRangeWIP => (),
-            ElementInfo::LoopForRange(_,_,_) => (),
+            ElementInfo::LoopForRange(_, _, _) => (),
         }
     }
 }
@@ -111,7 +123,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
 pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
-    let mut is_end_of_return_statement_of_a_func_def: bool = false;
+    let mut append_seol: bool = true;
 
     if is_last_token_in_this_line {
         for el_index in (0..compiler.ast.elements.len()).rev() {
@@ -122,11 +134,23 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
 
                     if el_index != compiler.ast.elements.len() - 1 {
                         let first_element_after_indent_ref = el_index + 1;
+                        /*
+                        let first_element = &compiler.ast.elements[first_element_after_indent_ref];
+                        match first_element {
+                        //    (ElementInfo::Println, _) => {
+                                dbg!("PRINTLN");
+                                //append_seol = false;
+                            }
+                            _ => (),
+                        }
+                        */
+
                         let parent_of_first_el_option =
                             parents::get_current_parent_element_from_element_children_search(
                                 &mut compiler.ast,
                                 first_element_after_indent_ref,
                             );
+                        dbg!("LAST", &parent_of_first_el_option);
                         match parent_of_first_el_option {
                             Some((ElementInfo::FunctionDef(_, _, _, _), _)) => {
                                 // confirm this line is a statement from a func def
@@ -137,28 +161,28 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                                     // confirm this statement is a return statement
                                     // i.e. must be one of these types
                                     ElementInfo::Int(_) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::Float(_) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::String(_) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::Constant(_, _) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::ConstantRef(_, _, _) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::InbuiltFunctionCall(_, _, _) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::FunctionCall(_, _) => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     ElementInfo::Parens => {
-                                        is_end_of_return_statement_of_a_func_def = true;
+                                        append_seol = false;
                                     }
                                     // explicitly listing other types rather than using _ to not overlook new types in future
                                     ElementInfo::Root => (),
@@ -174,7 +198,8 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                                     ElementInfo::Indent => (),
                                     ElementInfo::Unused => (),
                                     ElementInfo::LoopForRangeWIP => (),
-                                    ElementInfo::LoopForRange(_,_,_)=>()
+                                    ElementInfo::LoopForRange(_, _, _) => (),
+                                    ElementInfo::Println => (),
                                 }
                             }
                             _ => (),
@@ -188,8 +213,9 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         }
 
         // if is the last return expression of a func_def
+        // or argmuent to println
         // then don't add the semicolon, just the EOL
-        if !is_end_of_return_statement_of_a_func_def {
+        if append_seol {
             //self.ast.append((ElementInfo::Eol, vec![]));
             //dbg!("here",parent_of_first_el_option);
             append(&mut compiler.ast, (ElementInfo::Seol, vec![]));

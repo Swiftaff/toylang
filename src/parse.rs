@@ -1,8 +1,8 @@
 use crate::ast::parents;
 use crate::elements;
 use crate::elements::{Element, ElementInfo};
-use crate::errors::{self, append_error};
 use crate::errors::ERRORS;
+use crate::errors::{self, append_error};
 use crate::Compiler;
 use crate::Tokens;
 
@@ -73,6 +73,7 @@ pub fn token_by_first_chars(
         '(' => functiontypesig_or_functionreference_start(compiler),
         ')' => functiontypesig_or_functionreference_end(compiler),
         '/' => comment_single_line(compiler, current_token_vec),
+        '@' => println(compiler),
         '=' => match second_char {
             Some(second) => {
                 if second == '>' {
@@ -132,6 +133,10 @@ pub fn comment_single_line(
     }
     let val = concatenate_vec_strings(&compiler.lines_of_tokens[compiler.current_line]);
     elements::append::comment_single_line(compiler, val)
+}
+
+pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
+    elements::append::println(compiler)
 }
 
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
@@ -232,6 +237,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::Unused, _)) => (),
                 Some((ElementInfo::LoopForRangeWIP, _)) => (),
                 Some((ElementInfo::LoopForRange(_, _, _), _)) => (),
+                Some((ElementInfo::Println, _)) => (),
                 None => (),
             }
         }
@@ -294,20 +300,20 @@ pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
     26: Unused
     ...
     */
-    
+
     //get parent LoopForRange
     let mut loopforrangewip_ref = 0;
     for n in (0..compiler.ast.elements.len()).rev() {
         let el = compiler.ast.elements[n].clone();
         match el.0 {
-            ElementInfo::LoopForRangeWIP =>{
+            ElementInfo::LoopForRangeWIP => {
                 loopforrangewip_ref = n;
                 break;
-            },
-            _=>()
+            }
+            _ => (),
         }
     }
-    if loopforrangewip_ref==0 {
+    if loopforrangewip_ref == 0 {
         return append_error(compiler, 0, 1, ERRORS.loopfor_end_but_no_start);
     }
     let loopforrangewip = compiler.ast.elements[loopforrangewip_ref].clone();
@@ -317,29 +323,37 @@ pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
     }
     let first_child = compiler.ast.elements[loopforrangewip.1[0]].clone();
     let second_child = compiler.ast.elements[loopforrangewip.1[1]].clone();
-    match (first_child.0,second_child.0) {
-        (ElementInfo::Constant(name, _),ElementInfo::Int(to)) => {
+    match (first_child.0, second_child.0) {
+        (ElementInfo::Constant(name, _), ElementInfo::Int(to)) => {
             //rename LoopForRange with name, from, to
             let const_children = first_child.1;
-            if const_children.len()==1{
+            if const_children.len() == 1 {
                 let const_child = compiler.ast.elements[const_children[0]].clone();
                 match const_child.0 {
-                    ElementInfo::Int(from)=>{
-                        let new_loopforrange = ElementInfo::LoopForRange(name, from.parse::<usize>().unwrap(), to.parse::<usize>().unwrap());
+                    ElementInfo::Int(from) => {
+                        let new_loopforrange = ElementInfo::LoopForRange(
+                            name,
+                            from.parse::<usize>().unwrap(),
+                            to.parse::<usize>().unwrap(),
+                        );
                         let mut new_loopforrange_children = loopforrangewip.1;
-                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
-                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
-                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
-                        compiler.ast.elements[loopforrangewip_ref] = (new_loopforrange, new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(&new_loopforrange_children);
+                        compiler.ast.elements[loopforrangewip_ref] =
+                            (new_loopforrange, new_loopforrange_children);
                         Ok(())
                     }
-                    _=> append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
+                    _ => append_error(compiler, 0, 1, ERRORS.loopfor_malformed),
                 }
             } else {
                 append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
             }
-        },
-        _ => append_error(compiler, 0, 1, ERRORS.loopfor_malformed)
+        }
+        _ => append_error(compiler, 0, 1, ERRORS.loopfor_malformed),
     }
 }
 
@@ -593,7 +607,8 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 }
 
 #[allow(dead_code)]
-pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [ //62] = [
+pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [
+    //61] = [
     /*
     //empty file
     ["", "fn main() {\r\n}\r\n"],
@@ -796,12 +811,12 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [ //62] = [
     //function calls - zero arguments
 
     // TODO function call void/null/() return
-    
+
     [
         "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na",
         "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
     ],
-    
+
     //function calls - one argument
     [
         "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123",
@@ -812,10 +827,13 @@ pub const TEST_CASE_PASSES: [[&str; 2]; 1] = [ //62] = [
         "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
         "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
     ],
-    */
+
     // Loops - for loops
-    [
-        "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.",
-        "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n",
-    ]
+    //[
+    //    "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.",
+    //    "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n",
+    //]
+    */
+    // Println
+    ["@ 1", "fn main() {\r\n    println!(\"{}\",1);\r\n}\r\n"],
 ];

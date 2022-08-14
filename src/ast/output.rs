@@ -82,7 +82,29 @@ pub fn get_output_for_element_index(
         {
             Some((ElementInfo::Assignment, _)) => return skip,
             Some((ElementInfo::FunctionCall(_, _), _)) => return skip,
-            _ => (),
+            Some((ElementInfo::Println, _)) => return skip,
+            // explicitly listing other types rather than using _ to not overlook new types in future.
+            Some((ElementInfo::Root, _)) => (),
+            Some((ElementInfo::CommentSingleLine(_), _)) => (),
+            Some((ElementInfo::Int(_), _)) => (),
+            Some((ElementInfo::Float(_), _)) => (),
+            Some((ElementInfo::String(_), _)) => (),
+            Some((ElementInfo::Arg(_, _, _), _)) => (),
+            Some((ElementInfo::Constant(_, _), _)) => (),
+            Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
+            Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
+            Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
+            Some((ElementInfo::FunctionDefWIP, _)) => (),
+            Some((ElementInfo::FunctionDef(_, _, _, _), _)) => (),
+            Some((ElementInfo::LoopForRangeWIP, _)) => (),
+            Some((ElementInfo::LoopForRange(_, _, _), _)) => (),
+            Some((ElementInfo::Parens, _)) => (),
+            Some((ElementInfo::Type(_), _)) => (),
+            Some((ElementInfo::Eol, _)) => (),
+            Some((ElementInfo::Seol, _)) => (),
+            Some((ElementInfo::Indent, _)) => (),
+            Some((ElementInfo::Unused, _)) => (),
+            None => (),
         }
     }
 
@@ -200,12 +222,24 @@ pub fn get_output_for_element_index(
             format!("({})", output)
         }
         ElementInfo::LoopForRangeWIP => "".to_string(),
-        ElementInfo::LoopForRange(name, from,to) => format!("For {} in {}..{} {{\r\n",name, from,to),
+        ElementInfo::LoopForRange(name, from, to) => {
+            format!("For {} in {}..{} {{\r\n", name, from, to)
+        }
         ElementInfo::Eol => format!("\r\n"),
         ElementInfo::Seol => format!(";\r\n"),
         ElementInfo::Indent => parents::get_indent(ast),
         ElementInfo::Type(name) => format!("{}", name),
         ElementInfo::Unused => "".to_string(),
+        ElementInfo::Println => {
+            let children = &element.1;
+            let mut output = "".to_string();
+            for i in 0..children.len() {
+                let child_ref = children[i];
+                let child = get_output_for_element_index(ast, child_ref, false);
+                output = format!("{}{}", output, child);
+            }
+            format!("println!(\"{{}}\",{})", output)
+        }
     }
 }
 

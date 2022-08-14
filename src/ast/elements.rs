@@ -24,39 +24,79 @@ pub enum ElementInfo {
     Assignment,                             //1 child, constant
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //children = lines of function contents
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
-    FunctionDefWIP,                         //children = lines of function contents
+    FunctionDefWIP,                                 //children = lines of function contents
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //children = lines of function contents
-    FunctionCall(Name, ReturnType),         //fndef argnames.len() children
-    Parens, //either 1 child, for function_ref, or 1+ for function type sig
-    LoopForRangeWIP,                        //children = lines of loop contents
-    LoopForRange(Name, From, To),           //children = lines of loop contents      
-    Root,                                   //children = lines of function contents
+    FunctionCall(Name, ReturnType),                 //fndef argnames.len() children
+    Parens,          //either 1 child, for function_ref, or 1+ for function type sig
+    LoopForRangeWIP, //children = lines of loop contents
+    LoopForRange(Name, From, To), //children = lines of loop contents
+    Println,         //1 child, value
+    Root,            //children = lines of function contents
 }
 
-/*
-match ElementInfo - cut-and-paste template
-    ElementInfo::Root =>replaceme,
-    ElementInfo::CommentSingleLine(_) =>replaceme,
-    ElementInfo::Int(_) =>replaceme,
-    ElementInfo::Float(_) =>replaceme,
-    ElementInfo::String(_) =>replaceme,
-    ElementInfo::Arg(_, _, _) =>replaceme,
-    ElementInfo::Constant(_, _) =>replaceme,
-    ElementInfo::ConstantRef(_, _, _) =>replaceme,
-    ElementInfo::Assignment =>replaceme,
-    ElementInfo::InbuiltFunctionDef(_, _, _, _, _) =>replaceme,
-    ElementInfo::InbuiltFunctionCall(_, _, _) =>replaceme,
-    ElementInfo::FunctionDefWIP =>replaceme,
-    ElementInfo::FunctionDef(_, _, _, _) =>replaceme,
-    ElementInfo::FunctionCall(_, _) =>replaceme,
-    ElementInfo::Parens =>replaceme,
-    ElementInfo::Type(_) =>replaceme,
-    // explicitly listing other types rather than using _ to not overlook new types in future.
-    ElementInfo::Eol =>replaceme,
-    ElementInfo::Seol =>replaceme,
-    ElementInfo::Indent =>replaceme,
-    ElementInfo::Unused =>replaceme,
-*/
+// this is fake function #1, only useful for copy/pasting all the elementinfo types!
+fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
+    let replaceme = true;
+    match el {
+        ElementInfo::Root => replaceme,
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::CommentSingleLine(_) => replaceme,
+        ElementInfo::Int(_) => replaceme,
+        ElementInfo::Float(_) => replaceme,
+        ElementInfo::String(_) => replaceme,
+        ElementInfo::Arg(_, _, _) => replaceme,
+        ElementInfo::Constant(_, _) => replaceme,
+        ElementInfo::ConstantRef(_, _, _) => replaceme,
+        ElementInfo::Assignment => replaceme,
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => replaceme,
+        ElementInfo::InbuiltFunctionCall(_, _, _) => replaceme,
+        ElementInfo::FunctionDefWIP => replaceme,
+        ElementInfo::FunctionDef(_, _, _, _) => replaceme,
+        ElementInfo::FunctionCall(_, _) => replaceme,
+        ElementInfo::Parens => replaceme,
+        ElementInfo::Type(_) => replaceme,
+
+        ElementInfo::Eol => replaceme,
+        ElementInfo::Seol => replaceme,
+        ElementInfo::Indent => replaceme,
+        ElementInfo::Unused => replaceme,
+        ElementInfo::Println => replaceme,
+        ElementInfo::LoopForRangeWIP => replaceme,
+        ElementInfo::LoopForRange(_, _, _) => replaceme,
+    }
+}
+
+// this is a fake function #2, only useful for copy/pasting all the option_element types!
+fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
+    let replaceme = true;
+    match el_option {
+        Some((ElementInfo::Root, _)) => replaceme,
+        // explicitly listing other types rather than using _ to not overlook new types in future.
+        Some((ElementInfo::CommentSingleLine(_), _)) => replaceme,
+        Some((ElementInfo::Int(_), _)) => replaceme,
+        Some((ElementInfo::Float(_), _)) => replaceme,
+        Some((ElementInfo::String(_), _)) => replaceme,
+        Some((ElementInfo::Arg(_, _, _), _)) => replaceme,
+        Some((ElementInfo::Constant(_, _), _)) => replaceme,
+        Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
+        Some((ElementInfo::Assignment, _)) => replaceme,
+        Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => replaceme,
+        Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => replaceme,
+        Some((ElementInfo::FunctionDefWIP, _)) => replaceme,
+        Some((ElementInfo::FunctionDef(_, _, _, _), _)) => replaceme,
+        Some((ElementInfo::FunctionCall(_, _), _)) => replaceme,
+        Some((ElementInfo::Parens, _)) => replaceme,
+        Some((ElementInfo::Type(_), _)) => replaceme,
+        Some((ElementInfo::Eol, _)) => replaceme,
+        Some((ElementInfo::Seol, _)) => replaceme,
+        Some((ElementInfo::Indent, _)) => replaceme,
+        Some((ElementInfo::Unused, _)) => replaceme,
+        Some((ElementInfo::Println, _)) => replaceme,
+        Some((ElementInfo::LoopForRangeWIP, _)) => replaceme,
+        Some((ElementInfo::LoopForRange(_, _, _), _)) => replaceme,
+        None => replaceme,
+    }
+}
 
 type Value = String;
 pub type ElIndex = usize;
@@ -233,8 +273,9 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Seol => (),
             ElementInfo::Indent => (),
             ElementInfo::Unused => (),
-            ElementInfo::LoopForRangeWIP =>(),
-            ElementInfo::LoopForRange(_,_,_) => (),
+            ElementInfo::LoopForRangeWIP => (),
+            ElementInfo::LoopForRange(_, _, _) => (),
+            ElementInfo::Println => (),
         }
         //dbg!(el_index, &ast.elements[el_index].0);
     }
@@ -276,8 +317,9 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Seol => (),
         ElementInfo::Indent => (),
         ElementInfo::Unused => (),
-        ElementInfo::LoopForRangeWIP =>(),
-        ElementInfo::LoopForRange(_,_,_) =>()
+        ElementInfo::LoopForRangeWIP => (),
+        ElementInfo::LoopForRange(_, _, _) => (),
+        ElementInfo::Println => (),
     }
     get_elementinfo_type(ast, el_info)
 }
@@ -409,8 +451,9 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Seol => undefined,
         ElementInfo::Indent => undefined,
         ElementInfo::Unused => undefined,
-        ElementInfo::LoopForRangeWIP =>undefined,
-        ElementInfo::LoopForRange(_,_,_) => undefined
+        ElementInfo::LoopForRangeWIP => undefined,
+        ElementInfo::LoopForRange(_, _, _) => undefined,
+        ElementInfo::Println => undefined,
     }
 }
 
@@ -584,8 +627,11 @@ impl fmt::Debug for ElementInfo {
                 format!("Type: {}", name)
             }
             ElementInfo::Unused => "Unused".to_string(),
-            ElementInfo::LoopForRangeWIP =>format!("LoopForRangeWIP"),
-            ElementInfo::LoopForRange(name, from,to) => format!("Loop For {} in {} to {}", name, from, to)
+            ElementInfo::LoopForRangeWIP => format!("LoopForRangeWIP"),
+            ElementInfo::LoopForRange(name, from, to) => {
+                format!("Loop For {} in {} to {}", name, from, to)
+            }
+            ElementInfo::Println => "Println".to_string(),
         };
         write!(f, "{}", el_debug)
     }

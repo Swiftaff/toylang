@@ -76,8 +76,9 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::Seol => (),
                 ElementInfo::Indent => (),
                 ElementInfo::Unused => (),
-                ElementInfo::LoopForRangeWIP =>(),
-                ElementInfo::LoopForRange(_,_,_) => (),
+                ElementInfo::LoopForRangeWIP => (),
+                ElementInfo::LoopForRange(_, _, _) => (),
+                ElementInfo::Println => (),
             }
         }
         _ => (),
@@ -151,6 +152,13 @@ pub fn fncall_from_fndef_or_arg(compiler: &mut Compiler, current_parent: Element
             }
             _ => (),
         }
+    }
+}
+
+pub fn println(compiler: &mut Compiler, current_parent: Element) {
+    //dbg!("Println");
+    if current_parent.1.len() > 0 {
+        outdent(compiler);
     }
 }
 
