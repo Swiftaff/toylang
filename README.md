@@ -76,7 +76,7 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 
 ```
 // print
-@ "Hello, world"
+@ "Hello, world!"
 @ 1
 @ 1.23
 
@@ -88,7 +88,7 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 ```rust
 fn main() {
     // print
-    println!("{}", "Hello, world".to_string());
+    println!("{}", "Hello, world!".to_string());
     println!("{}", 1);
     println!("{}", 1.23);
 }
