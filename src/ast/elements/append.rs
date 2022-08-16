@@ -123,15 +123,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
     let mut append_seol: bool = true;
-    dbg!(
-        &compiler.ast.elements[compiler.ast.elements.len() - 1],
-        is_last_token_in_this_line,
-        compiler.current_line_token,
-        compiler.lines_of_tokens[compiler.current_line].len() - 1,
-        &compiler.ast
-    );
     if is_last_token_in_this_line {
-        dbg!("last");
         for el_index in (0..compiler.ast.elements.len()).rev() {
             let el = &compiler.ast.elements[el_index];
             match el.0 {
@@ -142,13 +134,6 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                         let first_element_after_indent_ref = el_index + 1;
 
                         let first_element = &compiler.ast.elements[first_element_after_indent_ref];
-                        match first_element {
-                            (ElementInfo::Println, _) => {
-                                dbg!("PRINTLN - InbuiltFunctionCall");
-                                //append_seol = false;
-                            }
-                            _ => (),
-                        }
 
                         let parent_of_first_el_option =
                             parents::get_current_parent_element_from_element_children_search(
@@ -434,6 +419,7 @@ pub fn function_call(
     if args > 0 {
         parents::indent::indent(&mut compiler.ast);
     }
+    outdent_if_last_expected_child(compiler);
     if seol {
         return seol_if_last_in_line(compiler);
     } else {

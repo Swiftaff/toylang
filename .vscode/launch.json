@@ -5,13 +5,13 @@
 			"name": "Run Test Debugger test_passes",
 			"type": "cppvsdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/target/debug/toylang.exe",
+			"program": "${workspaceFolder}/target/debug/deps/toylang-538067bfffb6d51b.exe",
 			"args": [],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [],
-			"console": "externalTerminal",
-			//"preLaunchTask": "cargo test build",
+			"console": "integratedTerminal",
+			"preLaunchTask": "rust: cargo test test_run_passes",
 		}
 	]
 }

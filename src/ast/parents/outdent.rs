@@ -161,7 +161,7 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
 }
 
 pub fn println(compiler: &mut Compiler, current_parent: Element) {
-    dbg!("outdent.println");
+    //dbg!("outdent.println");
     if current_parent.1.len() > 0 {
         outdent(compiler);
     }

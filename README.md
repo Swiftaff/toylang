@@ -70,6 +70,32 @@ And your final compiled `output.exe` will be run from `/target/debug` or `/targe
 
 ## Toy language Syntax Examples
 
+### Hello, world
+
+<table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
+
+```
+// print
+@ "Hello, world"
+@ 1
+@ 1.23
+
+
+```
+
+</td><td>
+
+```rust
+fn main() {
+    // print
+    println!("{}", "Hello, world".to_string());
+    println!("{}", 1);
+    println!("{}", 1.23);
+}
+```
+
+</td></tr></table>
+
 ### Constant assignment
 
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
