@@ -9,6 +9,7 @@ use std::fmt;
 #[derive(Clone)]
 
 pub enum ElementInfo {
+    List,                                   //children = list items of same type
     CommentSingleLine(Value),               //no children
     Int(Value),                             //no children
     Float(Value),                           //no children
@@ -40,6 +41,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
     match el {
         ElementInfo::Root => replaceme,
         // explicitly listing other types rather than using _ to not overlook new types in future.
+        ElementInfo::List => replaceme,
         ElementInfo::CommentSingleLine(_) => replaceme,
         ElementInfo::Int(_) => replaceme,
         ElementInfo::Float(_) => replaceme,
@@ -72,6 +74,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
     match el_option {
         Some((ElementInfo::Root, _)) => replaceme,
         // explicitly listing other types rather than using _ to not overlook new types in future.
+        Some((ElementInfo::List, _)) => replaceme,
         Some((ElementInfo::CommentSingleLine(_), _)) => replaceme,
         Some((ElementInfo::Int(_), _)) => replaceme,
         Some((ElementInfo::Float(_), _)) => replaceme,
@@ -260,6 +263,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             // explicitly listing other types rather than using _ to not overlook new types in future.
             // These either have no type or are predefined and can't be infered
             ElementInfo::Root => (),
+            ElementInfo::List => (),
             ElementInfo::CommentSingleLine(_) => (),
             ElementInfo::Int(_) => (),
             ElementInfo::Float(_) => (),
@@ -303,6 +307,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         }
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => {}
+        ElementInfo::List => {}
         ElementInfo::CommentSingleLine(_) => (),
         ElementInfo::Int(_) => (),
         ElementInfo::Float(_) => (),
@@ -430,6 +435,7 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
     match elementinfo {
+        ElementInfo::List => undefined,
         ElementInfo::Int(_) => "i64".to_string(),
         ElementInfo::Float(_) => "f64".to_string(),
         ElementInfo::String(_) => "String".to_string(),
@@ -587,6 +593,7 @@ impl fmt::Debug for ElementInfo {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let el_debug = match self {
             ElementInfo::Root => format!("Root"),
+            ElementInfo::List => format!("List"),
             ElementInfo::CommentSingleLine(comment) => {
                 format!("Comment: {}", comment)
             }

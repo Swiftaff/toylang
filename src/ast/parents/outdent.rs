@@ -26,6 +26,11 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
             // outdent if it is a return expression
             // based on these valid examples of return expression
             match elements::get_last_element(&mut compiler.ast).0 {
+                ElementInfo::List => {
+                    //dbg!("FunctionDef outdent List", &self.ast.parents,);
+                    outdent(compiler);
+                    outdent(compiler);
+                }
                 ElementInfo::Int(_) => {
                     //dbg!("FunctionDef outdent Int", &self.ast.parents,);
                     outdent(compiler);
@@ -157,6 +162,13 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
                 }
             };
         }
+    }
+}
+
+pub fn list(compiler: &mut Compiler, current_parent: Element) {
+    //dbg!("outdent.list");
+    if current_parent.1.len() > 0 {
+        outdent(compiler);
     }
 }
 

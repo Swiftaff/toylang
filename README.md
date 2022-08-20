@@ -101,7 +101,9 @@ fn main() {
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
 
 ```
+
 // single line comments
+// assign values to constants
 = an_integer 123
 = a_float 123.45
 = a_reference an_integer
@@ -114,7 +116,6 @@ fn main() {
 = division / 1.0 2.0
 = modulus % 42.0 3.14
 
-
 ```
 
 </td><td>
@@ -122,6 +123,7 @@ fn main() {
 ```rust
 fn main() {
     // single line comments
+    // assign values to constants
     let an_integer: i64 = 123;
     let a_float: f64 = 123.45;
     let a_reference: i64 = an_integer;
@@ -216,6 +218,48 @@ fn main() {
     function_name(123);
     multiline_fn_name(123 + 456, 789);
     take_fn_as_first_parameter(&function_name, 321);
+}
+```
+
+</td></tr></table>
+
+### Lists
+
+<table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
+
+```
+
+// empty Lists
+= empty1 []:Int
+= empty2 [ ]:Float
+
+// list of Ints
+= ints [ 1 2 3 4 5 ]
+
+// list of floats
+= floats [ 1.1 2.2 3.3 ]
+
+// list of strings
+= strings [ "1" "2" "3" ]
+
+```
+
+</td><td>
+
+```rust
+fn main() {
+    // empty lists
+    let empty1: Vec<i64> = vec![];
+    let empty2: Vec<f64> = vec![];
+
+    // list of Ints
+    let ints = vec![ 1, 2, 3 ];
+
+    // list of floats
+    let floats = vec![ 1.1, 2.2, 3.3];
+
+    // list of strings
+    let strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
 }
 ```
 

@@ -69,6 +69,17 @@ pub fn token_by_first_chars(
         None
     };
     match first_char {
+        '[' => match second_char {
+            Some(second) => {
+                if second == ']' {
+                    list_empty(compiler)
+                } else {
+                    return errors::append_error(compiler, 0, 1, ERRORS.list);
+                }
+            }
+            None => list_start(compiler),
+        },
+        ']' => list_end(compiler),
         '\\' => function_definition_start(compiler),
         '(' => functiontypesig_or_functionreference_start(compiler),
         ')' => functiontypesig_or_functionreference_end(compiler),
@@ -219,6 +230,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 Some((ElementInfo::Root, _)) => (),
+                Some((ElementInfo::List, _)) => (),
                 Some((ElementInfo::CommentSingleLine(_), _)) => (),
                 Some((ElementInfo::Int(_), _)) => (),
                 Some((ElementInfo::Float(_), _)) => (),
@@ -266,6 +278,20 @@ pub fn function_call(
     index_of_function: usize,
 ) -> Result<(), ()> {
     elements::append::function_call1(compiler, current_token, index_of_function)
+}
+
+pub fn list_empty(compiler: &mut Compiler) -> Result<(), ()> {
+    list_start(compiler)?;
+    list_end(compiler)
+}
+
+pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
+    elements::append::list_start(compiler)
+}
+
+pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
+    parents::outdent::outdent(compiler);
+    elements::append::seol_if_last_in_line(compiler)
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
@@ -609,7 +635,7 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 #[allow(dead_code)]
 pub fn test_case_passes() -> Vec<Vec<String>> {
     vec![
-        
+        /*
         //empty file
         vec!["".to_string(), "fn main() {\r\n}\r\n".to_string()],
         //comment single line
@@ -669,6 +695,36 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "-1.7976931348623157E+308".to_string(),
             "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n".to_string(),
         ],
+        */
+        //list
+
+        //list - empty
+        vec![
+            "[ ]".to_string(),
+            "fn main() {\r\n    vec![ ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "[]".to_string(),
+            "fn main() {\r\n    vec![ ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "[ 1 ]".to_string(),
+            "fn main() {\r\n    vec![ 1 ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "[ 1 2 3 4 5 ]".to_string(),
+            "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "[ 1.1 2.2 3.3 4.4 5.5 ]".to_string(),
+            "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "[ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]".to_string(),
+            "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
+                .to_string(),
+        ],
+        /*
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
         vec!["- 1.1 2.2".to_string(), "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n".to_string()],
@@ -833,7 +889,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         //    "= a \\ i64 i64 arg1 => + 123 arg1\r\n.. b 0 100\r\na b\r\n.".to_string(),
         //    "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n    for b in 0..100 {\r\n        a(b);\r\n    }\r\n}\r\n".to_string(),
         //]
-        
+
         // Println
         vec![
             "@ 1".to_string(),
@@ -868,5 +924,6 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "@ + 1 2".to_string(),
             "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n".to_string(),
         ],
+        */
     ]
 }

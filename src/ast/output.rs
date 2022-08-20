@@ -83,6 +83,7 @@ pub fn get_output_for_element_index(
             Some((ElementInfo::Assignment, _)) => return skip,
             Some((ElementInfo::FunctionCall(_, _), _)) => return skip,
             Some((ElementInfo::Println, _)) => return skip,
+            Some((ElementInfo::List, _)) => return skip,
             // explicitly listing other types rather than using _ to not overlook new types in future.
             Some((ElementInfo::Root, _)) => (),
             Some((ElementInfo::CommentSingleLine(_), _)) => (),
@@ -139,6 +140,26 @@ pub fn get_output_for_element_index(
         }
         ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
             format!("fn {}() ->{{ /* stuff */ }}", name)
+        }
+        ElementInfo::List => {
+            //dbg!("List");
+            let children = element.1;
+            let mut output = "vec![ ".to_string();
+            for i in 0..children.len() {
+                let child_ref = children[i];
+                let child_output = get_output_for_element_index(ast, child_ref, false);
+                let no_first_comma = if i == 0 {
+                    "".to_string()
+                } else {
+                    ", ".to_string()
+                };
+                output = format!("{}{}{}", &output, &no_first_comma, &child_output);
+            }
+            if children.len() > 0 {
+                output = format!("{} ", &output);
+            }
+            output = format!("{}]", &output);
+            return output;
         }
         ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {
             //dbg!("InbuiltFunctionCall");

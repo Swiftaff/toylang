@@ -99,6 +99,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
+            ElementInfo::List => (),
             ElementInfo::CommentSingleLine(_) => (),
             ElementInfo::Int(_) => (),
             ElementInfo::Float(_) => (),
@@ -122,6 +123,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
 pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
+    dbg!("test", is_last_token_in_this_line);
     let mut append_seol: bool = true;
     if is_last_token_in_this_line {
         for el_index in (0..compiler.ast.elements.len()).rev() {
@@ -133,7 +135,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                     if el_index != compiler.ast.elements.len() - 1 {
                         let first_element_after_indent_ref = el_index + 1;
 
-                        let first_element = &compiler.ast.elements[first_element_after_indent_ref];
+                        //let first_element = &compiler.ast.elements[first_element_after_indent_ref];
 
                         let parent_of_first_el_option =
                             parents::get_current_parent_element_from_element_children_search(
@@ -171,6 +173,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
 
 pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
     match elinfo {
+        ElementInfo::List => true,
         ElementInfo::Int(_) => true,
         ElementInfo::Float(_) => true,
         ElementInfo::String(_) => true,
@@ -272,6 +275,14 @@ pub fn function_call1(
     parents::indent::indent(&mut compiler.ast);
     Ok(())
     //seol_if_last_in_line(compiler)
+}
+
+pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
+    indent_if_first_in_line(compiler);
+    append(&mut compiler.ast, (ElementInfo::List, vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
+    parents::indent::indent(&mut compiler.ast);
+    Ok(())
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
