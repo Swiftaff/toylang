@@ -230,8 +230,8 @@ fn main() {
 ```
 
 // empty Lists
-= empty1 []:Int
-= empty2 [ ]:Float
+= empty1 [ i64 ]
+= empty2 [ f64 ]
 
 // list of Ints
 = ints [ 1 2 3 4 5 ]

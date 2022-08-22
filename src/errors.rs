@@ -88,7 +88,7 @@ pub const ERRORS: Errors = Errors {
     list_cant_be_child:"Invalid List - can't be placed here",
     string: "Invalid string found: Must be enclosed in quote marks \"\"",
     assign: "Invalid assignment: There are characters directly after '='. It must be followed by a space",
-    list: "Invalid list: There are characters directly after '['. It must be followed by a space, unless it's an empty list when it can be a ']'",
+    list: "Invalid list: List must be defined by elements(s) surrounded by [ ] with spaces between. An empty list must contain the type in the list like [ i64 ] . Types can't be values in a list, so they will be removed and the last found type will be assigned to the list returntype.",
     int: "Invalid int: there are characters after the first digit. Must only contain digits",
     int_out_of_bounds: "Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807",
     int_negative:"Invalid negative int or float: Must follow a negative sign '-' with a digit",
@@ -141,7 +141,7 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
     //dbg!("error_if_parent_is_invalid", &el, &parent);
     match el.0 {
         ElementInfo::Root => (),
-        ElementInfo::List => error_if_parent_is_invalid_for_list(compiler, &parent)?,
+        ElementInfo::List(_) => error_if_parent_is_invalid_for_list(compiler, &parent)?,
         ElementInfo::CommentSingleLine(_) => {
             error_if_parent_is_invalid_for_commentsingleline(compiler, &parent)?
         }
@@ -185,7 +185,7 @@ pub fn error_if_parent_is_invalid_for_list(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
@@ -218,7 +218,7 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
@@ -264,7 +264,7 @@ pub fn error_if_parent_is_invalid_for_int(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -301,7 +301,7 @@ pub fn error_if_parent_is_invalid_for_float(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -338,7 +338,7 @@ pub fn error_if_parent_is_invalid_for_string(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -374,7 +374,7 @@ pub fn error_if_parent_is_invalid_for_arg(
     parent: &Element,
 ) -> Result<(), ()> {
     match parent.0 {
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         // explicitly listing other types rather than using _ to not overlook new types in future.
@@ -411,7 +411,7 @@ pub fn error_if_parent_is_invalid_for_constantref(
     parent: &Element,
 ) -> Result<(), ()> {
     match parent.0 {
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::Root => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
@@ -466,7 +466,9 @@ pub fn error_if_parent_is_invalid_for_assignment(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
-        ElementInfo::List => append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_list),
+        ElementInfo::List(_) => {
+            append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_list)
+        }
         ElementInfo::Constant(_, _) => {
             append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_constant)
         }
@@ -516,7 +518,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -554,7 +556,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
 ) -> Result<(), ()> {
     match parent.0 {
         ElementInfo::Root => Ok(()),
-        ElementInfo::List => Ok(()),
+        ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -595,7 +597,7 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
-        ElementInfo::List => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
+        ElementInfo::List(_) => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
         ElementInfo::LoopForRange(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child)
         }
@@ -636,7 +638,7 @@ pub fn error_if_parent_is_invalid_for_loopfor(
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::List => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
+        ElementInfo::List(_) => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
         ElementInfo::FunctionCall(_, _) => {
             append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child)
         }
@@ -673,7 +675,7 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::Println => Ok(()),
-        ElementInfo::List => append_error(
+        ElementInfo::List(_) => append_error(
             compiler,
             0,
             1,
@@ -744,7 +746,9 @@ pub fn error_if_parent_is_invalid_for_println(
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Root => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::List => append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element),
+        ElementInfo::List(_) => {
+            append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element)
+        }
         ElementInfo::FunctionCall(_, _) => {
             append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element)
         }
@@ -779,176 +783,182 @@ pub fn error_if_parent_is_invalid_for_println(
 #[allow(dead_code)]
 pub fn test_case_errors() -> Vec<Vec<String>> {
     vec![
-        //empty file
-        vec!["".to_string(), "".to_string()],
+        /*
+            //empty file
+            vec!["".to_string(), "".to_string()],
+            //
+            //comment single line
+            vec![
+                ERRORS.comment_single_line.to_string(),
+                "/1/comment".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_assignment.to_string(),
+                "= //test".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_constant.to_string(),
+                "= c //test".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_inbuiltfncall.to_string(),
+                "+ //test".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_fncall.to_string(),
+                "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun //test".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 i64 // test ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( //test ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.int_cant_be_child_of_assignment.to_string(),
+                "= 123".to_string(),
+            ],
+            vec![
+                ERRORS.int_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 123 ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.int_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123 ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.float_cant_be_child_of_assignment.to_string(),
+                "= 123.456".to_string(),
+            ],
+            vec![
+                ERRORS.float_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 123.456 ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.float_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123.456 ) 123".to_string(),
+            ],
+            vec![ERRORS.string_cant_be_child_of_assignment.to_string(), "= \"string\"".to_string()],
+            vec![
+                ERRORS.string_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 \"string\" ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.string_cant_be_child_of_parenthesis.to_string(),
+                "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( \"string\" ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
+            ],
+            vec![ERRORS.constant_undefined.to_string(), "a".to_string()],
+            vec![ERRORS.constants_are_immutable.to_string(), "= a 123\r\n= a 234".to_string()],
+            // assignment cant be child of most things
+            // constant
+            vec![ERRORS.assignment_cant_be_child_of_constant.to_string(), "= a =".to_string()],
+            vec![ERRORS.assignment_cant_be_child_of_inbuiltfncall.to_string(), "+ 123 =".to_string()],
+            vec![
+                ERRORS.assignment_cant_be_child_of_fncal.to_string(),
+                "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun = 123".to_string(),
+            ],
+            vec![ERRORS.assignment_cant_be_child_of_assignment.to_string(), "= =".to_string()],
+            vec![
+                ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( = ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 => arg1 123".to_string(),
+            ],
+            vec![
+                ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
+                "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( + ) 123".to_string(),
+            ],
+            // fncall_cant_be_child_of_parenthesis
+            // but fails with other error funcdef_argtypes_first
+            vec![
+            ERRORS.funcdef_argtypes_first.to_string(),
+            "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123".to_string(),
+        ],
+            //but not here
+            //[
+            //    ERRORS.fncall_cant_be_child_of_parenthesis.to_string(),
+            //    "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 => arg2 123\r\nmyfun2 ( myfun1 ) 123".to_string(),
+            //],
+            vec![ERRORS.parenthesis_cant_be_child_of_root.to_string(), "( i64 )".to_string()],
+            vec![ERRORS.parenthesis_cant_be_child_of_constant.to_string(), "= x ( i64 )".to_string()],
+            vec![
+                ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
+                "= ( i64 ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+                "\\ i64 => 123".to_string(),
+            ],
+            vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "+ 123 \\".to_string()],
+            vec![
+                ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+                "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun \\".to_string(),
+            ],
+            // fndefwip_can_only_be_child_of_constant
+            // but fails with other error parens_of_assign
+            vec![
+                ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
+                "= ( \\ ) 123".to_string(),
+            ],
+            vec![
+                ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
+                "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
+            ],
+            vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "= \\ 123".to_string()],
+            //
+            //string
+            vec![ERRORS.string.to_string(), "\"".to_string()],
+            vec![ERRORS.string.to_string(), "\"\"\"".to_string()],
+            vec![ERRORS.string.to_string(), "\"\" \"".to_string()],
+            //
+            //int
+            vec![ERRORS.int.to_string(), "1a".to_string()],
+            vec![
+                ERRORS.int_out_of_bounds.to_string(),
+                "9223372036854775808".to_string(),
+            ],
+            //
+            //int negative
+            vec![ERRORS.int.to_string(), "-1a".to_string()],
+            vec![
+                ERRORS.int_out_of_bounds.to_string(),
+                "-9223372036854775809".to_string(),
+            ],
+            //
+            //float (errors say int)
+            vec![ERRORS.int.to_string(), "1.1.1".to_string()],
+            vec![
+                ERRORS.int.to_string(),
+                "1.7976931348623157E+309".to_string(),
+            ],
+            //
+            //float negative (errors say int)
+            vec![ERRORS.int.to_string(), "-1.1.1".to_string()],
+            vec![
+                ERRORS.int.to_string(),
+                "-1.7976931348623157E+309".to_string(),
+            ],
+            */
         //
-        //comment single line
-        vec![
-            ERRORS.comment_single_line.to_string(),
-            "/1/comment".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_assignment.to_string(),
-            "= //test".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_constant.to_string(),
-            "= c //test".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_inbuiltfncall.to_string(),
-            "+ //test".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_fncall.to_string(),
-            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun //test".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 i64 // test ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.comment_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( //test ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.int_cant_be_child_of_assignment.to_string(),
-            "= 123".to_string(),
-        ],
-        vec![
-            ERRORS.int_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 123 ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.int_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123 ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.float_cant_be_child_of_assignment.to_string(),
-            "= 123.456".to_string(),
-        ],
-        vec![
-            ERRORS.float_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 123.456 ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.float_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( 123.456 ) 123".to_string(),
-        ],
-        vec![ERRORS.string_cant_be_child_of_assignment.to_string(), "= \"string\"".to_string()],
-        vec![
-            ERRORS.string_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 \"string\" ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.string_cant_be_child_of_parenthesis.to_string(),
-            "= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( \"string\" ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 a ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.constantref_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
-        ],
-        vec![ERRORS.constant_undefined.to_string(), "a".to_string()],
-        vec![ERRORS.constants_are_immutable.to_string(), "= a 123\r\n= a 234".to_string()],
-        // assignment cant be child of most things
-        // constant
-        vec![ERRORS.assignment_cant_be_child_of_constant.to_string(), "= a =".to_string()],
-        vec![ERRORS.assignment_cant_be_child_of_inbuiltfncall.to_string(), "+ 123 =".to_string()],
-        vec![
-            ERRORS.assignment_cant_be_child_of_fncal.to_string(),
-            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun = 123".to_string(),
-        ],
-        vec![ERRORS.assignment_cant_be_child_of_assignment.to_string(), "= =".to_string()],
-        vec![
-            ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 = ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.assignment_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( = ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 + ) i64 arg1 => arg1 123".to_string(),
-        ],
-        vec![
-            ERRORS.inbuiltfncall_cant_be_child_of_parenthesis.to_string(),
-            "= a 123\r\n= myfun \\ ( i64 i64 ) i64 arg1 => arg1 123\r\nmyfun ( + ) 123".to_string(),
-        ],
-        // fncall_cant_be_child_of_parenthesis
-        // but fails with other error funcdef_argtypes_first
-        vec![
-        ERRORS.funcdef_argtypes_first.to_string(),
-        "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123".to_string(),
-    ],
-        //but not here
-        //[
-        //    ERRORS.fncall_cant_be_child_of_parenthesis.to_string(),
-        //    "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 i64 ) i64 arg2 => arg2 123\r\nmyfun2 ( myfun1 ) 123".to_string(),
-        //],
-        vec![ERRORS.parenthesis_cant_be_child_of_root.to_string(), "( i64 )".to_string()],
-        vec![ERRORS.parenthesis_cant_be_child_of_constant.to_string(), "= x ( i64 )".to_string()],
-        vec![
-            ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
-            "= ( i64 ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
-            "\\ i64 => 123".to_string(),
-        ],
-        vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "+ 123 \\".to_string()],
-        vec![
-            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
-            "= myfun \\ i64 i64 arg1 => + arg1 123\r\nmyfun \\".to_string(),
-        ],
-        // fndefwip_can_only_be_child_of_constant
-        // but fails with other error parens_of_assign
-        vec![
-            ERRORS.parenthesis_cant_be_child_of_assignment.to_string(),
-            "= ( \\ ) 123".to_string(),
-        ],
-        vec![
-            ERRORS.fndefwip_can_only_be_child_of_constant.to_string(),
-            "= a 123\r\n= myfun \\ ( \\ i64 ) i64 arg1 => arg1 123\r\nmyfun ( a ) 123".to_string(),
-        ],
-        vec![ERRORS.fndefwip_can_only_be_child_of_constant.to_string(), "= \\ 123".to_string()],
-        //
-        //string
-        vec![ERRORS.string.to_string(), "\"".to_string()],
-        vec![ERRORS.string.to_string(), "\"\"\"".to_string()],
-        vec![ERRORS.string.to_string(), "\"\" \"".to_string()],
-        //
-        //int
-        vec![ERRORS.int.to_string(), "1a".to_string()],
-        vec![
-            ERRORS.int_out_of_bounds.to_string(),
-            "9223372036854775808".to_string(),
-        ],
-        //
-        //int negative
-        vec![ERRORS.int.to_string(), "-1a".to_string()],
-        vec![
-            ERRORS.int_out_of_bounds.to_string(),
-            "-9223372036854775809".to_string(),
-        ],
-        //
-        //float (errors say int)
-        vec![ERRORS.int.to_string(), "1.1.1".to_string()],
-        vec![
-            ERRORS.int.to_string(),
-            "1.7976931348623157E+309".to_string(),
-        ],
-        //
-        //float negative (errors say int)
-        vec![ERRORS.int.to_string(), "-1.1.1".to_string()],
-        vec![
-            ERRORS.int.to_string(),
-            "-1.7976931348623157E+309".to_string(),
-        ],
+        //lists - empty must contain type definition
+        vec![ERRORS.list.to_string(), "[ ]".to_string()],
+        vec![ERRORS.list.to_string(), "[]".to_string()],
         //
         //internalFunctionCalls
         //[ERRORS.int.to_string(),"+ 1 2.1".to_string()],

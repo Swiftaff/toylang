@@ -127,6 +127,13 @@ pub fn token_by_first_chars(
                 return errors::append_error(compiler, 0, 1, ERRORS.int_negative);
             }
         },
+        /*
+        first_char if "IFS".contains(&first_char.to_string()) => {
+            //dbg!("Int Float or String", first_char);
+            match current_token {
+                "Int" =>
+            }
+        }*/
         first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
             //dbg!("constant or constantRef", first_char);
             constant(compiler, &current_token)
@@ -230,7 +237,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 Some((ElementInfo::Root, _)) => (),
-                Some((ElementInfo::List, _)) => (),
+                Some((ElementInfo::List(_), _)) => (),
                 Some((ElementInfo::CommentSingleLine(_), _)) => (),
                 Some((ElementInfo::Int(_), _)) => (),
                 Some((ElementInfo::Float(_), _)) => (),
@@ -290,6 +297,15 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
+    let list = parents::get_current_parent_element_from_parents(&compiler.ast);
+    match list {
+        (ElementInfo::List(returntype), children) => {
+            if returntype == "undefined".to_string() && children.len() == 0 {
+                return append_error(compiler, 0, 1, ERRORS.list);
+            }
+        }
+        _ => (),
+    }
     parents::outdent::outdent(compiler);
     elements::append::seol_if_last_in_line(compiler)
 }
@@ -638,23 +654,27 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         /*
         //empty file
         vec!["".to_string(), "fn main() {\r\n}\r\n".to_string()],
+
         //comment single line
         vec!["//comment".to_string(), "fn main() {\r\n    //comment\r\n}\r\n".to_string()],
         vec![
             "    //    comment    ".to_string(),
             "fn main() {\r\n    //    comment\r\n}\r\n".to_string(),
         ],
+
         //single line function no longer breaks comments
         vec![
             "//= a \\ i64 => 123".to_string(),
             "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n".to_string(),
         ],
+
         //string
         vec![
             "\"string\"".to_string(),
             "fn main() {\r\n    \"string\".to_string();\r\n}\r\n".to_string(),
         ],
         vec!["\"\"".to_string(), "fn main() {\r\n    \"\".to_string();\r\n}\r\n".to_string()],
+
         //int
         vec!["1".to_string(), "fn main() {\r\n    1;\r\n}\r\n".to_string()],
         vec!["123".to_string(), "fn main() {\r\n    123;\r\n}\r\n".to_string()],
@@ -663,6 +683,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "9223372036854775807".to_string(),
             "fn main() {\r\n    9223372036854775807;\r\n}\r\n".to_string(),
         ],
+
         //int negative
         vec!["-1".to_string(), "fn main() {\r\n    -1;\r\n}\r\n".to_string()],
         vec!["-123".to_string(), "fn main() {\r\n    -123;\r\n}\r\n".to_string()],
@@ -671,6 +692,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "-9223372036854775808".to_string(),
             "fn main() {\r\n    -9223372036854775808;\r\n}\r\n".to_string(),
         ],
+
         //float
         vec!["1.1".to_string(), "fn main() {\r\n    1.1;\r\n}\r\n".to_string()],
         vec!["123.123".to_string(), "fn main() {\r\n    123.123;\r\n}\r\n".to_string()],
@@ -683,6 +705,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "1.7976931348623157E+308".to_string(),
             "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n".to_string(),
         ],
+
         //float negative
         vec!["-1.1".to_string(), "fn main() {\r\n    -1.1;\r\n}\r\n".to_string()],
         vec!["-123.123".to_string(), "fn main() {\r\n    -123.123;\r\n}\r\n".to_string()],
@@ -700,13 +723,18 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
 
         //list - empty
         vec![
-            "[ ]".to_string(),
-            "fn main() {\r\n    vec![ ];\r\n}\r\n".to_string(),
+            "[ String ]".to_string(),
+            "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n".to_string(),
         ],
         vec![
-            "[]".to_string(),
-            "fn main() {\r\n    vec![ ];\r\n}\r\n".to_string(),
+            "[ i64 ]".to_string(),
+            "fn main() {\r\n    Vec::<i64>::new();\r\n}\r\n".to_string(),
         ],
+        vec![
+            "[ f64 ]".to_string(),
+            "fn main() {\r\n    Vec::<f64>::new();\r\n}\r\n".to_string(),
+        ],
+        //list - not empty
         vec![
             "[ 1 ]".to_string(),
             "fn main() {\r\n    vec![ 1 ];\r\n}\r\n".to_string(),
@@ -724,11 +752,26 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
                 .to_string(),
         ],
+        vec![
+            "= x [ 1 2 3 4 5 ]".to_string(),
+            "fn main() {\r\n    let x: i64 = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "= x [ 1.1 2.2 3.3 4.4 5.5 ]".to_string(),
+            "fn main() {\r\n    let x: f64 = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "= x [ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]".to_string(),
+            "fn main() {\r\n    let x: String = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
+                .to_string(),
+        ],
         /*
+
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
         vec!["- 1.1 2.2".to_string(), "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n".to_string()],
         vec!["/ 9 3".to_string(), "fn main() {\r\n    9 / 3;\r\n}\r\n".to_string()],
+
         //basic arithmetic, assignment, type inference
         vec![
             "= a + 1 2".to_string(),
@@ -770,8 +813,10 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a % 1.1 2.2".to_string(),
             "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n".to_string(),
         ],
+
         //constant
         vec!["= a 123\r\na".to_string(), "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n".to_string()],
+
         //assignment
         vec![
             "= a \"string\"".to_string(),
@@ -787,11 +832,13 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a + 1 2".to_string(),
             "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
         ],
+
         //assignment internalFunctionCalls with references
         vec![
             "= a + 1 2\r\n= b - 3 a".to_string(),
             "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n".to_string(),
         ],
+
         //nested internalFunctionCalls
         vec![
             "= a - + 1 2 3".to_string(),
@@ -805,6 +852,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a + 1 * 3 2".to_string(),
             "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n".to_string(),
         ],
+
         //TODO handle reserved names of i64 by adding to inbuiltfndefs
 
         //function definitions
@@ -817,6 +865,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a \\ i64 i64 arg1 => + 123 arg1".to_string(),
             "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n".to_string(),
         ],
+
         //function definitions - multiline
         vec![
             "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2".to_string(),
@@ -826,21 +875,25 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3".to_string(),
             "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n".to_string(),
         ],
+
         //function definitions - multiline, nested function calls
         vec![
             "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3".to_string(),
             "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n".to_string(),
         ],
+
         //function definitions - multiline, constant assignment, nested function calls
         vec![
             "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1".to_string(),
             "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n".to_string(),
         ],
+
         //function definitions - multiline, several semicolon statements, with final return statement
         vec![
             "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz".to_string(),
             "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n".to_string(),
         ],
+
         //function definitions - pass functions as arguments
         //arg1 is a function that takes i64 returns i64, arg2 is an i64
         //the function body calls arg1 with arg2 as its argument, returning which returns i64
@@ -848,22 +901,26 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456".to_string(),
             "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n".to_string(),
         ],
+
         //type inference
         //type inference - assignment to constantrefs
         vec![
             "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
             "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
         ],
+
         //type inference - assignment to function call
         vec![
             "= a + 1 2".to_string(),
             "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
         ],
+
         //type inference - assignment to constantrefs of function call
         vec![
             "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
             "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
         ],
+
         //function calls - zero arguments
 
         // TODO function call void/null/() return
@@ -878,6 +935,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123".to_string(),
             "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n".to_string(),
         ],
+
         //function calls - two arguments, where one is an evaluated internal function call
         vec![
             "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789".to_string(),

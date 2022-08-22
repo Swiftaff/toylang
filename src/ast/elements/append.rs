@@ -25,7 +25,21 @@ pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
 pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     let el = compiler.ast.elements[index_of_type].clone();
-    append(&mut compiler.ast, el);
+    let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    match parent.0 {
+        ElementInfo::List(_) => {
+            // if parent is a list, you can't have child elements as types, except to help define the list type in an empty list, e.g.
+            // List [ f64 ]
+            // so just apply the type to the list, and DON'T add the type into the AST
+            let list_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+            let list_type = elements::get_elementinfo_type(&compiler.ast, &el.0);
+            dbg!(&list_type);
+            compiler.ast.elements[list_ref].0 = ElementInfo::List(list_type);
+        }
+        _ => {
+            append(&mut compiler.ast, el);
+        }
+    }
     Ok(())
 }
 
@@ -99,7 +113,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
-            ElementInfo::List => (),
+            ElementInfo::List(_) => (),
             ElementInfo::CommentSingleLine(_) => (),
             ElementInfo::Int(_) => (),
             ElementInfo::Float(_) => (),
@@ -173,7 +187,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
 
 pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
     match elinfo {
-        ElementInfo::List => true,
+        ElementInfo::List(_) => true,
         ElementInfo::Int(_) => true,
         ElementInfo::Float(_) => true,
         ElementInfo::String(_) => true,
@@ -279,7 +293,10 @@ pub fn function_call1(
 
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
-    append(&mut compiler.ast, (ElementInfo::List, vec![]));
+    append(
+        &mut compiler.ast,
+        (ElementInfo::List("undefined".to_string()), vec![]),
+    );
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
     Ok(())
