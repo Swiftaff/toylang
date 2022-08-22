@@ -55,9 +55,24 @@ z
 //@ 123.12
 //@ + 1 2
 
-//= list [ 1 2 3 ]
+// = list [ 1 2 3 ]
+// = multiply_by_100 \ i64 i64 num => * 100 num
+//using function reference
+// = list2 List.map (multiply_by_100) list
+//or inline function?
+// = list2 List.map (\ i64 i64 num => * 100 num) list
+//or closure?
+// = list2 List.map (|num| * 100 num) list
 
-//let list: Vec<i64> = vec![1,2,3];
+// let list: Vec<i64> = vec![1,2,3];
+// function multiply_by_100(num: i64) -> i64 {
+// 100 * num 
+// }
+// let list2: Vec<i64> = list.iter().map(multiply_by_100).collect();
+
+// List.append
+// let c: Vec<i32> = a.iter().cloned().chain(b.iter().cloned()).collect(); // Cloned
+
 
 = a \ "i64 i64" i64 i64 arg1 arg2 => arg1 arg2
 = b \ i64 i64 arg1 => + 123 arg1

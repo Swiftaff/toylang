@@ -165,12 +165,12 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
     }
 }
 
-pub fn list(compiler: &mut Compiler, current_parent: Element) {
-    //dbg!("outdent.list");
-    if current_parent.1.len() > 0 {
-        outdent(compiler);
-    }
-}
+//pub fn list(compiler: &mut Compiler, current_parent: Element) {
+//    //dbg!("outdent.list");
+//    if current_parent.1.len() > 0 {
+//        outdent(compiler);
+//    }
+//}
 
 pub fn println(compiler: &mut Compiler, current_parent: Element) {
     //dbg!("outdent.println");

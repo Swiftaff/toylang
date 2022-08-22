@@ -651,7 +651,6 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 #[allow(dead_code)]
 pub fn test_case_passes() -> Vec<Vec<String>> {
     vec![
-        /*
         //empty file
         vec!["".to_string(), "fn main() {\r\n}\r\n".to_string()],
 
@@ -718,7 +717,6 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "-1.7976931348623157E+308".to_string(),
             "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n".to_string(),
         ],
-        */
         //list
 
         //list - empty
@@ -754,18 +752,17 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         ],
         vec![
             "= x [ 1 2 3 4 5 ]".to_string(),
-            "fn main() {\r\n    let x: i64 = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const x: i64 = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
         ],
         vec![
             "= x [ 1.1 2.2 3.3 4.4 5.5 ]".to_string(),
-            "fn main() {\r\n    let x: f64 = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const x: f64 = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
         ],
         vec![
             "= x [ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]".to_string(),
-            "fn main() {\r\n    let x: String = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
+            "fn main() {\r\n    const x: String = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
                 .to_string(),
         ],
-        /*
 
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
@@ -775,82 +772,82 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         //basic arithmetic, assignment, type inference
         vec![
             "= a + 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a + 1.1 2.2".to_string(),
-            "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = 1.1 + 2.2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a - 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 - 2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a - 1.1 2.2".to_string(),
-            "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = 1.1 - 2.2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a * 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 * 2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a * 1.1 2.2".to_string(),
-            "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = 1.1 * 2.2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a / 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 / 2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a / 1.1 2.2".to_string(),
-            "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = 1.1 / 2.2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a % 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 % 2;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a % 1.1 2.2".to_string(),
-            "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = 1.1 % 2.2;\r\n}\r\n".to_string(),
         ],
 
         //constant
-        vec!["= a 123\r\na".to_string(), "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n".to_string()],
+        vec!["= a 123\r\na".to_string(), "fn main() {\r\n    const a: i64 = 123;\r\n    a;\r\n}\r\n".to_string()],
 
         //assignment
         vec![
             "= a \"string\"".to_string(),
-            "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: String = \"string\".to_string();\r\n}\r\n".to_string(),
         ],
-        vec!["= a 1".to_string(), "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n".to_string()],
-        vec!["= a 1.1".to_string(), "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n".to_string()],
+        vec!["= a 1".to_string(), "fn main() {\r\n    const a: i64 = 1;\r\n}\r\n".to_string()],
+        vec!["= a 1.1".to_string(), "fn main() {\r\n    const a: f64 = 1.1;\r\n}\r\n".to_string()],
         vec![
             "= a -1.7976931348623157E+308".to_string(),
-            "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: f64 = -1.7976931348623157E+308;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a + 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2;\r\n}\r\n".to_string(),
         ],
 
         //assignment internalFunctionCalls with references
         vec![
             "= a + 1 2\r\n= b - 3 a".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2;\r\n    const b: i64 = 3 - a;\r\n}\r\n".to_string(),
         ],
 
         //nested internalFunctionCalls
         vec![
             "= a - + 1 2 3".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2 - 3;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a / * - + 1 2 3 4 5".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n".to_string(),
         ],
         vec![
             "= a + 1 * 3 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 3 * 2;\r\n}\r\n".to_string(),
         ],
 
         //TODO handle reserved names of i64 by adding to inbuiltfndefs
@@ -873,7 +870,7 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         ],
         vec![
             "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3".to_string(),
-            "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        const x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n".to_string(),
         ],
 
         //function definitions - multiline, nested function calls
@@ -885,13 +882,13 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         //function definitions - multiline, constant assignment, nested function calls
         vec![
             "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1".to_string(),
-            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        const arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n".to_string(),
         ],
 
         //function definitions - multiline, several semicolon statements, with final return statement
         vec![
             "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz".to_string(),
-            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n".to_string(),
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        const b: i64 = arg1 + 123;\r\n        const c: i64 = b - arg2;\r\n        const z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n".to_string(),
         ],
 
         //function definitions - pass functions as arguments
@@ -899,26 +896,26 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         //the function body calls arg1 with arg2 as its argument, returning which returns i64
         vec![
             "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456".to_string(),
-            "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n".to_string(),
+            "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    const c: i64 = a(&b, 456);\r\n}\r\n".to_string(),
         ],
 
         //type inference
         //type inference - assignment to constantrefs
         vec![
             "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
-            "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 123;\r\n    const aa: i64 = a;\r\n    const aaa: i64 = aa;\r\n    const aaaa: i64 = aaa;\r\n}\r\n".to_string(),
         ],
 
         //type inference - assignment to function call
         vec![
             "= a + 1 2".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2;\r\n}\r\n".to_string(),
         ],
 
         //type inference - assignment to constantrefs of function call
         vec![
             "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa".to_string(),
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1 + 2;\r\n    const aa: i64 = a;\r\n    const aaa: i64 = aa;\r\n    const aaaa: i64 = aaa;\r\n}\r\n".to_string(),
         ],
 
         //function calls - zero arguments
@@ -968,11 +965,11 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         ],
         vec![
             "= a 1\r\n@ a".to_string(),
-            "fn main() {\r\n    let a: i64 = 1;\r\n    println!(\"{}\", a);\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1;\r\n    println!(\"{}\", a);\r\n}\r\n".to_string(),
         ],
         vec![
             "= a 1\r\n= b a\r\n@ b".to_string(),
-            "fn main() {\r\n    let a: i64 = 1;\r\n    let b: i64 = a;\r\n    println!(\"{}\", b);\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const a: i64 = 1;\r\n    const b: i64 = a;\r\n    println!(\"{}\", b);\r\n}\r\n".to_string(),
         ],
         vec![
             "= a \\ i64 => 1\r\n@ a".to_string(),
@@ -982,6 +979,5 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "@ + 1 2".to_string(),
             "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n".to_string(),
         ],
-        */
     ]
 }

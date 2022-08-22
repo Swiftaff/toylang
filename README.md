@@ -124,17 +124,17 @@ fn main() {
 fn main() {
     // single line comments
     // assign values to constants
-    let an_integer: i64 = 123;
-    let a_float: f64 = 123.45;
-    let a_reference: i64 = an_integer;
-    let a_string: String = "string".to_string();
+    const an_integer: i64 = 123;
+    const a_float: f64 = 123.45;
+    const a_reference: i64 = an_integer;
+    const a_string: String = "string".to_string();
 
     // basic arithmetic built in functions
-    let addition: i64 = 1 + 2;
-    let subtraction: f64 = 5.4 - 3.2;
-    let multiplication: i64 = 3 * 4;
-    let division: f64 = 1.0 / 2.0;
-    let modulus: f64 = 42.0 % 3.14;
+    const addition: i64 = 1 + 2;
+    const subtraction: f64 = 5.4 - 3.2;
+    const multiplication: i64 = 3 * 4;
+    const division: f64 = 1.0 / 2.0;
+    const modulus: f64 = 42.0 % 3.14;
 }
 ```
 
@@ -198,9 +198,9 @@ fn main() {
     // multi line functions
     // two i64 arguments, returns i64
     fn multiline_fn_name(arg1: i64, arg2: i64) -> i64 {
-        let x: i64 = arg1 + 123;
-        let y: i64 = x - arg2;
-        let z: i64 = y * 10;
+        const x: i64 = arg1 + 123;
+        const y: i64 = x - arg2;
+        const z: i64 = y * 10;
 
         // z is the first expression
         // (not an assignment) so it is
@@ -249,17 +249,17 @@ fn main() {
 ```rust
 fn main() {
     // empty lists
-    let empty1: Vec<i64> = vec![];
-    let empty2: Vec<f64> = vec![];
+    const empty1: Vec<i64> = vec![];
+    const empty2: Vec<f64> = vec![];
 
     // list of Ints
-    let ints = vec![ 1, 2, 3 ];
+    const ints = vec![ 1, 2, 3 ];
 
     // list of floats
-    let floats = vec![ 1.1, 2.2, 3.3];
+    const floats = vec![ 1.1, 2.2, 3.3];
 
     // list of strings
-    let strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
+    const strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
 }
 ```
 
