@@ -307,6 +307,8 @@ pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
         _ => (),
     }
     parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
     elements::append::seol_if_last_in_line(compiler)
 }
 
@@ -752,18 +754,24 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
         ],
         vec![
             "= x [ 1 2 3 4 5 ]".to_string(),
-            "fn main() {\r\n    const x: i64 = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n".to_string(),
         ],
         vec![
             "= x [ 1.1 2.2 3.3 4.4 5.5 ]".to_string(),
-            "fn main() {\r\n    const x: f64 = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
+            "fn main() {\r\n    const x: Vec<f64> = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n".to_string(),
         ],
         vec![
             "= x [ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]".to_string(),
-            "fn main() {\r\n    const x: String = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
+            "fn main() {\r\n    const x: Vec<String> = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
                 .to_string(),
         ],
-
+        //list - functions - map
+        vec![
+            "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )".to_string(),
+            "fn main() {\r\n    const list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    const mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n"
+                .to_string(),
+        ],
+        
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
         vec!["- 1.1 2.2".to_string(), "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n".to_string()],

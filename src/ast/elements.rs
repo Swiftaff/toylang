@@ -260,10 +260,17 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::FunctionCall(name, _) => {
                 return ElementInfo::FunctionCall(name, infered_type);
             }
+            ElementInfo::List(returntype) => {
+                if el.1.len() == 0 {
+                    return ElementInfo::List(returntype);
+                } else {
+                    let first_child_type = get_infered_type_of_any_element(&ast, el.1[0]);
+                    return ElementInfo::List(format!("Vec<{}>", first_child_type));
+                }
+            }
             // explicitly listing other types rather than using _ to not overlook new types in future.
             // These either have no type or are predefined and can't be infered
             ElementInfo::Root => (),
-            ElementInfo::List(_) => (),
             ElementInfo::CommentSingleLine(_) => (),
             ElementInfo::Int(_) => (),
             ElementInfo::Float(_) => (),
@@ -308,7 +315,8 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::List(returntype) => {
             if el.1.len() > 0 {
                 let first_child_ref = el.1[0];
-                return get_infered_type_of_any_element(ast, first_child_ref);
+                let first_child_type = get_infered_type_of_any_element(ast, first_child_ref);
+                return format!("Vec<{}>", first_child_type);
             } else {
                 return returntype.clone();
             }
@@ -442,7 +450,7 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
     match elementinfo {
-        ElementInfo::List(_) => undefined,
+        ElementInfo::List(returntype) => returntype.clone(),
         ElementInfo::Int(_) => "i64".to_string(),
         ElementInfo::Float(_) => "f64".to_string(),
         ElementInfo::String(_) => "String".to_string(),

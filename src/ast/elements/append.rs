@@ -33,8 +33,9 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
             // so just apply the type to the list, and DON'T add the type into the AST
             let list_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             let list_type = elements::get_elementinfo_type(&compiler.ast, &el.0);
-            dbg!(&list_type);
-            compiler.ast.elements[list_ref].0 = ElementInfo::List(list_type);
+            //dbg!(&list_type);
+            let vec_type = format!("Vec<{}>", list_type);
+            compiler.ast.elements[list_ref].0 = ElementInfo::List(vec_type);
         }
         _ => {
             append(&mut compiler.ast, el);
@@ -243,7 +244,7 @@ pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn inbuilt_function_call(
@@ -264,8 +265,7 @@ pub fn inbuilt_function_call(
     errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
-    //seol_if_last_in_line(compiler)
+    seol_if_last_in_line(compiler)
 }
 
 pub fn function_call1(
@@ -287,8 +287,7 @@ pub fn function_call1(
     errors::error_if_parent_is_invalid(compiler)?;
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
-    //seol_if_last_in_line(compiler)
+    seol_if_last_in_line(compiler)
 }
 
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
@@ -299,7 +298,7 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     );
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
@@ -307,7 +306,7 @@ pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
@@ -315,7 +314,7 @@ pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
     append(&mut compiler.ast, (ElementInfo::LoopForRangeWIP, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
@@ -323,13 +322,13 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
     append(&mut compiler.ast, (ElementInfo::Parens, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
     parents::outdent::outdent(compiler);
     outdent_if_last_expected_child(compiler);
-    Ok(())
+    seol_if_last_in_line(compiler)
 }
 
 pub fn constant_ref(

@@ -158,7 +158,11 @@ pub fn get_output_for_element_index(
                 }
                 return format!("{} ]", &output);
             } else {
-                return format!("Vec::<{}>::new()", returntype);
+                let mut vec_type = returntype.clone();
+                if returntype.len() > 5 && returntype[..3] == "Vec".to_string() {
+                    vec_type = returntype[4..returntype.len() - 1].to_string();
+                }
+                return format!("Vec::<{}>::new()", vec_type);
             }
         }
         ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {

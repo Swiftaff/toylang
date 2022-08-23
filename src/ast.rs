@@ -19,11 +19,13 @@ impl Ast {
     pub fn new() -> Ast {
         let types = get_initial_types();
         let arithmetic = get_initial_arithmetic_operators();
+        let list_map = get_list_map();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Elements = vec![]
             .iter()
             .chain(&root)
             .chain(&arithmetic)
+            .chain(&list_map)
             .chain(&types)
             .cloned()
             .collect();
@@ -68,6 +70,22 @@ fn get_initial_arithmetic_operators() -> Elements {
         .into_iter()
         .map(arithmetic_closure)
         .collect()
+}
+
+fn get_list_map() -> Vec<elements::Element> {
+    vec![(
+        ElementInfo::InbuiltFunctionDef(
+            "List.map".to_string(),
+            vec!["arg~1".to_string(), "arg~2".to_string()],
+            vec![
+                "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
+                "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
+            ],
+            "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
+            "arg~1.iter().map(arg~2).collect()".to_string(),
+        ),
+        vec![],
+    )]
 }
 
 impl fmt::Debug for Ast {
