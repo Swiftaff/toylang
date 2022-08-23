@@ -242,6 +242,13 @@ fn main() {
 // list of strings
 = strings [ "1" "2" "3" ]
 
+// map
+= list [ 1 ]
+= mapfn \ i64 i64 i => * i 100
+= mapped List.map list ( mapfn )
+
+
+
 ```
 
 </td><td>
@@ -260,6 +267,13 @@ fn main() {
 
     // list of strings
     const strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
+
+    // map
+    const list: Vec<i64> = vec![ 1 ];
+    fn mapfn(i: i64) -> i64 {
+        i * 100
+    }
+    const mapped: Vec<i64> = list.iter().map(mapfn).collect();
 }
 ```
 
