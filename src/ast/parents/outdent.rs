@@ -111,12 +111,13 @@ pub fn inbuiltfncall_from_inbuiltfndef(
     current_parent: Element,
     fndefref: usize,
 ) {
-    //dbg!("InbuiltFunctionCall", &name);
+    //dbg!("InbuiltFunctionCall", &fndefref);
     let fndef = compiler.ast.elements[fndefref].clone();
     match fndef.0 {
         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
             // current assumption is inbuiltfunctionCalls expect a fixed number
             // of children to match args.
+            //dbg!("InbuiltFunctionCall", &current_parent.1, &argnames);
             if current_parent.1.len() == argnames.len() {
                 outdent(compiler);
             }

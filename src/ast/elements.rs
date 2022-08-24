@@ -239,7 +239,7 @@ pub fn get_last_element(ast: &Ast) -> Element {
 pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize) -> ElementInfo {
     let el = ast.elements[el_index].clone();
     let el_type = get_elementinfo_type(ast, &el.0);
-    if el_type == "Undefined".to_string() {
+    if el_type == "Undefined".to_string() || el_type.contains("|") {
         let infered_type = get_infered_type_of_any_element(ast, el_index);
         match el.0 {
             ElementInfo::Arg(name, scope, _) => {
@@ -408,15 +408,29 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
     match elinfo {
         ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
             //TODO could check all args match here for parser error
-            //dbg!("2", &returntype);
+            //dbg!(funcdef_el_index, &returntype);
             if returntype.contains("|") {
-                //dbg!("2.5", &el_children);
+                //dbg!("2.5", &el_children, &argtypes, &returntype);
+
                 if el_children.len() > 0 && argtypes.len() <= el_children.len() {
-                    for _argtype in argtypes {
-                        let first_child_ref = el_children[0];
-                        let first_child = &ast.elements[first_child_ref];
-                        infered_type = get_elementinfo_type(ast, &first_child.0);
-                        //dbg!("2.6", &infered_type);
+                    let first_child_ref = el_children[0];
+                    let first_child = &ast.elements[first_child_ref];
+                    let type_of_first_child = get_elementinfo_type(ast, &first_child.0);
+                    //dbg!(&type_of_first_child, first_child_ref);
+                    let argtypes_split = argtypes[0].split("|");
+                    let argtypes_vec: Vec<&str> = argtypes_split.collect();
+                    let argtype_index_option = argtypes_vec
+                        .iter()
+                        .position(|&x| x.to_string() == type_of_first_child);
+                    match argtype_index_option {
+                        Some(argtype_index) => {
+                            let returntypes_split = returntype.split("|");
+                            let returntypes_vec: Vec<&str> = returntypes_split.collect();
+                            infered_type = returntypes_vec[argtype_index].to_string();
+                        }
+                        _ => {
+                            infered_type = returntype.clone();
+                        }
                     }
                 }
             } else {
@@ -627,8 +641,11 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::Assignment => {
                 format!("Assignment")
             }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, returntype, _format) => {
-                format!("InbuiltFunctionDef: \"{}\" ({})", name, returntype)
+            ElementInfo::InbuiltFunctionDef(name, _argnames, argtypes, returntype, _format) => {
+                format!(
+                    "InbuiltFunctionDef: \"{}\" ({:?}) -> ({})",
+                    name, argtypes, returntype
+                )
             }
             ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
                 format!("InbuiltFunctionCall: {} ({})", name, returntype)

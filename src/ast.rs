@@ -19,13 +19,13 @@ impl Ast {
     pub fn new() -> Ast {
         let types = get_initial_types();
         let arithmetic = get_initial_arithmetic_operators();
-        let list_map = get_list_map();
+        let list_functions = get_list_functions();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Elements = vec![]
             .iter()
             .chain(&root)
             .chain(&arithmetic)
-            .chain(&list_map)
+            .chain(&list_functions)
             .chain(&types)
             .cloned()
             .collect();
@@ -53,39 +53,53 @@ fn get_initial_types() -> Elements {
 }
 
 fn get_initial_arithmetic_operators() -> Elements {
-    let arithmetic_primitives = vec!["+", "-", "*", "/", "%"];
-    let arithmetic_closure = |prim: &str| {
+    let arithmetic_fns = vec!["+", "-", "*", "/", "%"];
+    let arithmetic_closure = |fn_name: &str| {
         (
             ElementInfo::InbuiltFunctionDef(
-                prim.to_string(),
+                fn_name.to_string(),
                 vec!["arg~1".to_string(), "arg~2".to_string()],
                 vec!["i64|f64".to_string(), "i64|f64".to_string()],
                 "i64|f64".to_string(),
-                format!("arg~1 {} arg~2", prim).to_string(),
+                format!("arg~1 {} arg~2", fn_name).to_string(),
             ),
             vec![],
         )
     };
-    arithmetic_primitives
-        .into_iter()
-        .map(arithmetic_closure)
-        .collect()
+    arithmetic_fns.into_iter().map(arithmetic_closure).collect()
 }
 
-fn get_list_map() -> Vec<elements::Element> {
-    vec![(
-        ElementInfo::InbuiltFunctionDef(
-            "List.map".to_string(),
-            vec!["arg~1".to_string(), "arg~2".to_string()],
-            vec![
-                "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
-                "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
-            ],
-            "Vec<i64>|Vec<f64>|Vec<String>".to_string(),
-            "arg~1.iter().map(arg~2).collect()".to_string(),
+fn get_list_functions() -> Vec<elements::Element> {
+    let vecs: &str = "Vec<i64>|Vec<f64>|Vec<String>";
+    let list_fns = vec![
+        ("map", "arg~1.iter().map(arg~2).collect()", vecs),
+        (
+            "append",
+            "arg~1.iter().cloned().chain(arg~2.iter().cloned()).collect()",
+            vecs,
         ),
-        vec![],
-    )]
+        ("len", "arg~1.len() as i64", "i64|f64|String"),
+    ];
+    let list_closure = |(fn_name, output, returntype): (&str, &str, &str)| {
+        let num_args = output.matches("arg~").count();
+        let mut arg_names: Vec<String> = vec![];
+        let mut arg_types: Vec<String> = vec![];
+        for i in 0..num_args {
+            arg_names.push(format!("arg~{}", i + 1));
+            arg_types.push(vecs.to_string());
+        }
+        (
+            ElementInfo::InbuiltFunctionDef(
+                format!("List.{}", fn_name),
+                arg_names,
+                arg_types,
+                returntype.to_string(),
+                output.to_string(),
+            ),
+            vec![],
+        )
+    };
+    list_fns.into_iter().map(list_closure).collect()
 }
 
 impl fmt::Debug for Ast {

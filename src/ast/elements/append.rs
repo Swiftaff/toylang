@@ -138,7 +138,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
 pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
-    dbg!("test", is_last_token_in_this_line);
+    //dbg!("test", is_last_token_in_this_line);
     let mut append_seol: bool = true;
     if is_last_token_in_this_line {
         for el_index in (0..compiler.ast.elements.len()).rev() {

@@ -249,6 +249,15 @@ fn main() {
 
 
 
+// append
+= list1 [ 1 ]
+= list2 [ 2 3 ]
+= appended List.append list1 list2
+
+// len
+= list [ 1 2 3 ]
+= len List.len list
+
 ```
 
 </td><td>
@@ -274,6 +283,15 @@ fn main() {
         i * 100
     }
     const mapped: Vec<i64> = list.iter().map(mapfn).collect();
+
+    // append
+    const list1: Vec<i64> = vec![ 1 ];
+    const list2: Vec<i64> = vec![ 2 3 ];
+    const appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();
+
+    // len
+    const list: Vec<i64> = [1, 2, 3];
+    const len: i64 = list.len() as i64;
 }
 ```
 

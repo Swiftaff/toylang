@@ -771,6 +771,18 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "fn main() {\r\n    const list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    const mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n"
                 .to_string(),
         ],
+        //list - functions - append
+        vec![
+            "= list1 [ 1 ]\r\n= list2 [ 2 3 ]\r\n= appended List.append list1 list2".to_string(),
+            "fn main() {\r\n    const list1: Vec<i64> = vec![ 1 ];\r\n    const list2: Vec<i64> = vec![ 2, 3 ];\r\n    const appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();\r\n}\r\n"
+                .to_string(),
+        ],
+        //list - functions - len
+        vec![
+            "= list [ 1 2 3 ]\r\n= len List.len list".to_string(),
+            "fn main() {\r\n    const list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    const len: i64 = list.len() as i64;\r\n}\r\n"
+                .to_string(),
+        ],
         
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
