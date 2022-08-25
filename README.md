@@ -124,17 +124,17 @@ fn main() {
 fn main() {
     // single line comments
     // assign values to constants
-    const an_integer: i64 = 123;
-    const a_float: f64 = 123.45;
-    const a_reference: i64 = an_integer;
-    const a_string: String = "string".to_string();
+    let an_integer: i64 = 123;
+    let a_float: f64 = 123.45;
+    let a_reference: i64 = an_integer;
+    let a_string: String = "string".to_string();
 
     // basic arithmetic built in functions
-    const addition: i64 = 1 + 2;
-    const subtraction: f64 = 5.4 - 3.2;
-    const multiplication: i64 = 3 * 4;
-    const division: f64 = 1.0 / 2.0;
-    const modulus: f64 = 42.0 % 3.14;
+    let addition: i64 = 1 + 2;
+    let subtraction: f64 = 5.4 - 3.2;
+    let multiplication: i64 = 3 * 4;
+    let division: f64 = 1.0 / 2.0;
+    let modulus: f64 = 42.0 % 3.14;
 }
 ```
 
@@ -145,6 +145,7 @@ fn main() {
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
 
 ```
+
 // single line functions
 // one i64 argument, returns i64
 = function_name \ i64 i64 arg1 => + 123 arg1
@@ -163,6 +164,7 @@ fn main() {
 // (not an assignment) so it is
 // the return value of the function
 z
+
 
 // use parenthesis to pass a function
 // as an argument - becomes a &dyn Fn
@@ -184,6 +186,13 @@ multiline_fn_name + 123 456 789
 // also when passing a function as a parameter
 // must wrap it in parenthesis so it doesn't evaluate
 take_fn_as_first_parameter ( function_name ) 321
+
+
+
+
+
+
+
 ```
 
 </td><td>
@@ -195,12 +204,14 @@ fn main() {
         123 + arg1
     }
 
+
+
     // multi line functions
     // two i64 arguments, returns i64
     fn multiline_fn_name(arg1: i64, arg2: i64) -> i64 {
-        const x: i64 = arg1 + 123;
-        const y: i64 = x - arg2;
-        const z: i64 = y * 10;
+        let x: i64 = arg1 + 123;
+        let y: i64 = x - arg2;
+        let z: i64 = y * 10;
 
         // z is the first expression
         // (not an assignment) so it is
@@ -214,11 +225,27 @@ fn main() {
     }
 
 
+
+
+
+
+
+
+
     // function calls
     function_name(123);
     multiline_fn_name(123 + 456, 789);
     take_fn_as_first_parameter(&function_name, 321);
 }
+
+
+
+
+
+
+
+
+
 ```
 
 </td></tr></table>
@@ -265,33 +292,33 @@ fn main() {
 ```rust
 fn main() {
     // empty lists
-    const empty1: Vec<i64> = vec![];
-    const empty2: Vec<f64> = vec![];
+    let empty1: Vec<i64> = vec![];
+    let empty2: Vec<f64> = vec![];
 
     // list of Ints
-    const ints = vec![ 1, 2, 3 ];
+    let ints = vec![ 1, 2, 3 ];
 
     // list of floats
-    const floats = vec![ 1.1, 2.2, 3.3];
+    let floats = vec![ 1.1, 2.2, 3.3];
 
     // list of strings
-    const strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
+    let strings = vec![ "1".to_string(), "2".to_string(), "3".to_string() ];
 
     // map
-    const list: Vec<i64> = vec![ 1 ];
+    let list: Vec<i64> = vec![ 1 ];
     fn mapfn(i: i64) -> i64 {
         i * 100
     }
-    const mapped: Vec<i64> = list.iter().map(mapfn).collect();
+    let mapped: Vec<i64> = list.iter().map(mapfn).collect();
 
     // append
-    const list1: Vec<i64> = vec![ 1 ];
-    const list2: Vec<i64> = vec![ 2 3 ];
-    const appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();
+    let list1: Vec<i64> = vec![ 1 ];
+    let list2: Vec<i64> = vec![ 2 3 ];
+    let appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();
 
     // len
-    const list: Vec<i64> = [1, 2, 3];
-    const len: i64 = list.len() as i64;
+    let list: Vec<i64> = [1, 2, 3];
+    let len: i64 = list.len() as i64;
 }
 ```
 
