@@ -669,6 +669,16 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n".to_string(),
         ],
 
+        //boolean
+        vec![
+            "true".to_string(),
+            "fn main() {\r\n    true;\r\n}\r\n".to_string(),
+        ],
+        vec![
+            "false".to_string(),
+            "fn main() {\r\n    false;\r\n}\r\n".to_string(),
+        ],
+        
         //string
         vec![
             "\"string\"".to_string(),

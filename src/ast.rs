@@ -20,12 +20,14 @@ impl Ast {
         let types = get_initial_types();
         let arithmetic = get_initial_arithmetic_operators();
         let list_functions = get_list_functions();
+        let booleans = get_booleans();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Elements = vec![]
             .iter()
             .chain(&root)
             .chain(&arithmetic)
             .chain(&list_functions)
+            .chain(&booleans)
             .chain(&types)
             .cloned()
             .collect();
@@ -50,6 +52,23 @@ fn get_initial_types() -> Elements {
     let type_primitives = vec!["i64", "f64", "String"];
     let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
     type_primitives.into_iter().map(type_closure).collect()
+}
+
+fn get_booleans() -> Elements {
+    let bool_fns = vec!["true", "false"];
+    let bool_closure = |bool_name: &str| {
+        (
+            ElementInfo::InbuiltFunctionDef(
+                bool_name.to_string(),
+                vec![],
+                vec![],
+                "bool".to_string(),
+                bool_name.to_string(),
+            ),
+            vec![],
+        )
+    };
+    bool_fns.into_iter().map(bool_closure).collect()
 }
 
 fn get_initial_arithmetic_operators() -> Elements {
