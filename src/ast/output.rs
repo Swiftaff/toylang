@@ -135,7 +135,7 @@ pub fn get_output_for_element_index(
                     }
                     _ => (),
                 }
-                format!("const {}: {} = ", constant_output, returntype)
+                format!("let {}: {} = ", constant_output, returntype)
             }
         }
         ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
