@@ -199,12 +199,6 @@ multiline_fn_name + 123 456 789
 // must wrap it in parenthesis so it doesn't evaluate
 take_fn_as_first_parameter ( function_name ) 321
 
-
-
-
-
-
-
 ```
 
 </td><td>
@@ -249,12 +243,6 @@ fn main() {
     multiline_fn_name(123 + 456, 789);
     take_fn_as_first_parameter(&function_name, 321);
 }
-
-
-
-
-
-
 
 
 
