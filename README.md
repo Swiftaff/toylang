@@ -116,6 +116,12 @@ fn main() {
 = division / 1.0 2.0
 = modulus % 42.0 3.14
 
+// booleans and equality
+= is_true true
+= is_false false
+= equality_true == 1 1
+= equality_false == 1.1 2.1
+
 ```
 
 </td><td>
@@ -135,6 +141,12 @@ fn main() {
     let multiplication: i64 = 3 * 4;
     let division: f64 = 1.0 / 2.0;
     let modulus: f64 = 42.0 % 3.14;
+
+    // booleans and equality
+    let is_true = true;
+    let is_false = false;
+    let equality_true = 1 == 1;
+    let equality_false = 1.1 == 2.1;
 }
 ```
 

@@ -106,6 +106,15 @@ pub fn within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: &mut Compiler,
     }
 }
 
+//TODO tidy these all up - define names better and find best place to check all args match here for parser error
+//if el_children.len() == 0 || argtypes.len() > el_children.len() {
+//    append::append_error(compiler, 0, 1, ERRORS.fncall_wrong_number_of_args);
+//} else {
+//    for argtype in argtypes {
+//        //
+//    }
+//}
+
 pub fn inbuiltfncall_from_inbuiltfndef(
     compiler: &mut Compiler,
     current_parent: Element,

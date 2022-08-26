@@ -653,32 +653,6 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 #[allow(dead_code)]
 pub fn test_case_passes() -> Vec<Vec<String>> {
     vec![
-        //empty file
-        vec!["".to_string(), "fn main() {\r\n}\r\n".to_string()],
-
-        //comment single line
-        vec!["//comment".to_string(), "fn main() {\r\n    //comment\r\n}\r\n".to_string()],
-        vec![
-            "    //    comment    ".to_string(),
-            "fn main() {\r\n    //    comment\r\n}\r\n".to_string(),
-        ],
-
-        //single line function no longer breaks comments
-        vec![
-            "//= a \\ i64 => 123".to_string(),
-            "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n".to_string(),
-        ],
-
-        //boolean
-        vec![
-            "true".to_string(),
-            "fn main() {\r\n    true;\r\n}\r\n".to_string(),
-        ],
-        vec![
-            "false".to_string(),
-            "fn main() {\r\n    false;\r\n}\r\n".to_string(),
-        ],
-        
         //string
         vec![
             "\"string\"".to_string(),
@@ -793,7 +767,6 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n"
                 .to_string(),
         ],
-        
         //internalFunctionCalls
         vec!["+ 1 2".to_string(), "fn main() {\r\n    1 + 2;\r\n}\r\n".to_string()],
         vec!["- 1.1 2.2".to_string(), "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n".to_string()],
@@ -1010,4 +983,62 @@ pub fn test_case_passes() -> Vec<Vec<String>> {
             "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n".to_string(),
         ],
     ]
+}
+
+#[cfg(test)]
+mod tests {
+
+    fn test_pass_scenario(tests: Vec<Vec<&str>>) {
+        for test in tests {
+            let input = &test[0];
+            let output = &test[1];
+            let mut c = crate::mock_compiler();
+            c.file.filecontents = input.to_string();
+            match c.run_main_tasks() {
+                Ok(_) => {
+                    //dbg!(&c.ast, input, output);
+                    assert_eq!(&c.ast.output, output);
+                }
+                Err(_e) => assert!(false, "error should not exist"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_pass_empty_file() {
+        //empty file
+        let tests = vec![vec!["", "fn main() {\r\n}\r\n"]];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
+    fn test_pass_comment_singleline() {
+        let tests = vec![
+            //comment single line
+            vec!["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
+            vec![
+                "    //    comment    ",
+                "fn main() {\r\n    //    comment\r\n}\r\n",
+            ],
+            //single line function no longer breaks comments
+            vec![
+                "//= a \\ i64 => 123",
+                "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n",
+            ],
+        ];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
+    fn test_pass_comment_boolean() {
+        let tests = vec![
+            //boolean
+            vec!["true", "fn main() {\r\n    true;\r\n}\r\n"],
+            vec!["false", "fn main() {\r\n    false;\r\n}\r\n"],
+            //boolean - functions
+            vec!["== 1 1", "fn main() {\r\n    1 == 1;\r\n}\r\n"],
+            vec!["== 1 2.1", "fn main() {\r\n    1 == 2.1;\r\n}\r\n"],
+        ];
+        test_pass_scenario(tests);
+    }
 }

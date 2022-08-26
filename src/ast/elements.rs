@@ -407,11 +407,11 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
     let elinfo = &el.0;
     match elinfo {
         ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
-            //TODO could check all args match here for parser error
             //dbg!(funcdef_el_index, &returntype);
             if returntype.contains("|") {
                 //dbg!("2.5", &el_children, &argtypes, &returntype);
 
+                // get infered_type from first child (note: children may contain more items than args like SEOL, thus <=)
                 if el_children.len() > 0 && argtypes.len() <= el_children.len() {
                     let first_child_ref = el_children[0];
                     let first_child = &ast.elements[first_child_ref];

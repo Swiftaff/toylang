@@ -205,25 +205,25 @@ impl Compiler {
     }
 }
 
+pub fn mock_compiler() -> Compiler {
+    Compiler {
+        file: File::new(),
+        lines_of_chars: vec![],
+        lines_of_tokens: vec![],
+        output: "".to_string(),
+        current_line: 0,
+        current_line_token: 0,
+        error_stack: vec![],
+        ast: Ast::new(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
     use super::*;
     use ast::elements::{Element, ElementInfo};
     use ast::parents;
-
-    fn mock_compiler() -> Compiler {
-        Compiler {
-            file: File::new(),
-            lines_of_chars: vec![],
-            lines_of_tokens: vec![],
-            output: "".to_string(),
-            current_line: 0,
-            current_line_token: 0,
-            error_stack: vec![],
-            ast: Ast::new(),
-        }
-    }
 
     #[test]
     fn test_is_integer() {

@@ -1,7 +1,6 @@
 use crate::ast::elements;
 use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
-use crate::mock_compiler;
 use crate::Compiler;
 
 #[derive(Clone, Debug)]
@@ -26,6 +25,7 @@ pub struct Errors {
     pub assignment_cant_be_child_of_parenthesis: &'static str,
     pub assignment_cant_be_child_of_list: &'static str,
     pub inbuiltfncall_cant_be_child_of_parenthesis: &'static str,
+    pub fncall_wrong_number_of_args: &'static str,
     pub fncall_cant_be_child_of_parenthesis: &'static str,
     pub parenthesis_cant_be_child_of_root: &'static str,
     pub parenthesis_cant_be_child_of_constant: &'static str,
@@ -77,6 +77,7 @@ pub const ERRORS: Errors = Errors {
     assignment_cant_be_child_of_parenthesis:"Invalid parenthesis - \"=\" found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     assignment_cant_be_child_of_list:"Invalid list - you can't assign a value inside a list",
     inbuiltfncall_cant_be_child_of_parenthesis:"Invalid parenthesis - inbuilt function call found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
+    fncall_wrong_number_of_args:"Invalid function call - wrong number of arguments found",
     fncall_cant_be_child_of_parenthesis:"Invalid parenthesis - function call found inside parenthesis. Can only include a type in a function definition, or a function name as a reference",
     parenthesis_cant_be_child_of_root:"Invalid parenthesis - parenthesis found at start of line. Can only use in a function definition, or a function name as a reference",
     parenthesis_cant_be_child_of_constant:"Invalid parenthesis - parenthesis found as value of constant. Can only use in a function definition, or a function name as a reference",
@@ -800,14 +801,12 @@ pub fn test_case_errors() -> Vec<Vec<String>> {
 mod tests {
 
     use super::*;
-    //use ast::elements::{Element, ElementInfo};
-    //use ast::parents;
 
     fn test_error_scenario(tests: Vec<Vec<&str>>) {
         for test in tests {
             let input = &test[1];
             let error = &test[0];
-            let mut c = mock_compiler();
+            let mut c = crate::mock_compiler();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {

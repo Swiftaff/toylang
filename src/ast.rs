@@ -17,18 +17,15 @@ pub struct Ast {
 
 impl Ast {
     pub fn new() -> Ast {
-        let types = get_initial_types();
-        let arithmetic = get_initial_arithmetic_operators();
-        let list_functions = get_list_functions();
-        let booleans = get_booleans();
         let root = vec![(ElementInfo::Root, vec![])];
         let elements: Elements = vec![]
             .iter()
             .chain(&root)
-            .chain(&arithmetic)
-            .chain(&list_functions)
-            .chain(&booleans)
-            .chain(&types)
+            .chain(&get_initial_types())
+            .chain(&get_initial_arithmetic_operators())
+            .chain(&get_list_functions())
+            .chain(&get_booleans())
+            .chain(&get_boolean_fns())
             .cloned()
             .collect();
         Ast {
@@ -64,6 +61,26 @@ fn get_booleans() -> Elements {
                 vec![],
                 "bool".to_string(),
                 bool_name.to_string(),
+            ),
+            vec![],
+        )
+    };
+    bool_fns.into_iter().map(bool_closure).collect()
+}
+
+fn get_boolean_fns() -> Elements {
+    let bool_fns = vec!["=="];
+    let bool_closure = |bool_fn_name: &str| {
+        (
+            ElementInfo::InbuiltFunctionDef(
+                bool_fn_name.to_string(),
+                vec!["arg~1".to_string(), "arg~2".to_string()],
+                vec![
+                    "i64|f64|String|bool".to_string(),
+                    "i64|f64|String|bool".to_string(),
+                ],
+                "bool".to_string(),
+                format!("arg~1 {} arg~2", bool_fn_name).to_string(),
             ),
             vec![],
         )
