@@ -3,6 +3,8 @@
 
 A toy language which compiles to rust for fun and experimentation.
 
+See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
+
 ## Build
 
 Builds the `'/src/main.rs` into an executable at `/target/debug/toylang.exe` or `/target/release/toylang.exe`
