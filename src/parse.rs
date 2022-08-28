@@ -134,7 +134,7 @@ pub fn token_by_first_chars(
                 "Int" =>
             }
         }*/
-        first_char if "abcdefghijklmnopqrstuvwxyz".contains(&first_char.to_string()) => {
+        first_char if "abcdefghijklmnopqrstuvwxyz_".contains(&first_char.to_string()) => {
             //dbg!("constant or constantRef", first_char);
             constant(compiler, &current_token)
         }
