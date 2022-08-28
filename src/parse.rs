@@ -1030,7 +1030,7 @@ mod tests {
     }
 
     #[test]
-    fn test_pass_comment_boolean() {
+    fn test_pass_boolean() {
         let tests = vec![
             //boolean
             vec!["true", "fn main() {\r\n    true;\r\n}\r\n"],
@@ -1038,6 +1038,11 @@ mod tests {
             //boolean - functions
             vec!["== 1 1", "fn main() {\r\n    1 == 1;\r\n}\r\n"],
             vec!["== 1 2.1", "fn main() {\r\n    1 == 2.1;\r\n}\r\n"],
+            vec!["!= 1 2", "fn main() {\r\n    1 != 2;\r\n}\r\n"],
+            vec!["> 2 1", "fn main() {\r\n    2 > 1;\r\n}\r\n"],
+            vec!["< 1 2", "fn main() {\r\n    1 < 2;\r\n}\r\n"],
+            vec![">= 2 2", "fn main() {\r\n    2 >= 2;\r\n}\r\n"],
+            vec!["<= 1 2", "fn main() {\r\n    1 <= 2;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }

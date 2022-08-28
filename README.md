@@ -121,8 +121,13 @@ fn main() {
 // booleans and equality
 = is_true true
 = is_false false
-= equality_true == 1 1
-= equality_false == 1.1 2.1
+// the below constants are all assigned the value true
+= equal == 1 1
+= not_equal != 1 2
+= greater_than > 2 1
+= less_than < 1 2
+= gte >= 2 1
+= lte <= 1 2
 
 ```
 
@@ -145,10 +150,15 @@ fn main() {
     let modulus: f64 = 42.0 % 3.14;
 
     // booleans and equality
-    let is_true = true;
-    let is_false = false;
-    let equality_true = 1 == 1;
-    let equality_false = 1.1 == 2.1;
+    let is_true: bool = true;
+    let is_false: bool = false;
+    // the below constants are all assigned the value true
+    let equal: bool = 1 == 1;
+    let not_equal: bool = 1 != 2;
+    let greater_than: bool = 2 > 1;
+    let less_than: bool = 1 < 2;
+    let gte: bool = 2 >= 1;
+    let lte: bool = 1 <= 2;
 }
 ```
 

@@ -69,7 +69,7 @@ fn get_booleans() -> Elements {
 }
 
 fn get_boolean_fns() -> Elements {
-    let bool_fns = vec!["=="];
+    let bool_fns = vec!["==", "!=", "<", ">", "<=", ">="];
     let bool_closure = |bool_fn_name: &str| {
         (
             ElementInfo::InbuiltFunctionDef(
