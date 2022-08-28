@@ -1,14 +1,4 @@
-//= a \ (i64 i64) i64 i64 arg1 arg2 => arg1 arg2
-//= b \ i64 i64 arg1 => + 123 arg1
-//= c a (b) 456
-@ 1
-@ 2.3
-@ "test"
-
-//fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {
-//  arg1(arg2)
-//}
-//fn b(arg3: i64) -> i64 {
-//  123 + arg3
-//}
-//let c = a(b, 456);
+= is_true true
+= is_false false
+= equality_true == 1 1
+= equality_false == 1.1 2.1

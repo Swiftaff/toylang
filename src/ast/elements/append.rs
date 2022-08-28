@@ -255,17 +255,29 @@ pub fn inbuilt_function_call(
     indent_if_first_in_line(compiler);
     let el = &compiler.ast.elements[index_of_function];
     let returntype = elements::get_elementinfo_type(&compiler.ast, &el.0);
-    append(
-        &mut compiler.ast,
-        (
-            ElementInfo::InbuiltFunctionCall(current_token.clone(), index_of_function, returntype),
-            vec![],
-        ),
-    );
-    errors::error_if_parent_is_invalid(compiler)?;
-    outdent_if_last_expected_child(compiler);
-    parents::indent::indent(&mut compiler.ast);
-    seol_if_last_in_line(compiler)
+    match el.clone().0 {
+        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+            append(
+                &mut compiler.ast,
+                (
+                    ElementInfo::InbuiltFunctionCall(
+                        current_token.clone(),
+                        index_of_function,
+                        returntype,
+                    ),
+                    vec![],
+                ),
+            );
+            errors::error_if_parent_is_invalid(compiler)?;
+            outdent_if_last_expected_child(compiler);
+            if argnames.len() > 0 {
+                parents::indent::indent(&mut compiler.ast);
+            }
+            seol_if_last_in_line(compiler)
+        }
+        //should not error here
+        _ => Ok(()),
+    }
 }
 
 pub fn function_call1(

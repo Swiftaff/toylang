@@ -379,7 +379,16 @@ pub fn get_infered_type_of_constant_element(ast: &Ast, el: &Element) -> String {
     match el.0 {
         ElementInfo::Constant(_, _) => {
             if el.1.len() > 0 {
-                let child_ref = el.1[0];
+                let mut child_ref = el.1[0];
+                //if indent, skip it and use the next element
+                match &ast.elements[child_ref].0 {
+                    ElementInfo::Indent => {
+                        if el.1.len() > 1 {
+                            child_ref = el.1[1];
+                        }
+                    }
+                    _ => (),
+                }
                 infered_type = get_infered_type_of_any_element(ast, child_ref);
             }
         }
