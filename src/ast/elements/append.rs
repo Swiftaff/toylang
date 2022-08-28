@@ -310,7 +310,7 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     );
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
-    seol_if_last_in_line(compiler)
+    Ok(())
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
