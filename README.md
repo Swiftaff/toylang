@@ -144,9 +144,9 @@ fn main() {
 = e ? get_truer 10 "true" "false"
 
 
-= get_more_true \ i64 i64 i64 bool arg1 arg2 arg3 => < + arg1 + arg2 arg3 10
+= get_more_true \ i64 i64 i64 bool arg1 arg2 arg3 =>
+  < + arg1 + arg2 arg3 10
 = f ? get_more_true 1 2 3 "true" "false"
-
 
 
 ```
