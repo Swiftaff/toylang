@@ -71,6 +71,15 @@ pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
+    let undefined = "undefined".to_string();
+    append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+    append(&mut compiler.ast, (ElementInfo::If(undefined), vec![]));
+    errors::error_if_parent_is_invalid(compiler)?;
+    parents::indent::indent(&mut compiler.ast);
+    seol_if_last_in_line(compiler)
+}
+
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(
@@ -111,6 +120,9 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             }
             ElementInfo::FunctionCall(name, _) => {
                 outdent::fncall(compiler, current_parent, name);
+            }
+            ElementInfo::If(_) => {
+                outdent::if_expression(compiler, current_parent);
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
@@ -196,6 +208,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         ElementInfo::ConstantRef(_, _, _) => true,
         ElementInfo::InbuiltFunctionCall(_, _, _) => true,
         ElementInfo::FunctionCall(_, _) => true,
+        ElementInfo::If(_) => true,
         ElementInfo::Parens => true,
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => false,

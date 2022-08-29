@@ -32,6 +32,7 @@ pub enum ElementInfo {
     LoopForRangeWIP, //children = lines of loop contents
     LoopForRange(Name, From, To), //children = lines of loop contents
     Println,         //1 child, value
+    If(ReturnType),  //3 children, boolean_expression true_return_expression false_return_expression
     Root,            //children = lines of function contents
 }
 
@@ -63,6 +64,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::Indent => replaceme,
         ElementInfo::Unused => replaceme,
         ElementInfo::Println => replaceme,
+        ElementInfo::If(_) => replaceme,
         ElementInfo::LoopForRangeWIP => replaceme,
         ElementInfo::LoopForRange(_, _, _) => replaceme,
     }
@@ -95,6 +97,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::Indent, _)) => replaceme,
         Some((ElementInfo::Unused, _)) => replaceme,
         Some((ElementInfo::Println, _)) => replaceme,
+        Some((ElementInfo::If(_), _)) => replaceme,
         Some((ElementInfo::LoopForRangeWIP, _)) => replaceme,
         Some((ElementInfo::LoopForRange(_, _, _), _)) => replaceme,
         None => replaceme,
@@ -268,6 +271,10 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
                     return ElementInfo::List(format!("Vec<{}>", first_child_type));
                 }
             }
+            ElementInfo::If(returntype) => {
+                let second_child_type = get_infered_type_of_any_element(&ast, el.1[1]);
+                return ElementInfo::If(second_child_type);
+            }
             // explicitly listing other types rather than using _ to not overlook new types in future.
             // These either have no type or are predefined and can't be infered
             ElementInfo::Root => (),
@@ -320,6 +327,9 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
             } else {
                 return returntype.clone();
             }
+        }
+        ElementInfo::If(_) => {
+            return get_infered_type_of_if_element(ast, el.1);
         }
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => (),
@@ -470,6 +480,12 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
     undefined
 }
 
+pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String {
+    let undefined = "Undefined".to_string();
+    let second_child = &ast.elements[children[1]];
+    get_elementinfo_type(ast, &second_child.0)
+}
+
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
     match elementinfo {
@@ -484,6 +500,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Arg(_, _, returntype) => returntype.clone(),
         ElementInfo::FunctionCall(name, _) => get_infered_type_of_functioncall_element(ast, &name),
         ElementInfo::Type(returntype) => returntype.clone(),
+        ElementInfo::If(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => undefined,
         ElementInfo::CommentSingleLine(_) => undefined,
@@ -680,6 +697,7 @@ impl fmt::Debug for ElementInfo {
                 format!("Loop For {} in {} to {}", name, from, to)
             }
             ElementInfo::Println => "Println".to_string(),
+            ElementInfo::If(returntype) => format!("If ({})", returntype),
         };
         write!(f, "{}", el_debug)
     }

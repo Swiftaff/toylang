@@ -129,6 +129,26 @@ fn main() {
 = gte >= 2 1
 = lte <= 1 2
 
+// if expressions
+= a ? true "true" "false"
+= b ? is_true "true" "false"
+= c ? < 1 2 "true" "false"
+
+= get_true \ bool => true
+= d ? get_true "true" "false"
+
+
+
+
+= get_truer \ i64 bool arg1 => > arg1 5
+= e ? get_truer 10 "true" "false"
+
+
+= get_more_true \ i64 i64 i64 bool arg1 arg2 arg3 => < + arg1 + arg2 arg3 10
+= f ? get_more_true 1 2 3 "true" "false"
+
+
+
 ```
 
 </td><td>
@@ -159,6 +179,26 @@ fn main() {
     let less_than: bool = 1 < 2;
     let gte: bool = 2 >= 1;
     let lte: bool = 1 <= 2;
+
+    // if expressions
+    let a = if true { "true" } else { "false" };
+    let b = is_true { "true" } else { "false" };
+    let c = 1 < 2 { "true" } else { "false" };
+
+    fn get_true() -> bool {
+        true
+    }
+    let d = get_true() { "true" } else { "false" };
+
+    fn get_truer(arg1: i64) -> bool {
+        arg1 > 5
+    }
+    let e = get_truer(10) { "true" } else { "false" };
+
+    fn get_more_true(arg1: i64, arg2: i64, arg3: i64) -> bool {
+        arg1 + arg2 + arg3 < 10
+    }
+    let f = get_more_true(1, 2, 3) { "true" } else { "false" }
 }
 ```
 

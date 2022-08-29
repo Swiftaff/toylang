@@ -84,6 +84,7 @@ pub fn get_output_for_element_index(
             Some((ElementInfo::FunctionCall(_, _), _)) => return skip,
             Some((ElementInfo::Println, _)) => return skip,
             Some((ElementInfo::List(_), _)) => return skip,
+            Some((ElementInfo::If(_), _)) => return skip,
             // explicitly listing other types rather than using _ to not overlook new types in future.
             Some((ElementInfo::Root, _)) => (),
             Some((ElementInfo::CommentSingleLine(_), _)) => (),
@@ -264,6 +265,30 @@ pub fn get_output_for_element_index(
                 output = format!("{}{}", output, child);
             }
             format!("println!(\"{{}}\", {})", output)
+        }
+        ElementInfo::If(_returntype) => {
+            dbg!("If");
+            let children = element.1;
+            let child1_output = get_output_for_element_index(ast, children[0], false);
+            let mut output = format!("if {} {{", child1_output);
+            let child2_output = get_output_for_element_index(ast, children[1], false);
+            output = format!(
+                "{}\r\n{}{}\r\n{}}} else {{",
+                output,
+                " ".repeat(4 * (ast.parents.len())),
+                child2_output,
+                " ".repeat(4 * (ast.parents.len() - 1)),
+            );
+            let child3_output = get_output_for_element_index(ast, children[2], false);
+            output = format!(
+                "{}\r\n{}{}\r\n{}}}",
+                output,
+                " ".repeat(4 * (ast.parents.len())),
+                child3_output,
+                " ".repeat(4 * (ast.parents.len() - 1)),
+            );
+            //parents::outdent::outdent(&mut ast);
+            return output;
         }
     }
 }

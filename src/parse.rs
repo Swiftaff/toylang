@@ -85,6 +85,7 @@ pub fn token_by_first_chars(
         ')' => functiontypesig_or_functionreference_end(compiler),
         '/' => comment_single_line(compiler, current_token_vec),
         '@' => println(compiler),
+        '?' => if_expression(compiler),
         '=' => match second_char {
             Some(second) => {
                 if second == '>' {
@@ -155,6 +156,10 @@ pub fn comment_single_line(
 
 pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::println(compiler)
+}
+
+pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
+    elements::append::if_expression(compiler)
 }
 
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
@@ -234,6 +239,9 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                         argnames.len(),
                         &returntype,
                     );
+                }
+                Some((ElementInfo::If(returntype), _)) => {
+                    return elements::append::if_expression(compiler);
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 Some((ElementInfo::Root, _)) => (),
@@ -1043,6 +1051,17 @@ mod tests {
             vec!["< 1 2", "fn main() {\r\n    1 < 2;\r\n}\r\n"],
             vec![">= 2 2", "fn main() {\r\n    2 >= 2;\r\n}\r\n"],
             vec!["<= 1 2", "fn main() {\r\n    1 <= 2;\r\n}\r\n"],
+        ];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
+    fn test_pass_if() {
+        let tests = vec![
+            //simple if expression
+            vec!["? true 1 0", "fn main() {\r\n    if true {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
+            //assignment with if expression
+            vec!["= a ? true 1 0", "fn main() {\r\n    let a: i64 = if true {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }

@@ -59,6 +59,11 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                     outdent(compiler);
                     outdent(compiler);
                 }
+                ElementInfo::If(_) => {
+                    //dbg!("If outdent ConstantRef", &self.ast.parents,);
+                    outdent(compiler);
+                    outdent(compiler);
+                }
                 ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
                     within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler, fndefref);
                 }
@@ -199,6 +204,13 @@ pub fn constant(compiler: &mut Compiler, current_parent: Element) {
 pub fn assignment(compiler: &mut Compiler, current_parent: Element) {
     //dbg!("Assignment");
     if current_parent.1.len() > 0 {
+        outdent(compiler);
+    }
+}
+
+pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
+    //dbg!("If");
+    if current_parent.1.len() > 2 {
         outdent(compiler);
     }
 }
