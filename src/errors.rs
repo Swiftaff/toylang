@@ -892,21 +892,6 @@ pub fn error_if_parent_is_invalid_for_if_expression(
     }
 }
 
-#[allow(dead_code)]
-pub fn test_case_errors() -> Vec<Vec<String>> {
-    vec![
-        //
-        //internalFunctionCalls
-        //[ERRORS.int.to_string(),"+ 1 2.1".to_string()],
-        //[ERRORS.int.to_string(),"- 1.1 2".to_string()],
-        //
-        //functionDefinitions
-        //[ERRORS.funcdef_args.to_string(), "= a \\ =>".to_string()],
-        //[ERRORS.funcdef_argtypes_first.to_string(),"= a \\ i64 monkey i64  =>".to_string()],
-        //
-    ]
-}
-
 #[cfg(test)]
 mod tests {
 
@@ -1155,4 +1140,14 @@ mod tests {
         ];
         test_error_scenario(tests);
     }
+
+    //
+    //internalFunctionCalls
+    //[ERRORS.int.to_string(),"+ 1 2.1".to_string()],
+    //[ERRORS.int.to_string(),"- 1.1 2".to_string()],
+    //
+    //functionDefinitions
+    //[ERRORS.funcdef_args.to_string(), "= a \\ =>".to_string()],
+    //[ERRORS.funcdef_argtypes_first.to_string(),"= a \\ i64 monkey i64  =>".to_string()],
+    //
 }

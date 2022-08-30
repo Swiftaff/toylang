@@ -330,53 +330,6 @@ mod tests {
         assert!(true);
     }
 
-    #[test]
-
-    fn test_run() {
-        test_run_passes();
-        test_run_errors();
-    }
-
-    #[test]
-    fn test_run_passes() {
-        for test in parse::test_case_passes() {
-            let input = &test[0];
-            let output = &test[1];
-            let mut c = mock_compiler();
-            c.file.filecontents = input.to_string();
-            match c.run_main_tasks() {
-                Ok(_) => {
-                    //dbg!(&c.ast, input, output);
-                    assert_eq!(&c.ast.output, output);
-                }
-                Err(_e) => assert!(false, "error should not exist"),
-            }
-        }
-    }
-
-    #[test]
-    fn test_run_errors() {
-        for test in errors::test_case_errors() {
-            let input = &test[1];
-            let error = &test[0]; //opposite of passes, just so that errors line up nicely in errors::TEST_CASE_ERRORS source!
-            let mut c = mock_compiler();
-            c.file.filecontents = input.to_string();
-            match c.run_main_tasks() {
-                Ok(_) => {
-                    if error == "" && c.error_stack.len() == 0 {
-                        assert_eq!(true, true)
-                    } else {
-                        assert!(c.error_stack[0].contains(error))
-                    }
-                }
-                Err(_e) => assert!(false, "error should not exist"),
-            }
-        }
-    }
-
-    #[test]
-    fn test_set_lines_of_tokens() {}
-
     // cargo watch -x "test"
     // cargo watch -x "test test_run"
     // cargo watch -x "test test_run_passes"
