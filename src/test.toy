@@ -1,11 +1,11 @@
 = a ? true "true" "false"
 @ a
 
-//= is_true true
-//= b ? is_true "true" "false"
+= is_true true
+= b ? is_true "true" "false"
 
-//= get_true \ bool => true
-//= c ? get_true "true" "false"
+= get_true \ bool => true
+= c ? get_true "true" "false"
 
 //= get_truer \ i64 bool arg1 => > arg1 5
 //= d ? get_truer 10 "true" "false"

@@ -267,7 +267,6 @@ pub fn get_output_for_element_index(
             format!("println!(\"{{}}\", {})", output)
         }
         ElementInfo::If(_returntype) => {
-            dbg!("If");
             let children = element.1;
             let child1_output = get_output_for_element_index(ast, children[0], false);
             let mut output = format!("if {} {{", child1_output);
