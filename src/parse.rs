@@ -240,7 +240,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                         &returntype,
                     );
                 }
-                Some((ElementInfo::If(returntype), _)) => {
+                Some((ElementInfo::If(_returntype), _)) => {
                     return elements::append::if_expression(compiler);
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future

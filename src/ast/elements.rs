@@ -271,7 +271,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
                     return ElementInfo::List(format!("Vec<{}>", first_child_type));
                 }
             }
-            ElementInfo::If(returntype) => {
+            ElementInfo::If(_returntype) => {
                 let second_child_type = get_infered_type_of_any_element(&ast, el.1[1]);
                 return ElementInfo::If(second_child_type);
             }
@@ -481,7 +481,6 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
 }
 
 pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String {
-    let undefined = "Undefined".to_string();
     let second_child = &ast.elements[children[1]];
     get_elementinfo_type(ast, &second_child.0)
 }
