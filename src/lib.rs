@@ -179,8 +179,13 @@ impl Compiler {
                 let c = char_vec[index_to];
                 let eof = index_to == char_vec.len() - 1;
                 if c == '"' {
-                    inside_quotes = !inside_quotes;
-                    count_quotes = count_quotes + 1;
+                    if inside_quotes {
+                        inside_quotes = false;
+                        count_quotes = count_quotes - 1;
+                    } else {
+                        inside_quotes = true;
+                        count_quotes = count_quotes + 1;
+                    }
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
                 if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)

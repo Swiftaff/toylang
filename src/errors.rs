@@ -967,8 +967,7 @@ mod tests {
             ],
             //string
             vec![ERRORS.string, "\""],
-            vec![ERRORS.string, "\"\"\""],
-            vec![ERRORS.string, "\"\" \""],
+            vec![ERRORS.string, "\"test\"\"test"],
         ];
         test_error_scenario(tests);
     }
