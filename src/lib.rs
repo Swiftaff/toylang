@@ -89,9 +89,10 @@ impl Compiler {
                     );
                 }
             }
-            Err(_) => {
+            Err(_e) => {
                 eprintln!("{:?}", &self.ast);
                 eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                //println!("{:?}", e);
                 for error in &self.error_stack {
                     println!("{}", error);
                 }

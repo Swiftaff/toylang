@@ -139,7 +139,7 @@ pub fn token_by_first_chars(
             //dbg!("constant or constantRef", first_char);
             constant(compiler, &current_token)
         }
-        _ => Err(()),
+        _ => return errors::append_error(compiler, 0, 1, "parser - unknown error"),
     }
 }
 
