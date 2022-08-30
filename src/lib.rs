@@ -83,10 +83,8 @@ impl Compiler {
                     eprintln!("----------\r\n");
                 } else {
                     output::set_output(self);
-                    println!(
-                        "\r\nToylang compiled successfully:\r\n----------\r\n{:?}\r\n----------\r\n",
-                        self.ast
-                    );
+                    println!("\r\nToylang compiled successfully:\r\n----------\r\n");
+                    println!("{:?}\r\n----------\r\n", self.ast);
                 }
             }
             Err(_e) => {

@@ -147,11 +147,12 @@ pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String
             ElementInfo::FunctionDef(_, argnames, _, _) => {
                 // current assumption is functionCalls expect a fixed number
                 // of children to match args
+                //dbg!("here");
                 if fndef.1.len() == argnames.len() {
                     outdent(compiler);
                 }
                 outdent(compiler);
-                outdent(compiler);
+                //outdent(compiler);
             }
             _ => (),
         }
@@ -167,11 +168,12 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
                 match &fndef.0 {
                     ElementInfo::FunctionDef(_, argnames, _, _) => {
                         let args = argnames.clone().len();
-                        functiondef(compiler, current_parent.1.len(), args);
+                        functioncall_of_functiondef(compiler, current_parent.1.len(), args);
                     }
                     ElementInfo::Arg(_, _, returntype) => {
+                        dbg!("here3");
                         let r = returntype.clone();
-                        arg(compiler, &r, current_parent.1.len());
+                        functioncall_of_arg(compiler, &r, current_parent.1.len());
                     }
                     _ => (),
                 }
@@ -215,17 +217,17 @@ pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
     }
 }
 
-pub fn arg(compiler: &mut Compiler, returntype: &String, num_children: usize) {
+pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_children: usize) {
     let args = parse::get_args_from_dyn_fn(returntype);
     if num_children > 0 && num_children == args {
         outdent(compiler);
+        //TODO figure out how to move 2nd outdent to more appropriate spot for test 'parse::test_pass_passing_func_as_args'
         outdent(compiler);
     }
 }
 
-pub fn functiondef(compiler: &mut Compiler, num_children: usize, args: usize) {
+pub fn functioncall_of_functiondef(compiler: &mut Compiler, num_children: usize, args: usize) {
     if num_children > 0 && num_children == args {
-        outdent(compiler);
         outdent(compiler);
     }
 }

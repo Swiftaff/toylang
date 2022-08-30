@@ -93,12 +93,19 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
 
 pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
     let mut prev_parents_len = 999999999;
+
+    // loop upwards through parents until reaching root or some scenario causes no further progress.
+    // For all parents check if we should outdent, since you may need to outdent multiple times
+    // depending on each parent
     loop {
-        //dbg!("loop", &self.ast.parents);
-        if compiler.ast.parents.len() < 2 || compiler.ast.parents.len() == prev_parents_len {
+        let parent_is_root = compiler.ast.parents.len() < 2;
+        let parent_is_same_as_last_time = compiler.ast.parents.len() == prev_parents_len;
+        if parent_is_root || parent_is_same_as_last_time {
             break;
         }
         prev_parents_len = compiler.ast.parents.len();
+
+        //decide if we should outdent based on current_parent
         let current_parent_ref = parents::get_current_parent_ref_from_parents(&mut compiler.ast);
         let current_parent = compiler.ast.elements[current_parent_ref].clone();
         //dbg!("---", &compiler.ast);
