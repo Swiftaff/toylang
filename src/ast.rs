@@ -46,7 +46,7 @@ fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
 }
 
 fn get_initial_types() -> Elements {
-    let type_primitives = vec!["i64", "f64", "String"];
+    let type_primitives = vec!["i64", "f64", "String", "bool"];
     let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
     type_primitives.into_iter().map(type_closure).collect()
 }

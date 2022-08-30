@@ -250,6 +250,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::Int(_), _)) => (),
                 Some((ElementInfo::Float(_), _)) => (),
                 Some((ElementInfo::String(_), _)) => (),
+                Some((ElementInfo::Bool(_), _)) => (),
                 Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
                 Some((ElementInfo::Assignment, _)) => (),
                 Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),

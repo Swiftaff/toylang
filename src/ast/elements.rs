@@ -14,6 +14,7 @@ pub enum ElementInfo {
     Int(Value),                             //no children
     Float(Value),                           //no children
     String(Value),                          //no children
+    Bool(Value),                            //no children
     Arg(Name, Scope, ReturnType),           //no children
     Type(Name),                             //no children
     Eol,                                    //no children
@@ -47,6 +48,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::Int(_) => replaceme,
         ElementInfo::Float(_) => replaceme,
         ElementInfo::String(_) => replaceme,
+        ElementInfo::Bool(_) => replaceme,
         ElementInfo::Arg(_, _, _) => replaceme,
         ElementInfo::Constant(_, _) => replaceme,
         ElementInfo::ConstantRef(_, _, _) => replaceme,
@@ -81,6 +83,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::Int(_), _)) => replaceme,
         Some((ElementInfo::Float(_), _)) => replaceme,
         Some((ElementInfo::String(_), _)) => replaceme,
+        Some((ElementInfo::Bool(_), _)) => replaceme,
         Some((ElementInfo::Arg(_, _, _), _)) => replaceme,
         Some((ElementInfo::Constant(_, _), _)) => replaceme,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
@@ -282,6 +285,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Int(_) => (),
             ElementInfo::Float(_) => (),
             ElementInfo::String(_) => (),
+            ElementInfo::Bool(_) => (),
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
@@ -337,6 +341,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Int(_) => (),
         ElementInfo::Float(_) => (),
         ElementInfo::String(_) => (),
+        ElementInfo::Bool(_) => (),
         ElementInfo::Assignment => (),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),
@@ -492,6 +497,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Int(_) => "i64".to_string(),
         ElementInfo::Float(_) => "f64".to_string(),
         ElementInfo::String(_) => "String".to_string(),
+        ElementInfo::Bool(_) => "bool".to_string(),
         ElementInfo::Assignment => undefined,
         ElementInfo::Constant(_, returntype) => returntype.clone(),
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
@@ -654,6 +660,7 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::Int(int) => format!("Int: {}", int),
             ElementInfo::Float(float) => format!("Float: {}", float),
             ElementInfo::String(string) => format!("String: {}", string),
+            ElementInfo::Bool(boolean) => format!("Bool: {}", boolean),
             ElementInfo::Arg(name, scope, returntype) => {
                 format!("Arg: {} scope:{} ({})", name, scope, returntype)
             }

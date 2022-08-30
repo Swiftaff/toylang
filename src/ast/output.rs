@@ -91,6 +91,7 @@ pub fn get_output_for_element_index(
             Some((ElementInfo::Int(_), _)) => (),
             Some((ElementInfo::Float(_), _)) => (),
             Some((ElementInfo::String(_), _)) => (),
+            Some((ElementInfo::Bool(_), _)) => (),
             Some((ElementInfo::Arg(_, _, _), _)) => (),
             Some((ElementInfo::Constant(_, _), _)) => (),
             Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
@@ -116,6 +117,7 @@ pub fn get_output_for_element_index(
         ElementInfo::Int(val) => format!("{}", val),
         ElementInfo::Float(val) => format!("{}", val),
         ElementInfo::String(val) => format!("{}.to_string()", val),
+        ElementInfo::Bool(val) => format!("{}.to_string()", val),
         ElementInfo::Arg(name, _scope, _returntype) => format!("{}", name).to_string(),
         ElementInfo::Constant(name, _returntype) => format!("{}", name).to_string(),
         ElementInfo::ConstantRef(name, _typename, _reference) => {

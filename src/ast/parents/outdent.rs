@@ -46,6 +46,11 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                     outdent(compiler);
                     outdent(compiler);
                 }
+                ElementInfo::Bool(_) => {
+                    //dbg!("FunctionDef outdent Bool", &self.ast.parents,);
+                    outdent(compiler);
+                    outdent(compiler);
+                }
                 ElementInfo::Arg(_, _, _) => {
                     //TODO
                 }
