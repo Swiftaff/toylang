@@ -21,16 +21,21 @@ cargo build --release
 
 ## Usage
 
-Create a file e.g. `test.toy` containing the toy language in the same directory (or elsewhere). Pass the filepath to the exe to compile it:
+Create a file e.g. `test.toy` containing the toy language in the same directory (or elsewhere).
+
+Pass the required input filepath using the input arg (-i or --input)
+
+Pass the optional output directory using the output arg (-o or --output). Otherwise by default `output.rs` is saved into the current directory.
+For development you may wish to output to `src/bin` by convention to make use of `cargo run --bin output` below.
 
 ```
-toylang test.toy
+toylang -i test.toy
 ```
 
 or
 
 ```
-toylang.exe ../../somewhere/else/test.toy
+toylang.exe --input ../../somewhere/else/test.toy --output src/bin
 ```
 
 Compile errors will appear in the console.
@@ -46,10 +51,9 @@ TOYLANG COMPILE ERROR:
 ----------
 ```
 
-Or on success a compiled file will be saved.
-By default we assume the toylang.exe is in the `/target/debug` or /`target/release` directory, so it will save the output into `../../src/bin/output.rs`
+Or on success a compiled `output.rs` file will be saved to the output directory.
 
-You can then build THAT file with cargo as needed, i.e. add this to the "Cargo.toml"
+You can then build THAT file with cargo as needed, i.e. output to `src/bin` and add this to the "Cargo.toml"
 
 ```
 [[bin]]
@@ -68,7 +72,7 @@ or
 cargo run --release --bin output
 ```
 
-And your final compiled `output.exe` will be run from `/target/debug` or `/target/release`
+And your final compiled `output.exe` will be saved to, and run from `/target/debug` or `/target/release`
 
 ## Toy language Syntax Examples
 

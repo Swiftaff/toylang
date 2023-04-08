@@ -1,18 +1,31 @@
+//= fibonacci \ i64 i64 n => ? == n 1 1 + fibonacci - n 1 fibonacci - n 2
+
+//fibonacci 1
+//fibonacci 11
+
 = a ? true "true" "false"
 @ a
 
-= is_true true
-= b ? is_true "true" "false"
+//= is_true true
+//= b ? is_true "true" "false"
+//@ b
 
-= get_true \ bool => true
-= c ? get_true "true" "false"
+//= get_true \ bool => true
+//= c ? get_true "true" "false"
+//@ c
 
 //= get_truer \ i64 bool arg1 => > arg1 5
 //= d ? get_truer 10 "true" "false"
+//@ d
 
 //= get_more_true \ i64 i64 i64 bool arg1 arg2 arg3 => < + arg1 + arg2 arg3 10
 //= e ? get_more_true 1 2 3 "true" "false"
+//@ e
 
-//@ b
-//@ c
-//@ d
+// fix outdents again??
+//87: If (undefined) [ 88, ]
+//88: FunctionCall: get_truer (bool) [ 89, ]
+//89: Int: 10 [ ]
+//90: String: "true" [ ]
+//91: String: "false" [ ]
+//92: Seol [ ]

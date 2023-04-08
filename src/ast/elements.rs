@@ -789,6 +789,9 @@ mod tests {
         fn mock_compiler() -> Compiler {
             Compiler {
                 file: File::new(),
+                debug: false,
+                filepath: "".to_string(),
+                outputdir: "".to_string(),
                 lines_of_chars: vec![],
                 lines_of_tokens: vec![],
                 output: "".to_string(),

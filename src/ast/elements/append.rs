@@ -126,6 +126,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
                 outdent::within_fndef_from_return_expression(compiler);
             }
             ElementInfo::FunctionCall(name, _) => {
+                //dbg!("here2");
                 outdent::fncall(compiler, current_parent, name);
             }
             ElementInfo::If(_) => {

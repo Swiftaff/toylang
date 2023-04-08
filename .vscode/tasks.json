@@ -38,25 +38,25 @@
 
 		{
 			"type": "process",
-			"command":"target/debug/toylang.exe",
+			"command":"target\\debug\\toylang.exe",
 			"args":[
-				"src/test.toy"
+				"-i", "src\\test.toy", "-o", "src\\bin", "-d"
 			],
-			"label": "3.1 run dev toylang on src/test.toy",
+			"label": "3.1 run dev toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
-			"command":"target/release/toylang.exe",
+			"command":"target\\release\\toylang.exe",
 			"args":[
 				"src/test.toy"
 			],
-			"label": "3.2 run release toylang on src/test.toy",
+			"label": "3.2 run release toylang on src\\test.toy",
 		},
 
 
 		{
 			"type": "process",
-			"command":"target/debug/toylang.exe",
+			"command":"target\\debug\\toylang.exe",
 			"args":[
 				"--bin", "output"
 			],
@@ -64,7 +64,7 @@
 		},
 		{
 			"type": "process",
-			"command":"target/debug/toylang.exe",
+			"command":"target\\debug\\toylang.exe",
 			"args":[
 				" --release","--bin", "output"
 			],

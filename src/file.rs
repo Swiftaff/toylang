@@ -1,3 +1,4 @@
+use std::env;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -17,8 +18,7 @@ impl File {
         }
     }
 
-    pub fn get(self: &mut Self, args: &[String]) -> Result<(), Box<dyn Error>> {
-        let filepath = &args[1];
+    pub fn get(self: &mut Self, filepath: &str) -> Result<(), Box<dyn Error>> {
         let filename = Path::new(&filepath)
             .file_name()
             .unwrap()
@@ -26,9 +26,9 @@ impl File {
             .unwrap()
             .to_string();
         let filecontents = fs::read_to_string(&filepath)?;
-        println!("\r\nINPUT contents of filepath: {:?}", &filepath);
+        println!("INPUT:  {:?}", &filepath);
         self.filename = filename;
-        self.filepath = filepath.clone();
+        self.filepath = filepath.to_string().clone();
         self.filecontents = filecontents;
         Ok(())
     }
@@ -36,13 +36,16 @@ impl File {
     pub fn writefile_or_error(
         self: &Self,
         output: &String,
+        outputdir: &String,
         is_error: bool,
     ) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
         if is_error {
             println!("DIDN'T SAVE");
         } else {
-            fs::write("../../src/bin/output.rs", output)?;
-            println!("SAVED to '../../src/bin/output.rs'");
+            let current_dir = env::current_dir().unwrap();
+            let final_path = current_dir.join(outputdir).join("output.rs");
+            fs::write(&final_path, output)?;
+            println!("SAVED to {:?}", final_path);
         }
         Ok(())
     }

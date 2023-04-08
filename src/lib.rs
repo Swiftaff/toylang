@@ -16,6 +16,9 @@ type ErrorStack = Vec<String>;
 #[derive(Clone, Debug)]
 pub struct Compiler {
     pub file: File,
+    pub debug: bool,
+    pub filepath: String,
+    pub outputdir: String,
     pub lines_of_chars: Vec<Vec<char>>,
     pub lines_of_tokens: Vec<Tokens>,
     pub output: String,
@@ -26,9 +29,18 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(args: &[String]) -> Result<Compiler, String> {
-        if args.len() < 2 {
-            return Err("missing filepath argument".to_string());
+    pub fn new(
+        filepath: String,
+        debug: bool,
+        option_outputdir: Option<String>,
+    ) -> Result<Compiler, String> {
+        println!("\r\nOUTPUT: {:?}", &option_outputdir);
+        if debug {
+            println!("DEBUG:  true");
+        }
+        let mut outputdir = "".to_string();
+        if let Some(outputdir_found) = option_outputdir {
+            outputdir = outputdir_found;
         }
         let file = File::new();
         let lines_of_chars = vec![];
@@ -40,6 +52,9 @@ impl Compiler {
         let ast = Ast::new();
         Ok(Compiler {
             file,
+            debug,
+            filepath,
+            outputdir,
             lines_of_chars,
             lines_of_tokens,
             output,
@@ -50,15 +65,18 @@ impl Compiler {
         })
     }
 
-    pub fn run(self: &mut Self, args: &[String]) -> Result<(), Box<dyn Error>> {
-        self.file.get(args)?;
+    pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
+        self.file.get(&self.filepath)?;
         //dbg!(&self.file);
         match self.run_main_tasks() {
             Ok(_) => (),
             Err(_e) => (),
         }
-        self.file
-            .writefile_or_error(&self.ast.output, self.error_stack.len() > 0)
+        self.file.writefile_or_error(
+            &self.ast.output,
+            &self.outputdir,
+            self.error_stack.len() > 0,
+        )
     }
 
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
@@ -84,7 +102,9 @@ impl Compiler {
                 } else {
                     output::set_output(self);
                     println!("\r\nToylang compiled successfully:\r\n----------\r\n");
-                    println!("{:?}\r\n----------\r\n", self.ast);
+                    if self.debug {
+                        println!("{:?}\r\n----------\r\n", self.ast);
+                    }
                 }
             }
             Err(_e) => {
@@ -212,6 +232,9 @@ impl Compiler {
 pub fn mock_compiler() -> Compiler {
     Compiler {
         file: File::new(),
+        debug: false,
+        filepath: "".to_string(),
+        outputdir: "".to_string(),
         lines_of_chars: vec![],
         lines_of_tokens: vec![],
         output: "".to_string(),
