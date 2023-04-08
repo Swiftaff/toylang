@@ -7,7 +7,7 @@ See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylan
 
 ## Build
 
-Builds the `'/src/main.rs` into an executable at `/target/debug/toylang.exe` or `/target/release/toylang.exe`
+Builds the `/src/main.rs` into an executable at `/target/debug/toylang.exe` or `/target/release/toylang.exe`
 
 ```
 cargo build
@@ -26,7 +26,7 @@ Create a file e.g. `test.toy` containing the toy language in the same directory 
 Pass the required input filepath using the input arg (-i or --input)
 
 Pass the optional output directory using the output arg (-o or --output). Otherwise by default `output.rs` is saved into the current directory.
-For development you may wish to output to `src/bin` by convention to make use of `cargo run --bin output` below.
+For development you may wish to output to `src\\bin` by convention to make use of `cargo run --bin output` below.
 
 ```
 toylang -i test.toy
@@ -35,7 +35,7 @@ toylang -i test.toy
 or
 
 ```
-toylang.exe --input ../../somewhere/else/test.toy --output src/bin
+toylang.exe --input ..\\..\\somewhere\\else\\test.toy --output src\\bin
 ```
 
 Compile errors will appear in the console.
@@ -53,7 +53,7 @@ TOYLANG COMPILE ERROR:
 
 Or on success a compiled `output.rs` file will be saved to the output directory.
 
-You can then build THAT file with cargo as needed, i.e. output to `src/bin` and add this to the "Cargo.toml"
+You can then build THAT file with cargo as needed, i.e. output to `src\\bin` and add this to the "Cargo.toml"
 
 ```
 [[bin]]
@@ -72,7 +72,7 @@ or
 cargo run --release --bin output
 ```
 
-And your final compiled `output.exe` will be saved to, and run from `/target/debug` or `/target/release`
+And your final compiled `output.exe` will be saved to, and run from `\\target\\debug` or `\\target\\release`
 
 ## Toy language Syntax Examples
 
@@ -81,11 +81,11 @@ And your final compiled `output.exe` will be saved to, and run from `/target/deb
 <table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
 
 ```
+
 // print
 @ "Hello, world!"
 @ 1
 @ 1.23
-
 
 ```
 
@@ -139,19 +139,19 @@ fn main() {
 = c ? < 1 2 "true" "false"
 
 = get_true \ bool => true
+
+
 = d ? get_true "true" "false"
 
-
-
-
 = get_truer \ i64 bool arg1 => > arg1 5
-= e ? get_truer 10 "true" "false"
 
+
+= e ? get_truer 10 "true" "false"
 
 = get_more_true \ i64 i64 i64 bool arg1 arg2 arg3 =>
   < + arg1 + arg2 arg3 10
-= f ? get_more_true 1 2 3 "true" "false"
 
+= f ? get_more_true 1 2 3 "true" "false"
 
 ```
 
@@ -221,6 +221,7 @@ fn main() {
 //                 \       \_ argument names
 //                  \_argument types, return type last
 
+
 // multi line functions
 // two i64 arguments, returns i64
 = multiline_fn_name \ i64 i64 i64 arg1 arg2 =>
@@ -247,6 +248,7 @@ z
 // arg1 with arg2 as the parameter
 arg1 arg2
 
+
 // function calls
 function_name 123
 multiline_fn_name + 123 456 789
@@ -268,6 +270,7 @@ fn main() {
 
 
 
+
     // multi line functions
     // two i64 arguments, returns i64
     fn multiline_fn_name(arg1: i64, arg2: i64) -> i64 {
@@ -281,27 +284,28 @@ fn main() {
         z
     }
 
-    // use parenthesis to pass a function as an argument - becomes a &dyn Fn
+    // use parenthesis to pass a function
+    // as an argument - becomes a &dyn Fn
+    // first argument in parenthesis defines
+    // a single argument which is a function
+    // which takes an i64 and returns an i64
+    // second argument is an i64
+    // and function returns an i64
     fn take_fn_as_first_parameter(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {
+
+        // then the function body calls the
+        // arg1 with arg2 as the parameter
         arg1(arg2)
     }
-
-
-
-
-
-
-
-
 
     // function calls
     function_name(123);
     multiline_fn_name(123 + 456, 789);
+
+    // also when passing a function as a parameter
+    // must wrap it in parenthesis so it doesn't evaluate
     take_fn_as_first_parameter(&function_name, 321);
 }
-
-
-
 ```
 
 </td></tr></table>
@@ -328,9 +332,9 @@ fn main() {
 // map
 = list [ 1 ]
 = mapfn \ i64 i64 i => * i 100
+
+
 = mapped List.map list ( mapfn )
-
-
 
 // append
 = list1 [ 1 ]
