@@ -221,7 +221,6 @@ fn main() {
 //                 \       \_ argument names
 //                  \_argument types, return type last
 
-
 // multi line functions
 // two i64 arguments, returns i64
 = multiline_fn_name \ i64 i64 i64 arg1 arg2 =>
@@ -247,6 +246,7 @@ z
 // then the function body calls the
 // arg1 with arg2 as the parameter
 arg1 arg2
+
 
 
 // function calls
