@@ -352,14 +352,4 @@ mod tests {
         elements::append::append(&mut ast, el8);
         assert!(true);
     }
-
-    // cargo watch -x "test"
-    // cargo watch -x "test test_run"
-    // cargo watch -x "test test_run_passes"
-    // cargo watch -x "test test_run -- --show-output"
-    // cargo watch -x "test test_is_float -- --show-output"
-
-    // cd target/debug
-    // cargo build
-    // toylang ../../src/test.toy
 }

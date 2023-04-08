@@ -17,10 +17,6 @@ pub fn get_formatted_argname_argtype_pairs(
 #[cfg(test)]
 mod tests {
 
-    // cargo watch -x "test test_get_depths_vec"
-    // cargo watch -x "test test_get_depths_vec -- --show-output"
-    // cargo test test_get_depths_vec -- --show-output
-
     use super::*;
 
     #[test]

@@ -712,10 +712,6 @@ impl fmt::Debug for ElementInfo {
 #[cfg(test)]
 mod tests {
 
-    // cargo watch -x "test test_get_depths_vec"
-    // cargo watch -x "test test_get_depths_vec -- --show-output"
-    // cargo test test_get_depths_vec -- --show-output
-
     use super::*;
     use crate::ast::output;
     use crate::Ast;
