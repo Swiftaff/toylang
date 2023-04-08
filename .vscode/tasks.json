@@ -3,6 +3,12 @@
 	"tasks": [
 		{
 			"type": "cargo",
+			"command":"test",
+			"args":[],
+			"label": "1.1 test",
+		},
+		{
+			"type": "cargo",
 			"command": "test",
 			"args":[
 				"test_run_passes", "--no-run"
@@ -10,8 +16,59 @@
 			"problemMatcher": [
 				"$rustc"
 			],
-			"group": "test",
-			"label": "rust: cargo test test_run_passes"
+			"label": "1.2 test test_run_passes"
+		},
+
+		
+		{
+			"type": "cargo",
+			"command": "build",
+			"args":[],
+			"label": "2.1 build dev toylang",
+		},
+		{
+			"type": "cargo",
+			"command": "build",
+			"args":[
+				"--release"
+			],
+			"label": "2.2 build release toylang",
+		},
+
+
+		{
+			"type": "process",
+			"command":"target/debug/toylang.exe",
+			"args":[
+				"src/test.toy"
+			],
+			"label": "3.1 run dev toylang on src/test.toy",
+		},
+		{
+			"type": "process",
+			"command":"target/release/toylang.exe",
+			"args":[
+				"src/test.toy"
+			],
+			"label": "3.2 run release toylang on src/test.toy",
+		},
+
+
+		{
+			"type": "process",
+			"command":"target/debug/toylang.exe",
+			"args":[
+				"--bin", "output"
+			],
+			"label": "4.1 run dev compiled output.exe",
+		},
+		{
+			"type": "process",
+			"command":"target/debug/toylang.exe",
+			"args":[
+				" --release","--bin", "output"
+			],
+			"label": "4.2 run release compiled output.exe",
 		}
 	]
 }
