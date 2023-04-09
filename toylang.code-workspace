@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "..\\toylang-vscode"
+		},
+		{
+			"path": "..\\toylang-vscode-ref"
+		},
+		{
+			"path": "..\\lsp-sample"
+		}
+	],
+	"settings": {}
+}

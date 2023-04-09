@@ -1,5 +1,8 @@
 // TODO make most function arguments refs
 mod ast;
+pub mod compiler_runner;
+pub mod debug_window;
+//mod debug_window_derive;
 mod errors;
 mod file;
 mod formatting;
@@ -37,7 +40,11 @@ impl Compiler {
         println!("\r\nOUTPUT: {:?}", &option_outputdir);
         if debug {
             println!("DEBUG:  true");
+            //let ui = debug_window::run();
+            //println!("1");
+            //ui.win_title("testy2");
         }
+        //println!("2");
         let mut outputdir = "".to_string();
         if let Some(outputdir_found) = option_outputdir {
             outputdir = outputdir_found;

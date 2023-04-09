@@ -8,6 +8,8 @@ default-run = "toylang"
 
 [dependencies]
 clap = { version = "4.2.1", features = ["derive"] }
+native-windows-gui = "1.0.12"
+native-windows-derive = "1.0.3"
 
 [[bin]]
 name = "toylang"
@@ -15,3 +17,6 @@ path = "src/main.rs"
 
 [[bin]]
 name = "output"
+
+[[bin]]
+name = "testy"
