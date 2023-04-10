@@ -4,10 +4,13 @@
 */
 
 extern crate native_windows_gui as nwg;
-use crate::compiler_runner;
+
 use nwg::NativeUi;
 use std::cell::RefCell;
 use std::rc::Rc;
+
+use crate::Compiler;
+use std::process;
 
 #[derive(Default)]
 pub struct BasicApp {
@@ -15,11 +18,16 @@ pub struct BasicApp {
     layout: nwg::GridLayout,
     pub name_edit: nwg::TextInput,
     hello_button: nwg::Button,
+    label: nwg::Label,
 }
 
 impl BasicApp {
     pub fn win_title(&self, txt: &str) {
         self.window.set_text(txt);
+    }
+
+    pub fn change_step(&self, txt: &str) {
+        self.label.set_text(txt);
     }
 
     pub fn say_hello(&self, txt: &str) {
@@ -31,11 +39,13 @@ impl BasicApp {
     }
 
     fn say_goodbye(&self) {
+        /*
         nwg::modal_info_message(
             &self.window,
             "Goodbye",
             &format!("Goodbye {}", self.name_edit.text()),
         );
+        */
         nwg::stop_thread_dispatch();
     }
 }
@@ -51,6 +61,7 @@ pub struct BasicAppUi {
 mod basic_app_ui {
     use super::*;
     use native_windows_gui as nwg;
+    use nwg::LabelFlags;
 
     use std::ops::Deref;
 
@@ -73,9 +84,15 @@ mod basic_app_ui {
                 .build(&mut data.name_edit)?;
 
             nwg::Button::builder()
-                .text("Say my name")
+                .text("Next step")
                 .parent(&data.window)
                 .build(&mut data.hello_button)?;
+
+            nwg::Label::builder()
+                .text("start")
+                .parent(&data.window)
+                .flags(nwg::LabelFlags::NONE)
+                .build(&mut data.label)?;
 
             // Wrap-up
             let ui = BasicAppUi {
@@ -90,7 +107,7 @@ mod basic_app_ui {
                     match evt {
                         E::OnButtonClick => {
                             if &handle == &ui.hello_button {
-                                BasicApp::say_hello(&ui, "testy1");
+                                BasicApp::change_step(&ui, "run_main_tasks");
                             }
                         }
                         E::OnWindowClose => {
@@ -142,12 +159,21 @@ mod basic_app_ui {
 pub fn run(input: String, debug: bool, output: Option<String>) {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    let _ui = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
-    compiler_runner::main(input, debug, output);
-    let mut count = 1;
+    let ui = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
+
+    let mut compiler = Compiler::new(input, debug, output).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+    println!("compiler {:?}", compiler);
+
+    let mut step = "".to_string();
     nwg::dispatch_thread_events_with_callback(move || {
-        count = count + 1;
-        println!("test {}", count)
+        step = ui.label.text();
+        let _result = compiler.debug_step(&step);
+        if step == "start" {
+            ui.label.set_text("stop");
+        }
     });
 
     //

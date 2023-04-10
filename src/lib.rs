@@ -1,8 +1,7 @@
 // TODO make most function arguments refs
 mod ast;
 pub mod compiler_runner;
-pub mod debug_window;
-//mod debug_window_derive;
+pub mod debug_window_derive;
 mod errors;
 mod file;
 mod formatting;
@@ -20,6 +19,7 @@ type ErrorStack = Vec<String>;
 pub struct Compiler {
     pub file: File,
     pub debug: bool,
+    pub debug_step: String,
     pub filepath: String,
     pub outputdir: String,
     pub lines_of_chars: Vec<Vec<char>>,
@@ -44,6 +44,7 @@ impl Compiler {
             //println!("1");
             //ui.win_title("testy2");
         }
+        let debug_step = "".to_string();
         //println!("2");
         let mut outputdir = "".to_string();
         if let Some(outputdir_found) = option_outputdir {
@@ -60,6 +61,7 @@ impl Compiler {
         Ok(Compiler {
             file,
             debug,
+            debug_step,
             filepath,
             outputdir,
             lines_of_chars,
@@ -84,6 +86,53 @@ impl Compiler {
             &self.outputdir,
             self.error_stack.len() > 0,
         )
+    }
+
+    pub fn rem_first_and_last(self: &Self, value: &str) -> String {
+        let mut chars = value.chars();
+        chars.next();
+        chars.next_back();
+        chars.as_str().to_string()
+    }
+
+    pub fn debug_step(self: &mut Self, step: &str) -> String {
+        self.debug_step = step.to_string();
+        if self.debug_step == "0. get file".to_string() {
+            if self.file.filepath == "".to_string() {
+                println!("0. get file {}", self.filepath);
+                match self.file.get(&self.filepath) {
+                    Ok(_) => {
+                        return format!(
+                            "0. get file: {}\r\n\r\nContents:\r\n{}\r\n\r\nAST:\r\n{:?}",
+                            self.filepath,
+                            self.rem_first_and_last(&self.file.filecontents),
+                            self.ast,
+                        )
+                    }
+                    Err(_e) => return "0. get file error".to_string(),
+                };
+            }
+        }
+        if self.debug_step == "run_main_tasks".to_string() {
+            println!("1. run_main_tasks");
+            match self.run_main_tasks() {
+                Ok(_) => return "run_main_tasks_result".to_string(),
+                Err(_e) => return "run_main_tasks_error".to_string(),
+            };
+        }
+        if self.debug_step == "writefile_or_error".to_string() {
+            println!("2. writefile_or_error");
+            match self.file.writefile_or_error(
+                &self.ast.output,
+                &self.outputdir,
+                self.error_stack.len() > 0,
+            ) {
+                Ok(_) => return "writefile_or_error_result".to_string(),
+                Err(_e) => return "writefile_or_error_error".to_string(),
+            };
+        } else {
+            "No action".to_string()
+        }
     }
 
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {

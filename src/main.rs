@@ -3,7 +3,7 @@
 
 use clap::Parser;
 use toylang::compiler_runner;
-use toylang::debug_window;
+use toylang::debug_window_derive;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -27,7 +27,7 @@ fn main() {
     let debug = cli.debug;
     let output = cli.output;
     if debug {
-        debug_window::run(input, debug, output);
+        debug_window_derive::run(input, debug, output);
     } else {
         compiler_runner::main(input, debug, output);
     }
