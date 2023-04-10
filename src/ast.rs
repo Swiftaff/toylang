@@ -15,25 +15,34 @@ pub struct Ast {
     pub parents: Vec<ElIndex>,
 }
 
-impl Ast {
-    pub fn new() -> Ast {
-        let root = vec![(ElementInfo::Root, vec![])];
-        let elements: Elements = vec![]
-            .iter()
-            .chain(&root)
-            .chain(&get_initial_types())
-            .chain(&get_initial_arithmetic_operators())
-            .chain(&get_list_functions())
-            .chain(&get_booleans())
-            .chain(&get_boolean_fns())
-            .cloned()
-            .collect();
+impl Default for Ast {
+    fn default() -> Self {
         Ast {
-            elements,
+            elements: get_elements(),
             output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
         }
     }
+}
+
+impl Ast {
+    pub fn new() -> Ast {
+        Ast::default()
+    }
+}
+
+fn get_elements() -> Vec<(ElementInfo, Vec<usize>)> {
+    let root = vec![(ElementInfo::Root, vec![])];
+    vec![]
+        .iter()
+        .chain(&root)
+        .chain(&get_initial_types())
+        .chain(&get_initial_arithmetic_operators())
+        .chain(&get_list_functions())
+        .chain(&get_booleans())
+        .chain(&get_boolean_fns())
+        .cloned()
+        .collect()
 }
 
 fn debug_flat_usize_array(arr: &Vec<usize>) -> String {

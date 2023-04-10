@@ -16,7 +16,7 @@ use std::error::Error;
 pub type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Compiler {
     pub file: File,
     pub debug: bool,
@@ -233,22 +233,6 @@ impl Compiler {
             self.lines_of_tokens.push(line_of_tokens);
         }
         //dbg!(&self.lines_of_tokens);
-    }
-}
-
-pub fn mock_compiler() -> Compiler {
-    Compiler {
-        file: File::new(),
-        debug: false,
-        filepath: "".to_string(),
-        outputdir: "".to_string(),
-        lines_of_chars: vec![],
-        lines_of_tokens: vec![],
-        output: "".to_string(),
-        current_line: 0,
-        current_line_token: 0,
-        error_stack: vec![],
-        ast: Ast::new(),
     }
 }
 

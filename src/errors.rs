@@ -901,7 +901,7 @@ mod tests {
         for test in tests {
             let input = &test[1];
             let error = &test[0];
-            let mut c = crate::mock_compiler();
+            let mut c: Compiler = Default::default();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {

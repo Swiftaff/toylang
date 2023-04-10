@@ -716,7 +716,7 @@ mod tests {
     use crate::ast::output;
     use crate::Ast;
     use crate::Compiler;
-    use crate::File;
+    //use crate::File;
 
     #[test]
     fn test_get_depths_vec() {
@@ -782,22 +782,7 @@ mod tests {
 
         //10 el in nested structure above
 
-        fn mock_compiler() -> Compiler {
-            Compiler {
-                file: File::new(),
-                debug: false,
-                filepath: "".to_string(),
-                outputdir: "".to_string(),
-                lines_of_chars: vec![],
-                lines_of_tokens: vec![],
-                output: "".to_string(),
-                current_line: 0,
-                current_line_token: 0,
-                error_stack: vec![],
-                ast: Ast::new(),
-            }
-        }
-        let mut c = mock_compiler();
+        let mut c: Compiler = Default::default();
         n = c.ast.elements.len();
         let el41: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el42: Element = (ElementInfo::Int("1".to_string()), vec![]);

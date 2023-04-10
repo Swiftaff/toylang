@@ -661,12 +661,13 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::Compiler;
 
     fn test_pass_scenario(tests: Vec<Vec<&str>>) {
         for test in tests {
             let input = &test[0];
             let output = &test[1];
-            let mut c = crate::mock_compiler();
+            let mut c: Compiler = Default::default();
             c.file.filecontents = input.to_string();
             match c.run_main_tasks() {
                 Ok(_) => {
