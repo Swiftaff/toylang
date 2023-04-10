@@ -9,8 +9,8 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
 
-use crate::Compiler;
-use crate::DebugLinesOfChars;
+use crate::file::DebugFileContents;
+use crate::{Compiler, DebugLinesOfChars, DebugLinesOfTokens};
 use std::process;
 
 #[derive(Default, NwgUi)]
@@ -45,17 +45,22 @@ pub struct BasicApp {
 
     // Row 1
     #[nwg_control(text: "0. get file")]
-    #[nwg_layout_item(layout: grid, row: 1, col: 0)]
+    #[nwg_layout_item(layout: grid, row: 1, col: 0, col_span: 2)]
     #[nwg_events( OnButtonClick: [BasicApp::change_step_0_get_file] )]
     button0: nwg::Button,
 
     #[nwg_control(text: "1. set_lines_of_chars")]
-    #[nwg_layout_item(layout: grid, row: 1, col: 1)]
+    #[nwg_layout_item(layout: grid, row: 1, col: 2, col_span: 2)]
     #[nwg_events( OnButtonClick: [BasicApp::change_step_1_set_lines_of_chars] )]
     button1: nwg::Button,
 
+    #[nwg_control(text: "2. set_lines_of_tokens")]
+    #[nwg_layout_item(layout: grid, row: 1, col: 4, col_span: 2)]
+    #[nwg_events( OnButtonClick: [BasicApp::change_step_2_set_lines_of_tokens] )]
+    button2: nwg::Button,
+
     #[nwg_control(text: "stop")]
-    #[nwg_layout_item(layout: grid, row: 1, col: 2)]
+    #[nwg_layout_item(layout: grid, row: 1, col: 6, col_span: 2)]
     #[nwg_events( OnButtonClick: [BasicApp::change_step_stop] )]
     stop_button: nwg::Button,
 
@@ -71,6 +76,10 @@ pub struct BasicApp {
     #[nwg_control(text: "",)]
     #[nwg_layout_item(layout: grid, row: 2, col: 10, row_span: 10, col_span: 5)]
     rich_text_loc: nwg::RichTextBox,
+
+    #[nwg_control(text: "",)]
+    #[nwg_layout_item(layout: grid, row: 2, col: 15, row_span: 10, col_span: 5)]
+    rich_text_lot: nwg::RichTextBox,
 }
 
 impl BasicApp {
@@ -82,13 +91,17 @@ impl BasicApp {
         self.label.set_text("1. set_lines_of_chars");
     }
 
+    pub fn change_step_2_set_lines_of_tokens(&self) {
+        self.label.set_text("2. set_lines_of_tokens");
+    }
+
     pub fn change_step_stop(&self) {
         self.label.set_text("stop");
     }
 
     pub fn rich_text_input_init(&self) {
-        let heading = "Test heading\r\n";
-        let text = "Example paragraph text";
+        let heading = "Toylang compiler Debugger\r\n";
+        let text = "\r\nHow to use:\r\n\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler's\r\ninternal data structures as it\r\nprocesses your input filepath.";
         let all_text = [heading, text].join("");
         self.rich_text_input.set_text(&all_text);
 
@@ -148,15 +161,23 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
         step = ui.label.text();
         let _result = compiler.debug_step(&step);
         if step == "0. get file" {
-            let txt_input = compiler.rem_first_and_last(&compiler.file.filecontents);
+            let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
+            let txt_input = format!("{:?}", txt_input_debug);
             let txt_ast = format!("{:?}", compiler.ast,);
             ui.rich_text_control_set_text(&ui.rich_text_input, &txt_input);
             ui.rich_text_control_set_text(&ui.rich_text_ast, &txt_ast);
             ui.label.set_text("stop");
         }
+
         if step == "1. set_lines_of_chars" {
             let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
             ui.rich_text_control_set_text(&ui.rich_text_loc, &txt_loc);
+            ui.label.set_text("stop");
+        }
+
+        if step == "2. set_lines_of_tokens" {
+            let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
+            ui.rich_text_control_set_text(&ui.rich_text_lot, &txt_lot);
             ui.label.set_text("stop");
         }
     });

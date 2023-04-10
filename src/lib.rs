@@ -15,8 +15,8 @@ use std::fmt;
 
 pub type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
-
 type LinesOfChars = Vec<Vec<char>>;
+type LinesOfTokens = Vec<Tokens>;
 
 pub struct DebugLinesOfChars<'a>(&'a LinesOfChars);
 
@@ -25,9 +25,22 @@ impl<'a> fmt::Debug for DebugLinesOfChars<'a> {
         let mut debug = "".to_string();
         for el in 0..self.0.len() {
             let el_debug = format!("{:?}", self.0[el]);
-            debug = format!("{}\r\n  {},", debug, el_debug);
+            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
         }
         write!(f, "Custom Debug of LinesOfChars [{}\r\n]", debug)
+    }
+}
+
+pub struct DebugLinesOfTokens<'a>(&'a LinesOfTokens);
+
+impl<'a> fmt::Debug for DebugLinesOfTokens<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = "".to_string();
+        for el in 0..self.0.len() {
+            let el_debug = format!("{:?}", self.0[el]);
+            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
+        }
+        write!(f, "Custom Debug of LinesOfTokens [{}\r\n]", debug)
     }
 }
 
@@ -115,16 +128,19 @@ impl Compiler {
         self.debug_step = step.to_string();
         if self.debug_step == "0. get file".to_string() {
             if self.file.filepath == "".to_string() {
-                println!("0. get file {}", self.filepath);
-                match self.file.get(&self.filepath) {
-                    Ok(_) => (),
-                    Err(_e) => (),
-                };
+                println!("{}", &self.debug_step);
+                let _result = self.file.get(&self.filepath);
             }
         }
+
         if self.debug_step == "1. set_lines_of_chars".to_string() {
-            println!("1. run_main_tasks");
+            println!("{}", &self.debug_step);
             self.set_lines_of_chars();
+        }
+
+        if self.debug_step == "2. set_lines_of_tokens".to_string() {
+            println!("{}", &self.debug_step);
+            self.set_lines_of_tokens();
         }
 
         if self.debug_step == "run_main_tasks".to_string() {
@@ -145,8 +161,6 @@ impl Compiler {
                 Ok(_) => (),
                 Err(_e) => (),
             };
-        } else {
-            ()
         }
     }
 

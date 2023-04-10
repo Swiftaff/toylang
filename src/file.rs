@@ -1,14 +1,32 @@
 use std::env;
 use std::error::Error;
+use std::fmt;
 use std::fs;
 use std::path::Path;
+
+type FileContents = String;
 
 #[derive(Clone, Debug, Default)]
 pub struct File {
     pub filepath: String,
     pub filename: String,
-    pub filecontents: String,
+    pub filecontents: FileContents,
 }
+
+pub struct DebugFileContents<'a>(pub &'a FileContents);
+
+impl<'a> fmt::Debug for DebugFileContents<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = "".to_string();
+        let vec = self.0.split("\r\n");
+        for (el, i) in vec.enumerate() {
+            let el_debug = format!("{}: {:?}", i, el);
+            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
+        }
+        write!(f, "Custom Debug of FileContents{}\r\n", debug)
+    }
+}
+
 impl File {
     pub fn new() -> File {
         File {
