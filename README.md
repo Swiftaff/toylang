@@ -1,7 +1,7 @@
 <img align="left" width="80" alt="Toylang" src="./icon.png">
 <h1>Toylang</h1>
 
-A toy language which compiles to rust for fun and experimentation.
+A toy language which compiles to rust for fun and experimentation (Windows only for now)
 
 See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
 
@@ -73,6 +73,16 @@ cargo run --release --bin output
 ```
 
 And your final compiled `output.exe` will be saved to, and run from `\\target\\debug` or `\\target\\release`
+
+## Debugger
+
+Pass the debug flag (-d or --debug) to open an interactive debugger which steps through the state of the Compiler's AST to troublshoot compilation errors.
+
+```
+toylang -i test.toy -d
+```
+
+![Interactive Debugger](interactive-debugger.gif)
 
 ## Toy language Syntax Examples
 

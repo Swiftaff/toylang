@@ -23,7 +23,7 @@ pub struct ToylangDebugger {
     #[nwg_resource(source_file: Some("src/icon_200.ico"))]
     icon_200: nwg::Icon,
 
-    #[nwg_control(size: (1918, 800), position: (1912, 0), title: APP_NAME, flags: "WINDOW|VISIBLE", icon: Some(&data.icon_200))]
+    #[nwg_control(size: (1910, 800), position: (1912, 0), title: APP_NAME, flags: "WINDOW|VISIBLE", icon: Some(&data.icon_200))]
     #[nwg_events( OnWindowClose: [ToylangDebugger::close], OnInit: [ToylangDebugger::rich_text_input_init] )]
     window: nwg::Window,
 
@@ -182,8 +182,8 @@ impl ToylangDebugger {
         self.richtext_input
             .set_selection(0..(heading.len() - 1) as u32);
         self.richtext_input.set_char_format(&nwg::CharFormat {
-            height: Some(500),
-            text_color: Some([50, 50, 150]),
+            height: Some(400),
+            text_color: Some([23, 105, 170]),
             font_face_name: Some("Calibri".to_string()),
             ..Default::default()
         });
