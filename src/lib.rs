@@ -49,6 +49,7 @@ pub struct Compiler {
     pub file: File,
     pub debug: bool,
     pub debug_step: String,
+    pub debug_line: usize,
     pub filepath: String,
     pub outputdir: String,
     pub lines_of_chars: LinesOfChars,
@@ -74,6 +75,7 @@ impl Compiler {
             //ui.win_title("testy2");
         }
         let debug_step = "".to_string();
+        let debug_line = 0 as usize;
         //println!("2");
         let mut outputdir = "".to_string();
         if let Some(outputdir_found) = option_outputdir {
@@ -91,6 +93,7 @@ impl Compiler {
             file,
             debug,
             debug_step,
+            debug_line,
             filepath,
             outputdir,
             lines_of_chars,
@@ -141,6 +144,14 @@ impl Compiler {
         if self.debug_step == "2. set_lines_of_tokens".to_string() {
             println!("{}", &self.debug_step);
             self.set_lines_of_tokens();
+        }
+
+        if self.debug_step == "3. parse_each_line".to_string() {
+            println!("{}", &self.debug_step);
+            let _result = self.main_loop_over_lines_of_tokens();
+            if self.debug_line < (self.lines_of_tokens.len() as usize) {
+                self.debug_line = (self.debug_line + 1) as usize;
+            }
         }
 
         if self.debug_step == "run_main_tasks".to_string() {
@@ -207,13 +218,23 @@ impl Compiler {
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
         //self.set_ast_output_for_main_fn_start();
-        for line in 0..self.lines_of_tokens.len() {
-            if self.lines_of_tokens[line].len() > 0 {
-                //println!("line: {}", line);
-                self.current_line = line;
-                self.current_line_token = 0;
-                parse::current_line(self)?;
+        if self.debug {
+            let line = self.debug_line;
+            self.parse_one_line(line)?;
+        } else {
+            for line in 0..self.lines_of_tokens.len() {
+                self.parse_one_line(line)?;
             }
+        }
+        Ok(())
+    }
+
+    fn parse_one_line(self: &mut Self, line: usize) -> Result<(), ()> {
+        if line < self.lines_of_tokens.len() && self.lines_of_tokens[line].len() > 0 {
+            //println!("line: {}", line);
+            self.current_line = line;
+            self.current_line_token = 0;
+            parse::current_line(self)?;
         }
         Ok(())
     }

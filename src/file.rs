@@ -19,9 +19,9 @@ impl<'a> fmt::Debug for DebugFileContents<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = "".to_string();
         let vec = self.0.split("\r\n");
-        for (el, i) in vec.enumerate() {
+        for (i, el) in vec.enumerate() {
             let el_debug = format!("{}: {:?}", i, el);
-            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
+            debug = format!("{}\r\n  {},", debug, el_debug);
         }
         write!(f, "Custom Debug of FileContents{}\r\n", debug)
     }
