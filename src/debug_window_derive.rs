@@ -13,10 +13,18 @@ use crate::file::DebugFileContents;
 use crate::{Compiler, DebugLinesOfChars, DebugLinesOfTokens};
 use std::process;
 
+const APP_NAME: &str = "Toylang - Compiler debugger";
+
 #[derive(Default, NwgUi)]
-pub struct BasicApp {
-    #[nwg_control(size: (1918, 800), position: (1912, 0), title: "Toylan compiler debugger", flags: "WINDOW|VISIBLE")]
-    #[nwg_events( OnWindowClose: [BasicApp::close], OnInit: [BasicApp::rich_text_input_init] )]
+pub struct ToylangDebugger {
+    #[nwg_resource(source_file: Some("src/icon_128.ico"))]
+    icon_128: nwg::Icon,
+
+    #[nwg_resource(source_file: Some("src/icon_200.ico"))]
+    icon_200: nwg::Icon,
+
+    #[nwg_control(size: (1918, 800), position: (1912, 0), title: APP_NAME, flags: "WINDOW|VISIBLE", icon: Some(&data.icon_200))]
+    #[nwg_events( OnWindowClose: [ToylangDebugger::close], OnInit: [ToylangDebugger::rich_text_input_init] )]
     window: nwg::Window,
 
     #[nwg_layout(parent: window, spacing: 1)]
@@ -25,6 +33,21 @@ pub struct BasicApp {
     #[nwg_control(text: "", flags: "NONE")]
     #[nwg_layout_item(layout: grid, row: 0,  col: 0)]
     label_hidden_step: nwg::Label,
+
+    // Tray Menu
+    #[nwg_control(icon: Some(&data.icon_128), balloon_icon: Some(&data.icon_200), tip: Some(APP_NAME))]
+    #[nwg_events(OnContextMenu: [ToylangDebugger::show_tray_menu])]
+    tray: nwg::TrayNotification,
+
+    #[nwg_control(parent: window, popup: true)]
+    tray_menu: nwg::Menu,
+
+    #[nwg_control(parent: tray_menu, text: APP_NAME, disabled: true)]
+    tray_item0: nwg::MenuItem,
+
+    #[nwg_control(parent: tray_menu, text: "Exit...")]
+    #[nwg_events(OnMenuItemSelected: [ToylangDebugger::close])]
+    tray_item1: nwg::MenuItem,
 
     // Row 0
     #[nwg_control(text: "filepath")]
@@ -58,27 +81,27 @@ pub struct BasicApp {
     // Row 1
     #[nwg_control(text: "0. get file")]
     #[nwg_layout_item(layout: grid, row: 1, col: 0, col_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::change_step_0_get_file] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_0_get_file] )]
     button0: nwg::Button,
 
     #[nwg_control(text: "1. set_lines_of_chars")]
     #[nwg_layout_item(layout: grid, row: 1, col: 2, col_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::change_step_1_set_lines_of_chars] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_1_set_lines_of_chars] )]
     button1: nwg::Button,
 
     #[nwg_control(text: "2. set_lines_of_tokens")]
     #[nwg_layout_item(layout: grid, row: 1, col: 4, col_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::change_step_2_set_lines_of_tokens] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_2_set_lines_of_tokens] )]
     button2: nwg::Button,
 
     #[nwg_control(text: "3. parse each line...")]
     #[nwg_layout_item(layout: grid, row: 1, col: 6, col_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::change_step_3_parse_each_line] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_parse_each_line] )]
     button3: nwg::Button,
 
     #[nwg_control(text: "stop")]
     #[nwg_layout_item(layout: grid, row: 1, col: 8, col_span: 2)]
-    #[nwg_events( OnButtonClick: [BasicApp::change_step_stop] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_stop] )]
     stop_button: nwg::Button,
 
     // Row 2
@@ -124,7 +147,12 @@ pub struct BasicApp {
     richtext_ast_current: nwg::RichTextBox,
 }
 
-impl BasicApp {
+impl ToylangDebugger {
+    fn show_tray_menu(&self) {
+        let (x, y) = nwg::GlobalCursor::position();
+        self.tray_menu.popup(x, y);
+    }
+
     pub fn change_step_0_get_file(&self) {
         self.label_hidden_step.set_text("0. get file");
     }
@@ -146,9 +174,9 @@ impl BasicApp {
     }
 
     pub fn rich_text_input_init(&self) {
-        let heading = "Toylang compiler Debugger\r\n";
+        let heading = format!("{}\r\n", APP_NAME);
         let text = "\r\n\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler's\r\ninternal data structures as it processes\r\nyour input filepath.";
-        let all_text = [heading, text].join("");
+        let all_text = [&heading, text].join("");
         self.richtext_input.set_text(&all_text);
 
         self.richtext_input
@@ -194,7 +222,7 @@ impl BasicApp {
 pub fn run(input: String, debug: bool, output: Option<String>) {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
-    let ui = BasicApp::build_ui(Default::default()).expect("Failed to build UI");
+    let ui = ToylangDebugger::build_ui(Default::default()).expect("Failed to build UI");
 
     let mut compiler = Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
         println!("Problem parsing arguments: {}", err);

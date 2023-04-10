@@ -129,6 +129,14 @@
 			],
 			"label": "3.2 run release toylang on src\\test.toy",
 		},
+		{
+			"type": "process",
+			"command":"target\\release\\toylang.exe",
+			"args":[
+				"-i", "src/test.toy", "-o", "src\\bin", "-d"
+			],
+			"label": "3.3 run release -d toylang on src\\test.toy",
+		},
 
 
 		{

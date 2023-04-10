@@ -3,6 +3,7 @@ name = "toylang"
 version = "0.1.0"
 edition = "2021"
 default-run = "toylang"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,6 +11,9 @@ default-run = "toylang"
 clap = { version = "4.2.1", features = ["derive"] }
 native-windows-gui = "1.0.12"
 native-windows-derive = "1.0.3"
+
+[build-dependencies]
+winres = "0.1"
 
 [[bin]]
 name = "toylang"
