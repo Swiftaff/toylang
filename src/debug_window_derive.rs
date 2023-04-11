@@ -10,7 +10,7 @@ use nwd::NwgUi;
 use nwg::NativeUi;
 
 use crate::file::DebugFileContents;
-use crate::{Compiler, DebugLinesOfChars, DebugLinesOfTokens};
+use crate::{Compiler, DebugErrorStack, DebugLinesOfChars, DebugLinesOfTokens};
 use std::process;
 
 const APP_NAME: &str = "Toylang - Compiler debugger";
@@ -23,7 +23,7 @@ pub struct ToylangDebugger {
     #[nwg_resource(source_file: Some("src/icon_200.ico"))]
     icon_200: nwg::Icon,
 
-    #[nwg_control(size: (1910, 800), position: (1912, 0), title: APP_NAME, flags: "WINDOW|VISIBLE", icon: Some(&data.icon_200))]
+    #[nwg_control(size: (1910, 800), position: (1912, 0), title: APP_NAME, flags: "WINDOW|VISIBLE|MAXIMIZED|RESIZABLE", icon: Some(&data.icon_200))]
     #[nwg_events( OnWindowClose: [ToylangDebugger::close], OnInit: [ToylangDebugger::rich_text_input_init] )]
     window: nwg::Window,
 
@@ -99,52 +99,70 @@ pub struct ToylangDebugger {
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_parse_each_line] )]
     button3: nwg::Button,
 
-    #[nwg_control(text: "stop")]
+    #[nwg_control(text: "reset")]
     #[nwg_layout_item(layout: grid, row: 1, col: 8, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_stop] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_reset] )]
     stop_button: nwg::Button,
 
     // Row 2
     #[nwg_control(text: "File Contents")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 0, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 0, col_span: 3)]
     label0: nwg::Label,
 
     #[nwg_control(text: "Lines of chars")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 4, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 3, col_span: 3)]
     label1: nwg::Label,
 
     #[nwg_control(text: "Lines of tokens")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 8, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 6, col_span: 3)]
     label2: nwg::Label,
 
     #[nwg_control(text: "AST previous")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 12, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 9, col_span: 3)]
     label3: nwg::Label,
 
     #[nwg_control(text: "AST current")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 16, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 12, col_span: 3)]
     label4: nwg::Label,
 
     // Row 3
     #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 0, row_span: 10, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 0, row_span: 5, col_span: 3)]
     richtext_input: nwg::RichTextBox,
 
     #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 4, row_span: 10, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 3, row_span: 5, col_span: 3)]
     richtext_loc: nwg::RichTextBox,
 
     #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 8, row_span: 10, col_span:4)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 6, row_span: 5, col_span:3)]
     richtext_lot: nwg::RichTextBox,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 3, col: 12, row_span: 10, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 5, col_span: 3)]
     richtext_ast_previous: nwg::RichTextBox,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 3, col: 16, row_span: 10, col_span: 4)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 12, row_span: 5, col_span: 3)]
     richtext_ast_current: nwg::RichTextBox,
+
+    // Row 4
+    #[nwg_control(text: "Error stack")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 0, col_span: 7)]
+    label5: nwg::Label,
+
+    #[nwg_control(text: "Output")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 8, col_span: 7)]
+    label6: nwg::Label,
+
+    // Row 5
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 9, col: 0, row_span: 5, col_span: 7)]
+    richtext_error_stack: nwg::RichTextBox,
+
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 9, col: 8, row_span: 5, col_span: 7)]
+    richtext_output: nwg::RichTextBox,
 }
 
 impl ToylangDebugger {
@@ -171,6 +189,10 @@ impl ToylangDebugger {
 
     pub fn change_step_stop(&self) {
         self.label_hidden_step.set_text("stop");
+    }
+
+    pub fn change_step_reset(&self) {
+        self.label_hidden_step.set_text("reset");
     }
 
     pub fn rich_text_input_init(&self) {
@@ -202,9 +224,9 @@ impl ToylangDebugger {
         control.set_text(text);
         control.set_selection(0..control.len() as u32);
         control.set_char_format(&nwg::CharFormat {
-            height: Some(300),
+            height: Some(150),
             text_color: Some([10, 10, 10]),
-            font_face_name: Some("Calibri".to_string()),
+            font_face_name: Some("Courier".to_string()),
             ..Default::default()
         });
         //control.set_para_format(&nwg::ParaFormat {
@@ -219,32 +241,49 @@ impl ToylangDebugger {
     }
 }
 
+fn reset(
+    ui: &toylang_debugger_ui::ToylangDebuggerUi,
+    input: String,
+    debug: bool,
+    output: Option<String>,
+) -> Compiler {
+    ui.textinput_filepath.set_text(&input);
+    ui.textinput_outputdir.set_text(&(output.clone().unwrap()));
+    ui.rich_text_control_set_text(&ui.richtext_loc, " ");
+    ui.rich_text_control_set_text(&ui.richtext_lot, " ");
+    ui.rich_text_control_set_text(&ui.richtext_ast_previous, " ");
+    ui.rich_text_control_set_text(&ui.richtext_ast_current, " ");
+    ui.rich_text_control_set_text(&ui.richtext_error_stack, " ");
+    ui.rich_text_control_set_text(&ui.richtext_output, " ");
+    return Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
+        println!("Problem parsing arguments: {}", err);
+        process::exit(1);
+    });
+}
+
 pub fn run(input: String, debug: bool, output: Option<String>) {
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
     let ui = ToylangDebugger::build_ui(Default::default()).expect("Failed to build UI");
 
-    let mut compiler = Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {}", err);
-        process::exit(1);
-    });
-    ui.textinput_filepath.set_text(&input);
-    ui.textinput_outputdir.set_text(&(output.unwrap()));
-    ui.rich_text_control_set_text(&ui.richtext_loc, " ");
-    ui.rich_text_control_set_text(&ui.richtext_lot, " ");
-    ui.rich_text_control_set_text(&ui.richtext_ast_previous, " ");
-    ui.rich_text_control_set_text(&ui.richtext_ast_current, " ");
+    let mut compiler = reset(&ui, input.clone(), debug, output.clone());
 
     let mut step = "".to_string();
     nwg::dispatch_thread_events_with_callback(move || {
         step = ui.label_hidden_step.text();
         let _result = compiler.debug_step(&step);
+
         if step == "0. get file" {
             let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
             let txt_input = format!("{:?}", txt_input_debug);
             let txt_ast = format!("{:?}", compiler.ast);
+            let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+            let txt_output = format!("{}", compiler.output);
+
             ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
             ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
+            ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
             ui.label_hidden_step.set_text("stop");
             ui.button0.set_enabled(false);
         }
@@ -291,6 +330,20 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             ui.richtext_ast_current.scroll_lastline();
             ui.richtext_ast_current.scroll(-20);
 
+            // update richtext_error_stack
+            let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+            ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+            ui.richtext_error_stack
+                .set_selection(28..((txt_error.len() as u32) - 4));
+            ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
+                text_color: Some([200, 20, 20]),
+                ..Default::default()
+            });
+
+            // update richtext_output
+            let txt_output = format!("{}", compiler.output);
+            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+
             //update other fields
             ui.label_currentline
                 .set_text(&format!("current_line: {}", compiler.current_line));
@@ -304,6 +357,13 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if compiler.current_line == compiler.lines_of_tokens.len() - 1 {
                 ui.button3.set_enabled(false);
             }
+        }
+        if step == "reset" {
+            compiler = reset(&ui, input.clone(), debug, output.clone());
+            ui.button0.set_enabled(true);
+            ui.button1.set_enabled(true);
+            ui.button2.set_enabled(true);
+            ui.button3.set_enabled(true);
         }
     });
 }

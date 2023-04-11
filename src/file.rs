@@ -20,8 +20,7 @@ impl<'a> fmt::Debug for DebugFileContents<'a> {
         let mut debug = "".to_string();
         let vec = self.0.split("\r\n");
         for (i, el) in vec.enumerate() {
-            let el_debug = format!("{}: {:?}", i, el);
-            debug = format!("{}\r\n  {},", debug, el_debug);
+            debug = format!("{}\r\n  {}: {},", debug, i, el);
         }
         write!(f, "Custom Debug of FileContents{}\r\n", debug)
     }

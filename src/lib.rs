@@ -18,6 +18,24 @@ type ErrorStack = Vec<String>;
 type LinesOfChars = Vec<Vec<char>>;
 type LinesOfTokens = Vec<Tokens>;
 
+fn rem_first_and_last(value: &str) -> String {
+    let mut chars = value.chars();
+    chars.next();
+    chars.next_back();
+    chars.as_str().to_string()
+}
+pub struct DebugErrorStack<'a>(&'a ErrorStack);
+
+impl<'a> fmt::Debug for DebugErrorStack<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = "".to_string();
+        for el in 0..self.0.len() {
+            debug = format!("{}\r\n{}: {},", debug, el, rem_first_and_last(&self.0[el]));
+        }
+        write!(f, "Custom Debug of ErrorStack [{}\r\n]", debug)
+    }
+}
+
 pub struct DebugLinesOfChars<'a>(&'a LinesOfChars);
 
 impl<'a> fmt::Debug for DebugLinesOfChars<'a> {
@@ -118,13 +136,6 @@ impl Compiler {
             &self.outputdir,
             self.error_stack.len() > 0,
         )
-    }
-
-    pub fn rem_first_and_last(self: &Self, value: &str) -> String {
-        let mut chars = value.chars();
-        chars.next();
-        chars.next_back();
-        chars.as_str().to_string()
     }
 
     pub fn debug_step(self: &mut Self, step: &str) {
