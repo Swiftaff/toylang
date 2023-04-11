@@ -165,12 +165,9 @@ impl Compiler {
             }
         }
 
-        if self.debug_step == "run_main_tasks".to_string() {
-            println!("1. run_main_tasks");
-            match self.run_main_tasks() {
-                Ok(_) => (),
-                Err(_e) => (),
-            };
+        if self.debug_step == "4. set_output".to_string() {
+            println!("{}", &self.debug_step);
+            output::set_output(self);
         }
 
         if self.debug_step == "writefile_or_error".to_string() {

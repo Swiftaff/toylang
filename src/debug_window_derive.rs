@@ -99,10 +99,15 @@ pub struct ToylangDebugger {
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_parse_each_line] )]
     button3: nwg::Button,
 
-    #[nwg_control(text: "reset")]
+    #[nwg_control(text: "4. set_output")]
     #[nwg_layout_item(layout: grid, row: 1, col: 8, col_span: 2)]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_4_set_output] )]
+    button4: nwg::Button,
+
+    #[nwg_control(text: "reset")]
+    #[nwg_layout_item(layout: grid, row: 1, col: 10, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_reset] )]
-    stop_button: nwg::Button,
+    button_reset: nwg::Button,
 
     // Row 2
     #[nwg_control(text: "File Contents")]
@@ -187,12 +192,16 @@ impl ToylangDebugger {
         self.label_hidden_step.set_text("3. parse_each_line");
     }
 
-    pub fn change_step_stop(&self) {
-        self.label_hidden_step.set_text("stop");
+    pub fn change_step_4_set_output(&self) {
+        self.label_hidden_step.set_text("4. set_output");
     }
 
     pub fn change_step_reset(&self) {
         self.label_hidden_step.set_text("reset");
+    }
+
+    pub fn change_step_stop(&self) {
+        self.label_hidden_step.set_text("stop");
     }
 
     pub fn rich_text_input_init(&self) {
@@ -341,7 +350,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             });
 
             // update richtext_output
-            let txt_output = format!("{}", compiler.output);
+            let txt_output = format!("{}", compiler.ast.output);
             ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
 
             //update other fields
@@ -358,12 +367,49 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.button3.set_enabled(false);
             }
         }
+
+        if step == "4. set_output" {
+            let current_text = ui.richtext_ast_current.text();
+            let new_text = format!("{:?}", compiler.ast);
+            let new_len = new_text.len() as u32;
+            let mut first_non_matching_char = 0;
+            for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                if c1 != c2 {
+                    break;
+                }
+                first_non_matching_char += 1;
+            }
+
+            // update richtext_ast_previous
+            ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
+            ui.richtext_ast_previous.scroll_lastline();
+            ui.richtext_ast_previous.scroll(-20);
+
+            // update richtext_ast_current
+            ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
+            ui.richtext_ast_current
+                .set_selection(first_non_matching_char..new_len - 1);
+            ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
+                text_color: Some([20, 200, 20]),
+                ..Default::default()
+            });
+            ui.richtext_ast_current.scroll_lastline();
+            ui.richtext_ast_current.scroll(-20);
+
+            // update richtext_output
+            let txt_output = format!("{}", compiler.ast.output);
+            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+            ui.label_hidden_step.set_text("stop");
+            ui.button4.set_enabled(false);
+        }
+
         if step == "reset" {
             compiler = reset(&ui, input.clone(), debug, output.clone());
             ui.button0.set_enabled(true);
             ui.button1.set_enabled(true);
             ui.button2.set_enabled(true);
             ui.button3.set_enabled(true);
+            ui.button4.set_enabled(true);
         }
     });
 }
