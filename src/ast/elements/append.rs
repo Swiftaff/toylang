@@ -12,7 +12,7 @@ pub fn append(ast: &mut Ast, element: Element) -> usize {
     let new_items_index = ast.elements.len() - 1;
     let current_parent_ref = parents::get_current_parent_ref_from_parents(ast);
     ast.elements[current_parent_ref].1.push(new_items_index);
-    println!("AST append: {:?}", element);
+    //println!("AST append: {:?}", element);
     new_items_index
 }
 

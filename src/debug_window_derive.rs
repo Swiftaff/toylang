@@ -30,7 +30,7 @@ pub struct ToylangDebugger {
     #[nwg_layout(parent: window, spacing: 1)]
     grid: nwg::GridLayout,
 
-    #[nwg_control(text: "", flags: "NONE")]
+    #[nwg_control(text: "", flags: "NONE", position: (99, 0))]
     #[nwg_layout_item(layout: grid, row: 0,  col: 0)]
     label_hidden_step: nwg::Label,
 
@@ -177,31 +177,31 @@ impl ToylangDebugger {
     }
 
     pub fn change_step_0_get_file(&self) {
-        self.label_hidden_step.set_text("0. get file");
+        self.label_hidden_step.set_position(0, 0);
     }
 
     pub fn change_step_1_set_lines_of_chars(&self) {
-        self.label_hidden_step.set_text("1. set_lines_of_chars");
+        self.label_hidden_step.set_position(1, 0);
     }
 
     pub fn change_step_2_set_lines_of_tokens(&self) {
-        self.label_hidden_step.set_text("2. set_lines_of_tokens");
+        self.label_hidden_step.set_position(2, 0);
     }
 
     pub fn change_step_3_parse_each_line(&self) {
-        self.label_hidden_step.set_text("3. parse_each_line");
+        self.label_hidden_step.set_position(3, 0);
     }
 
     pub fn change_step_4_set_output(&self) {
-        self.label_hidden_step.set_text("4. set_output");
+        self.label_hidden_step.set_position(4, 0);
     }
 
     pub fn change_step_reset(&self) {
-        self.label_hidden_step.set_text("reset");
+        self.label_hidden_step.set_position(5, 0);
     }
 
     pub fn change_step_stop(&self) {
-        self.label_hidden_step.set_text("stop");
+        self.label_hidden_step.set_position(99, 0);
     }
 
     pub fn rich_text_input_init(&self) {
@@ -277,139 +277,178 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
     let mut compiler = reset(&ui, input.clone(), debug, output.clone());
 
-    let mut step = "".to_string();
+    let mut step = 99;
     nwg::dispatch_thread_events_with_callback(move || {
-        step = ui.label_hidden_step.text();
-        let _result = compiler.debug_step(&step);
-
-        if step == "0. get file" {
-            let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
-            let txt_input = format!("{:?}", txt_input_debug);
-            let txt_ast = format!("{:?}", compiler.ast);
-            let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
-            let txt_output = format!("{}", compiler.output);
-
-            ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
-            ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
-            ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
-            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-            ui.label_hidden_step.set_text("stop");
-            ui.button0.set_enabled(false);
+        step = ui.label_hidden_step.position().0 as usize;
+        // we are using the first tuple of position on this element as a weird place to store the persistent state of the "step"
+        // but for some reason the label has a first position of 6 for a while, if so set it to the default 99!
+        if step > 5 && step < 98 {
+            step = 99
         }
+        let completed_step = compiler.debug_step(step);
 
-        if step == "1. set_lines_of_chars" {
-            let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
-            ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
-            ui.label_hidden_step.set_text("stop");
-            ui.button1.set_enabled(false);
-        }
+        if step < 99 as usize {
+            if step >= 0 as usize {
+                let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
+                let txt_input = format!("{:?}", txt_input_debug);
+                let txt_ast = format!("{:?}", compiler.ast);
+                let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+                let txt_output = format!("{}", compiler.output);
 
-        if step == "2. set_lines_of_tokens" {
-            let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
-            ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
-            ui.label_hidden_step.set_text("stop");
-            ui.button2.set_enabled(false);
-        }
-
-        if step == "3. parse_each_line" {
-            let current_text = ui.richtext_ast_current.text();
-            let new_text = format!("{:?}", compiler.ast);
-            let new_len = new_text.len() as u32;
-            let mut first_non_matching_char = 0;
-            for (c1, c2) in new_text.chars().zip(current_text.chars()) {
-                if c1 != c2 {
-                    break;
+                ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
+                ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
+                ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+                ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+                if step == 0 as usize {
+                    ui.label_hidden_step.set_position(99, 0);
                 }
-                first_non_matching_char += 1;
+                ui.button0.set_enabled(false);
             }
 
-            // update richtext_ast_previous
-            ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
-            ui.richtext_ast_previous.scroll_lastline();
-            ui.richtext_ast_previous.scroll(-20);
-
-            // update richtext_ast_current
-            ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
-            ui.richtext_ast_current
-                .set_selection(first_non_matching_char..new_len - 1);
-            ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
-                text_color: Some([20, 200, 20]),
-                ..Default::default()
-            });
-            ui.richtext_ast_current.scroll_lastline();
-            ui.richtext_ast_current.scroll(-20);
-
-            // update richtext_error_stack
-            let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
-            ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
-            ui.richtext_error_stack
-                .set_selection(28..((txt_error.len() as u32) - 4));
-            ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
-                text_color: Some([200, 20, 20]),
-                ..Default::default()
-            });
-
-            // update richtext_output
-            let txt_output = format!("{}", compiler.ast.output);
-            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-
-            //update other fields
-            ui.label_currentline
-                .set_text(&format!("current_line: {}", compiler.current_line));
-            ui.label_currentlinetoken.set_text(&format!(
-                "current_line_token: {}",
-                compiler.current_line_token
-            ));
-            ui.label_hidden_step.set_text("stop");
-
-            //disable button when done
-            if compiler.current_line == compiler.lines_of_tokens.len() - 1 {
-                ui.button3.set_enabled(false);
-            }
-        }
-
-        if step == "4. set_output" {
-            let current_text = ui.richtext_ast_current.text();
-            let new_text = format!("{:?}", compiler.ast);
-            let new_len = new_text.len() as u32;
-            let mut first_non_matching_char = 0;
-            for (c1, c2) in new_text.chars().zip(current_text.chars()) {
-                if c1 != c2 {
-                    break;
+            if step >= 1 as usize {
+                let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
+                ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
+                if step == 1 as usize {
+                    ui.label_hidden_step.set_position(99, 0);
                 }
-                first_non_matching_char += 1;
+                ui.button0.set_enabled(false);
+                ui.button1.set_enabled(false);
             }
 
-            // update richtext_ast_previous
-            ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
-            ui.richtext_ast_previous.scroll_lastline();
-            ui.richtext_ast_previous.scroll(-20);
+            if step >= 2 as usize {
+                let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
+                ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
+                if step == 2 as usize {
+                    ui.label_hidden_step.set_position(99, 0);
+                }
+                ui.button0.set_enabled(false);
+                ui.button1.set_enabled(false);
+                ui.button2.set_enabled(false);
+            }
 
-            // update richtext_ast_current
-            ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
-            ui.richtext_ast_current
-                .set_selection(first_non_matching_char..new_len - 1);
-            ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
-                text_color: Some([20, 200, 20]),
-                ..Default::default()
-            });
-            ui.richtext_ast_current.scroll_lastline();
-            ui.richtext_ast_current.scroll(-20);
+            if step >= 3 as usize {
+                let current_text = ui.richtext_ast_current.text();
+                let new_text = format!("{:?}", compiler.ast);
+                let new_len = new_text.len() as u32;
+                let mut first_non_matching_char = 0;
+                for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                    if c1 != c2 {
+                        break;
+                    }
+                    first_non_matching_char += 1;
+                }
 
-            // update richtext_output
-            let txt_output = format!("{}", compiler.ast.output);
-            ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-            ui.label_hidden_step.set_text("stop");
-            ui.button4.set_enabled(false);
-        }
+                // update richtext_ast_previous
+                ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
+                ui.richtext_ast_previous.scroll_lastline();
+                ui.richtext_ast_previous.scroll(-20);
 
-        if step == "reset" {
-            compiler = reset(&ui, input.clone(), debug, output.clone());
-            ui.button0.set_enabled(true);
-            ui.button1.set_enabled(true);
-            ui.button2.set_enabled(true);
-            ui.button3.set_enabled(true);
-            ui.button4.set_enabled(true);
+                // update richtext_ast_current
+                ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
+                ui.richtext_ast_current
+                    .set_selection(first_non_matching_char..new_len - 1);
+                ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
+                    text_color: Some([20, 200, 20]),
+                    ..Default::default()
+                });
+                ui.richtext_ast_current.scroll_lastline();
+                ui.richtext_ast_current.scroll(-20);
+
+                // update richtext_error_stack
+                let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+                ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+                ui.richtext_error_stack
+                    .set_selection(28..((txt_error.len() as u32) - 4));
+                ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
+                    text_color: Some([200, 20, 20]),
+                    ..Default::default()
+                });
+
+                // update richtext_output
+                let txt_output = format!("{}", compiler.ast.output);
+                ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+
+                //update other fields
+                ui.label_currentline
+                    .set_text(&format!("current_line: {}", compiler.current_line));
+                ui.label_currentlinetoken.set_text(&format!(
+                    "current_line_token: {}",
+                    compiler.current_line_token
+                ));
+
+                ui.button0.set_enabled(false);
+                ui.button1.set_enabled(false);
+                ui.button2.set_enabled(false);
+
+                if step == 3 {
+                    ui.label_hidden_step.set_position(99, 0);
+                }
+
+                //disable button when done
+                if completed_step == 3 {
+                    ui.button3.set_enabled(false);
+                }
+            }
+
+            if step >= 4 as usize {
+                let current_text = ui.richtext_ast_current.text();
+                let new_text = format!("{:?}", compiler.ast);
+                let new_len = new_text.len() as u32;
+                let mut first_non_matching_char = 0;
+                for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                    if c1 != c2 {
+                        break;
+                    }
+                    first_non_matching_char += 1;
+                }
+
+                // update richtext_ast_previous
+                ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
+                ui.richtext_ast_previous.scroll_lastline();
+                ui.richtext_ast_previous.scroll(-20);
+
+                // update richtext_ast_current
+                ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
+                ui.richtext_ast_current
+                    .set_selection(first_non_matching_char..new_len - 1);
+                ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
+                    text_color: Some([20, 200, 20]),
+                    ..Default::default()
+                });
+                ui.richtext_ast_current.scroll_lastline();
+                ui.richtext_ast_current.scroll(-20);
+
+                // update richtext_error_stack
+                let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+                ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+                ui.richtext_error_stack
+                    .set_selection(28..((txt_error.len() as u32) - 4));
+                ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
+                    text_color: Some([200, 20, 20]),
+                    ..Default::default()
+                });
+
+                // update richtext_output
+                let txt_output = format!("{}", compiler.ast.output);
+                ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+
+                if completed_step >= 3 {
+                    ui.button3.set_enabled(false);
+                    ui.button4.set_enabled(false);
+                }
+                if completed_step >= 4 {
+                    ui.label_hidden_step.set_position(99, 0);
+                }
+            }
+
+            if step == 5 as usize {
+                compiler = reset(&ui, input.clone(), debug, output.clone());
+                ui.button0.set_enabled(true);
+                ui.button1.set_enabled(true);
+                ui.button2.set_enabled(true);
+                ui.button3.set_enabled(true);
+                ui.button4.set_enabled(true);
+            }
         }
     });
 }

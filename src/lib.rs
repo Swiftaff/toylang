@@ -66,7 +66,7 @@ impl<'a> fmt::Debug for DebugLinesOfTokens<'a> {
 pub struct Compiler {
     pub file: File,
     pub debug: bool,
-    pub debug_step: String,
+    pub debug_step: usize,
     pub debug_line: usize,
     pub filepath: String,
     pub outputdir: String,
@@ -92,7 +92,7 @@ impl Compiler {
             //println!("1");
             //ui.win_title("testy2");
         }
-        let debug_step = "".to_string();
+        let debug_step = 0;
         let debug_line = 0 as usize;
         //println!("2");
         let mut outputdir = "".to_string();
@@ -138,38 +138,56 @@ impl Compiler {
         )
     }
 
-    pub fn debug_step(self: &mut Self, step: &str) {
-        self.debug_step = step.to_string();
-        if self.debug_step == "0. get file".to_string() {
-            if self.file.filepath == "".to_string() {
-                println!("{}", &self.debug_step);
-                let _result = self.file.get(&self.filepath);
+    pub fn debug_step(self: &mut Self, step: usize) -> usize {
+        let mut completed_step: usize = 99;
+        self.debug_step = step;
+        if self.debug_step < 99 as usize {
+            if self.debug_step >= 0 as usize {
+                if self.file.filepath == "".to_string() {
+                    println!("0: {}", &self.debug_step);
+                    let _result = self.file.get(&self.filepath);
+                    completed_step = 0;
+                }
+            }
+
+            if self.debug_step >= 1 as usize {
+                if self.lines_of_chars.len() == 0 {
+                    println!("1: {}", &self.debug_step);
+                    self.set_lines_of_chars();
+                    completed_step = 1;
+                }
+            }
+
+            if self.debug_step >= 2 as usize {
+                if self.lines_of_tokens.len() == 0 {
+                    println!("2: {}", &self.debug_step);
+                    self.set_lines_of_tokens();
+                    completed_step = 2;
+                }
+            }
+
+            if self.debug_step >= 3 as usize {
+                if self.debug_line < self.lines_of_tokens.len() {
+                    let _result = self.main_loop_over_lines_of_tokens();
+                    self.debug_line = self.debug_line + 1;
+                    if self.debug_line == self.lines_of_tokens.len() {
+                        completed_step = 3;
+                    }
+                }
+            }
+
+            if self.debug_step >= 4 as usize {
+                self.ast.output = "".to_string();
+                println!("3: {}", &self.debug_step);
+                output::set_output(self);
+                if self.debug_step == 4 && completed_step == 3 {
+                    completed_step = 4;
+                }
             }
         }
+        completed_step
 
-        if self.debug_step == "1. set_lines_of_chars".to_string() {
-            println!("{}", &self.debug_step);
-            self.set_lines_of_chars();
-        }
-
-        if self.debug_step == "2. set_lines_of_tokens".to_string() {
-            println!("{}", &self.debug_step);
-            self.set_lines_of_tokens();
-        }
-
-        if self.debug_step == "3. parse_each_line".to_string() {
-            println!("{}", &self.debug_step);
-            let _result = self.main_loop_over_lines_of_tokens();
-            if self.debug_line < (self.lines_of_tokens.len() as usize) {
-                self.debug_line = (self.debug_line + 1) as usize;
-            }
-        }
-
-        if self.debug_step == "4. set_output".to_string() {
-            println!("{}", &self.debug_step);
-            output::set_output(self);
-        }
-
+        /*
         if self.debug_step == "writefile_or_error".to_string() {
             println!("2. writefile_or_error");
             match self.file.writefile_or_error(
@@ -181,6 +199,7 @@ impl Compiler {
                 Err(_e) => (),
             };
         }
+        */
     }
 
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
@@ -239,7 +258,6 @@ impl Compiler {
 
     fn parse_one_line(self: &mut Self, line: usize) -> Result<(), ()> {
         if line < self.lines_of_tokens.len() && self.lines_of_tokens[line].len() > 0 {
-            //println!("line: {}", line);
             self.current_line = line;
             self.current_line_token = 0;
             parse::current_line(self)?;
