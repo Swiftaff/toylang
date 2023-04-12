@@ -66,40 +66,28 @@ pub struct ToylangDebugger {
     #[nwg_layout_item(layout: grid, row: 0, col: 5, col_span: 2)]
     textinput_outputdir: nwg::TextInput,
 
-    #[nwg_control(text: "current_line: 0")]
-    #[nwg_layout_item(layout: grid, row: 0, col: 8, col_span: 2)]
-    label_currentline: nwg::Label,
-
-    #[nwg_control(text: "current_line_token: 0")]
-    #[nwg_layout_item(layout: grid, row: 0, col: 10, col_span: 2)]
-    label_currentlinetoken: nwg::Label,
-
-    #[nwg_control(text: "error_stack length: 0")]
-    #[nwg_layout_item(layout: grid, row: 0, col: 12, col_span: 2)]
-    label_errorstack: nwg::Label,
-
     // Row 1
-    #[nwg_control(text: "0. get file")]
+    #[nwg_control(text: "1. get file")]
     #[nwg_layout_item(layout: grid, row: 1, col: 0, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_0_get_file] )]
     button0: nwg::Button,
 
-    #[nwg_control(text: "1. set_lines_of_chars")]
+    #[nwg_control(text: "2. set lines of chars")]
     #[nwg_layout_item(layout: grid, row: 1, col: 2, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_1_set_lines_of_chars] )]
     button1: nwg::Button,
 
-    #[nwg_control(text: "2. set_lines_of_tokens")]
+    #[nwg_control(text: "3. set lines of tokens")]
     #[nwg_layout_item(layout: grid, row: 1, col: 4, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_2_set_lines_of_tokens] )]
     button2: nwg::Button,
 
-    #[nwg_control(text: "3. parse each line...")]
+    #[nwg_control(text: "4. parse each line...")]
     #[nwg_layout_item(layout: grid, row: 1, col: 6, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_parse_each_line] )]
     button3: nwg::Button,
 
-    #[nwg_control(text: "4. set_output")]
+    #[nwg_control(text: "5. set output")]
     #[nwg_layout_item(layout: grid, row: 1, col: 8, col_span: 2)]
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_4_set_output] )]
     button4: nwg::Button,
@@ -308,6 +296,10 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if step >= 1 as usize {
                 let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
                 ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
+                ui.label1.set_text(&format!(
+                    "Lines of chars (0 - {})",
+                    &compiler.lines_of_chars.len() - 1
+                ));
                 if step == 1 as usize {
                     ui.label_hidden_step.set_position(99, 0);
                 }
@@ -318,6 +310,10 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if step >= 2 as usize {
                 let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
                 ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
+                ui.label2.set_text(&format!(
+                    "Lines of tokens (0 - {})",
+                    &compiler.lines_of_tokens.len() - 1
+                ));
                 if step == 2 as usize {
                     ui.label_hidden_step.set_position(99, 0);
                 }
@@ -337,6 +333,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     }
                     first_non_matching_char += 1;
                 }
+
+                ui.label2.set_text(&format!(
+                    "Lines of tokens ({} of {})",
+                    &compiler.debug_line - 1,
+                    &compiler.lines_of_tokens.len() - 1
+                ));
 
                 // update richtext_ast_previous
                 ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
@@ -363,18 +365,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     text_color: Some([200, 20, 20]),
                     ..Default::default()
                 });
+                ui.label5
+                    .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
 
                 // update richtext_output
                 let txt_output = format!("{}", compiler.ast.output);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-
-                //update other fields
-                ui.label_currentline
-                    .set_text(&format!("current_line: {}", compiler.current_line));
-                ui.label_currentlinetoken.set_text(&format!(
-                    "current_line_token: {}",
-                    compiler.current_line_token
-                ));
 
                 ui.button0.set_enabled(false);
                 ui.button1.set_enabled(false);
@@ -402,6 +398,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     first_non_matching_char += 1;
                 }
 
+                ui.label2.set_text(&format!(
+                    "Lines of tokens ({} of {})",
+                    &compiler.lines_of_tokens.len() - 1,
+                    &compiler.lines_of_tokens.len() - 1
+                ));
+
                 // update richtext_ast_previous
                 ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
                 ui.richtext_ast_previous.scroll_lastline();
@@ -427,6 +429,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     text_color: Some([200, 20, 20]),
                     ..Default::default()
                 });
+                ui.label5
+                    .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
 
                 // update richtext_output
                 let txt_output = format!("{}", compiler.ast.output);
@@ -443,11 +447,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
             if step == 5 as usize {
                 compiler = reset(&ui, input.clone(), debug, output.clone());
-                ui.button0.set_enabled(true);
+                ui.button0.set_enabled(false); //gets file when it resets anyway
                 ui.button1.set_enabled(true);
                 ui.button2.set_enabled(true);
                 ui.button3.set_enabled(true);
                 ui.button4.set_enabled(true);
+                ui.label_hidden_step.set_position(99, 0);
             }
         }
     });

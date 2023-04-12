@@ -117,6 +117,14 @@
 			"type": "process",
 			"command":"target\\debug\\toylang.exe",
 			"args":[
+				"-i", "src\\test.toy", "-o", "src\\bin"
+			],
+			"label": "3.0 run dev no debug toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command":"target\\debug\\toylang.exe",
+			"args":[
 				"-i", "src\\test.toy", "-o", "src\\bin", "-d"
 			],
 			"label": "3.1 run dev toylang on src\\test.toy",

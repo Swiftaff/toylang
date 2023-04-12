@@ -179,10 +179,15 @@ pub fn get_output_for_element_index(
                         //dbg!(&output);
                         for i in 0..argnames.len() {
                             let arg_var_num = format!("arg~{}", i + 1);
-                            let arg_value_el_ref = children[i];
-                            let arg_output =
-                                get_output_for_element_index(ast, arg_value_el_ref, true);
-                            output = output.replace(&arg_var_num, &arg_output);
+                            dbg!("output error", &name, &children, i);
+                            if i >= children.len() {
+                                dbg!("output error", &name, &children, i);
+                            } else {
+                                let arg_value_el_ref = children[i];
+                                let arg_output =
+                                    get_output_for_element_index(ast, arg_value_el_ref, true);
+                                output = output.replace(&arg_var_num, &arg_output);
+                            }
                             //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
                         }
                         if children.len() > 0 && children.len() == (argnames.len() + 1) {
@@ -268,27 +273,36 @@ pub fn get_output_for_element_index(
             }
             format!("println!(\"{{}}\", {})", output)
         }
-        ElementInfo::If(_returntype) => {
+        ElementInfo::If(returntype) => {
             let children = element.1;
-            let child1_output = get_output_for_element_index(ast, children[0], false);
-            let mut output = format!("if {} {{", child1_output);
-            let child2_output = get_output_for_element_index(ast, children[1], false);
-            output = format!(
-                "{}\r\n{}{}\r\n{}}} else {{",
-                output,
-                " ".repeat(4 * (ast.parents.len())),
-                child2_output,
-                " ".repeat(4 * (ast.parents.len() - 1)),
-            );
-            let child3_output = get_output_for_element_index(ast, children[2], false);
-            output = format!(
-                "{}\r\n{}{}\r\n{}}}",
-                output,
-                " ".repeat(4 * (ast.parents.len())),
-                child3_output,
-                " ".repeat(4 * (ast.parents.len() - 1)),
-            );
+            let mut output = "".to_string();
+            if children.len() < 3 {
+                if children.len() == 0 || children.len() == 1 {
+                    dbg!("output error", &returntype, &children);
+                } else {
+                    let child1_output = get_output_for_element_index(ast, children[0], false);
+                    output = format!("{}if {} {{", output, child1_output);
+                    let child2_output = get_output_for_element_index(ast, children[1], false);
+                    output = format!(
+                        "{}\r\n{}{}\r\n{}}} else {{",
+                        output,
+                        " ".repeat(4 * (ast.parents.len())),
+                        child2_output,
+                        " ".repeat(4 * (ast.parents.len() - 1)),
+                    );
+                }
+            } else {
+                let child3_output = get_output_for_element_index(ast, children[2], false);
+                output = format!(
+                    "{}\r\n{}{}\r\n{}}}",
+                    output,
+                    " ".repeat(4 * (ast.parents.len())),
+                    child3_output,
+                    " ".repeat(4 * (ast.parents.len() - 1)),
+                );
+            }
             //parents::outdent::outdent(&mut ast);
+
             return output;
         }
     }
