@@ -8,12 +8,10 @@ use crate::Compiler;
 pub fn replace_any_unknown_types(ast: &mut Ast) {
     let depths = get_depths_vec(ast.clone());
     let depths_flattened = get_depths_flattened(&depths);
-    //dbg!(&depths_flattened);
     for el_index in depths_flattened {
         ast.elements[el_index].0 =
             elements::get_updated_elementinfo_with_infered_type(ast, el_index);
     }
-    //dbg!(&ast.elements);
 }
 
 pub fn get_depths_vec(ast: Ast) -> Vec<Vec<usize>> {
@@ -277,21 +275,18 @@ pub fn get_output_for_element_index(
             let children = element.1;
             let mut output = "".to_string();
             if children.len() < 3 {
-                if children.len() == 0 || children.len() == 1 {
-                    dbg!("output error", &returntype, &children);
-                } else {
-                    let child1_output = get_output_for_element_index(ast, children[0], false);
-                    output = format!("{}if {} {{", output, child1_output);
-                    let child2_output = get_output_for_element_index(ast, children[1], false);
-                    output = format!(
-                        "{}\r\n{}{}\r\n{}}} else {{",
-                        output,
-                        " ".repeat(4 * (ast.parents.len())),
-                        child2_output,
-                        " ".repeat(4 * (ast.parents.len() - 1)),
-                    );
-                }
+                dbg!("output error", &returntype, &children);
             } else {
+                let child1_output = get_output_for_element_index(ast, children[0], false);
+                output = format!("{}if {} {{", output, child1_output);
+                let child2_output = get_output_for_element_index(ast, children[1], false);
+                output = format!(
+                    "{}\r\n{}{}\r\n{}}} else {{",
+                    output,
+                    " ".repeat(4 * (ast.parents.len())),
+                    child2_output,
+                    " ".repeat(4 * (ast.parents.len() - 1)),
+                );
                 let child3_output = get_output_for_element_index(ast, children[2], false);
                 output = format!(
                     "{}\r\n{}{}\r\n{}}}",
@@ -311,21 +306,25 @@ pub fn get_output_for_element_index(
 pub fn set_output(compiler: &mut Compiler) {
     //dbg!(&ast);
     //let ast = &mut compiler.ast;
+
     for _i in 0..10 {
         replace_any_unknown_types(&mut compiler.ast);
     }
+
     set_output_append(&mut compiler.ast, "fn main() {\r\n");
     compiler.ast.parents = vec![0];
     // the values of indent and outdent don't matter when outputting - only using parents.len()
     // values do matter when building the ast
     parents::indent::indent(&mut compiler.ast);
 
+    // the stack starts off as a list of the children of root, i.e. the top level items to output
+    // we go down them and dynamically add/remove their children to the stack, indenting and outdenting as we go
     let mut stack: Vec<usize> = compiler.ast.elements[0].1.clone();
     while stack.len() > 0 {
         let current_item = stack[0];
         // remove current item from stack
         stack = parents::vec_remove_head(&stack);
-        // if it is an outdent marker, outdent level!
+        // if it is an outdent marker (0), outdent level!
         if current_item == 0 {
             parents::outdent::outdent(compiler);
             // push current end tag to output

@@ -283,9 +283,9 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
         if step > 5 && step < 98 {
             step = 99
         }
-        let completed_step = compiler.debug_step(step);
-
         if step < 99 as usize {
+            let completed_step = compiler.debug_step(step);
+
             if step >= 0 as usize {
                 let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
                 let txt_input = format!("{:?}", txt_input_debug);

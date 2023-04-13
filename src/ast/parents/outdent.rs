@@ -176,7 +176,6 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
                         functioncall_of_functiondef(compiler, current_parent.1.len(), args);
                     }
                     ElementInfo::Arg(_, _, returntype) => {
-                        dbg!("here3");
                         let r = returntype.clone();
                         functioncall_of_arg(compiler, &r, current_parent.1.len());
                     }

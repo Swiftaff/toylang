@@ -73,7 +73,7 @@ pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
-    let undefined = "undefined".to_string();
+    let undefined = "Undefined".to_string();
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     append(&mut compiler.ast, (ElementInfo::If(undefined), vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -330,7 +330,7 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
-        (ElementInfo::List("undefined".to_string()), vec![]),
+        (ElementInfo::List("Undefined".to_string()), vec![]),
     );
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);

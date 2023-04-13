@@ -309,7 +309,7 @@ pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
     let list = parents::get_current_parent_element_from_parents(&compiler.ast);
     match list {
         (ElementInfo::List(returntype), children) => {
-            if returntype == "undefined".to_string() && children.len() == 0 {
+            if returntype == "Undefined".to_string() && children.len() == 0 {
                 return append_error(compiler, 0, 1, ERRORS.list);
             }
         }
@@ -1204,8 +1204,8 @@ mod tests {
     fn test_pass_if() {
         let tests = vec![
             //simple if expressions
-            //vec!["? true 1 0", "fn main() {\r\n    if true {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
-            //vec!["= get_true \\ bool => true\r\n? get_true 1 0", "fn main() {\r\n    fn get_true() -> bool {\r\n        true\r\n    }\r\n    if get_true() {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
+            vec!["? true 1 0", "fn main() {\r\n    if true {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
+            vec!["= get_true \\ bool => true\r\n? get_true 1 0", "fn main() {\r\n    fn get_true() -> bool {\r\n        true\r\n    }\r\n    if get_true() {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
             vec!["= get_truer \\ i64 bool arg1 => > arg1 5\r\n? get_truer 10 1 0", "fn main() {\r\n    fn get_truer(arg1: i64) -> bool {\r\n        arg1 > 5\r\n    }\r\n    if get_truer(10) {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"]
             //assignment with if expression
             //(TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
