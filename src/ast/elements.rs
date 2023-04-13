@@ -709,6 +709,50 @@ impl fmt::Debug for ElementInfo {
     }
 }
 
+pub struct ElementsVec(pub Elements);
+
+impl fmt::Debug for ElementsVec {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let root_index = 0;
+        //let elements_vec = ElementsVec(self);
+        write_subtree(&self, f, root_index, 0)?;
+        Ok(())
+    }
+}
+
+fn write_subtree(
+    elements: &ElementsVec,
+    f: &mut fmt::Formatter<'_>,
+    index: usize,
+    indent_level: usize,
+) -> fmt::Result {
+    let (element_info, child_indices) = &elements.0[index];
+    write_indent(f, indent_level)?;
+    let el = match element_info {
+        ElementInfo::Indent => "...".to_string(),
+        _ => format!("{:?}", element_info),
+    };
+    write!(f, "{}", el)?;
+    if child_indices.is_empty() {
+        write!(f, "\n")?;
+    } else {
+        write!(f, " {{\n")?;
+        for child_index in child_indices {
+            write_subtree(elements, f, *child_index, indent_level + 1)?;
+        }
+        write_indent(f, indent_level)?;
+        write!(f, "}}\n")?;
+    }
+    Ok(())
+}
+
+fn write_indent(f: &mut fmt::Formatter<'_>, indent_level: usize) -> fmt::Result {
+    for _ in 0..indent_level {
+        write!(f, "  ")?;
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
 
