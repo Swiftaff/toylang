@@ -8,6 +8,7 @@ extern crate native_windows_gui as nwg;
 
 use nwd::NwgUi;
 use nwg::NativeUi;
+use std::cell::RefCell;
 
 use crate::ast::elements::ElementsVec;
 use crate::file::DebugFileContents;
@@ -16,8 +17,26 @@ use std::process;
 
 const APP_NAME: &str = "Toylang - Compiler debugger";
 
+#[derive(Default, Debug)]
+pub struct MyData {
+    pub history_max: String,
+    pub history: Vec<String>,
+}
+
+impl MyData {
+    pub fn history_update(&mut self, new_vec: &Vec<String>) {
+        self.history = new_vec.clone();
+    }
+
+    pub fn history_max_update(&mut self, string: String) {
+        self.history_max = string;
+    }
+}
+
 #[derive(Default, NwgUi)]
 pub struct ToylangDebugger {
+    mydata: RefCell<MyData>,
+
     #[nwg_resource(source_file: Some("src/icon_128.ico"))]
     icon_128: nwg::Icon,
 
@@ -149,13 +168,21 @@ pub struct ToylangDebugger {
     #[nwg_layout_item(layout: grid, row: 8,  col: 3, col_span: 3)]
     label6: nwg::Label,
 
-    #[nwg_control(text: "AST Current (Tree)")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 6, col_span: 3)]
+    #[nwg_control(text: "AST (0 of 0)")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 6, col_span: 1)]
     label7: nwg::Label,
 
-    #[nwg_control(text: "Output")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 9, col_span: 6)]
+    #[nwg_control(parent: window, size: (250, 30), position: (900,700), range: Some(0..0) )]
+    #[nwg_events( OnHorizontalScroll: [ToylangDebugger::history_update] )]
+    history_trackbar: nwg::TrackBar,
+
+    #[nwg_control(text: "AST Current (Tree)")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 9, col_span: 3)]
     label8: nwg::Label,
+
+    #[nwg_control(text: "Output")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 12, col_span: 3)]
+    label9: nwg::Label,
 
     // Row 5
     #[nwg_control(text: "")]
@@ -168,10 +195,14 @@ pub struct ToylangDebugger {
 
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: grid, row: 9, col: 6, row_span: 5, col_span: 3)]
+    richtext_dynamic_ast: nwg::RichTextBox,
+
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 9, col: 9, row_span: 5, col_span: 3)]
     richtext_tree: nwg::RichTextBox,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 9, row_span: 5, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 9, col: 12, row_span: 5, col_span: 3)]
     richtext_output: nwg::RichTextBox,
 }
 
@@ -253,6 +284,18 @@ impl ToylangDebugger {
     fn close(&self) {
         nwg::stop_thread_dispatch();
     }
+
+    fn history_update(&self) {
+        self.label7.set_text(&format!(
+            "History ({} of {})",
+            &self.history_trackbar.pos(),
+            &self.mydata.borrow().history_max
+        ));
+        self.rich_text_control_set_text(
+            &self.richtext_dynamic_ast,
+            &self.mydata.borrow_mut().history[self.history_trackbar.pos()],
+        )
+    }
 }
 
 fn reset(
@@ -278,15 +321,15 @@ fn reset(
 }
 
 pub fn run(input: String, debug: bool, output: Option<String>) {
+    //let data: RefCell<MyData> = {};
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
     let ui = ToylangDebugger::build_ui(Default::default()).expect("Failed to build UI");
 
     let mut compiler = reset(&ui, input.clone(), debug, output.clone());
 
-    let mut step = 99;
     nwg::dispatch_thread_events_with_callback(move || {
-        step = ui.label_hidden_step.position().0 as usize;
+        let mut step: usize = ui.label_hidden_step.position().0 as usize;
         // we are using the first tuple of position on this element as a weird place to store the persistent state of the "step"
         // but for some reason the label has a first position of 6 for a while, if so set it to the default 99!
         if step > 5 && step < 98 {
@@ -397,6 +440,19 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
+                if compiler.logs.len() as usize > 0 {
+                    ui.mydata.borrow_mut().history_max_update(format!(
+                        "{}",
+                        &compiler.debug_compiler_history.len() - 1
+                    ));
+                    ui.mydata
+                        .borrow_mut()
+                        .history_update(&compiler.debug_compiler_history);
+                    ui.history_trackbar
+                        .set_range_max(&compiler.debug_compiler_history.len() - 1);
+                    ui.history_update();
+                }
+
                 // update richtext_output
                 let txt_output = format!("{}", compiler.ast.output);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
@@ -451,6 +507,19 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.richtext_ast_current.scroll(-20);
 
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
+
+                if compiler.logs.len() as usize > 0 {
+                    ui.mydata.borrow_mut().history_max_update(format!(
+                        "{}",
+                        &compiler.debug_compiler_history.len() - 1
+                    ));
+                    ui.mydata
+                        .borrow_mut()
+                        .history_update(&compiler.debug_compiler_history);
+                    ui.history_trackbar
+                        .set_range_max(&compiler.debug_compiler_history.len() - 1);
+                    ui.history_update();
+                }
 
                 // update richtext_error_stack
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));

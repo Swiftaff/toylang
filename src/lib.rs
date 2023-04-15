@@ -107,6 +107,7 @@ pub struct Compiler {
     pub debug: bool,
     pub debug_step: usize,
     pub debug_line: usize,
+    pub debug_compiler_history: Vec<String>,
     pub filepath: String,
     pub outputdir: String,
     pub lines_of_chars: LinesOfChars,
@@ -134,6 +135,7 @@ impl Compiler {
         }
         let debug_step = 0;
         let debug_line = 0 as usize;
+        let debug_compiler_history = vec![];
         //println!("2");
         let mut outputdir = "".to_string();
         if let Some(outputdir_found) = &option_outputdir {
@@ -156,6 +158,7 @@ impl Compiler {
             debug,
             debug_step,
             debug_line,
+            debug_compiler_history,
             filepath,
             outputdir,
             lines_of_chars,
@@ -185,6 +188,7 @@ impl Compiler {
 
     pub fn log(self: &mut Self, string: String) {
         self.logs.push(string);
+        self.debug_compiler_history.push(format!("{:?}", self.ast));
     }
 
     pub fn debug_step(self: &mut Self, step: usize) -> usize {
