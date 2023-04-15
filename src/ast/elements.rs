@@ -523,7 +523,8 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     }
 }
 
-pub fn is_existing_constant(compiler: &Compiler) -> bool {
+pub fn is_existing_constant(compiler: &mut Compiler) -> bool {
+    compiler.log(format!("elements::is_existing_constant {:?}", ""));
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
     let mut parent_assignment_has_no_children = false;
     match parent.0 {
@@ -562,6 +563,10 @@ pub fn replace_funcdefwip_with_funcdef(
     name: &String,
     func_def_ref: usize,
 ) {
+    compiler.log(format!(
+        "elements::replace_funcdefwip_with_funcdef {:?} {:?} {:?}",
+        children, name, func_def_ref
+    ));
     //assign name, argtypes, argnames, returntype to parent funcdef
     let argtypes = get_argtypes_from_argtokens(compiler, &children);
     let returntype = get_returntype_from_argtokens(compiler, &children);
@@ -572,12 +577,16 @@ pub fn replace_funcdefwip_with_funcdef(
     compiler.ast.elements[func_def_ref] = (new_funcdef, vec![]);
 }
 
-pub fn get_argtypes_from_argtokens(compiler: &Compiler, children: &[usize]) -> Vec<String> {
+pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> Vec<String> {
+    compiler.log(format!(
+        "elements::get_argtypes_from_argtokens {:?}",
+        children
+    ));
     let mut argtypes: Vec<String> = vec![];
     let num_args = children.len() / 2;
     let argtype_refs = &children[..num_args];
     for a in argtype_refs {
-        match &compiler.ast.elements[a.clone()] {
+        match &compiler.clone().ast.elements[a.clone()] {
             (ElementInfo::Type(typename), _) => argtypes.push(typename.clone()),
             (ElementInfo::Parens, paren_children) => {
                 if paren_children.len() > 0 {
@@ -592,7 +601,11 @@ pub fn get_argtypes_from_argtokens(compiler: &Compiler, children: &[usize]) -> V
     argtypes
 }
 
-pub fn get_returntype_from_argtokens(compiler: &Compiler, children: &[usize]) -> String {
+pub fn get_returntype_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> String {
+    compiler.log(format!(
+        "elements::get_returntype_from_argtokens {:?}",
+        children
+    ));
     let num_args = children.len() / 2;
     let returntype_ref = &children[num_args];
     return match &compiler.ast.elements[returntype_ref.clone()] {
@@ -606,6 +619,10 @@ pub fn get_argnames_from_argtokens(
     children: &[usize],
     argtypes: &Vec<String>,
 ) -> Vec<String> {
+    compiler.log(format!(
+        "elements::get_argnames_from_argtokens {:?} {:?}",
+        children, argtypes
+    ));
     //get argnames from Arg tokens
     //but also update Arg tokens returntypes at same time
     //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
@@ -628,7 +645,14 @@ pub fn get_argnames_from_argtokens(
     argnames
 }
 
-pub fn get_formatted_dyn_fn_type_sig(compiler: &Compiler, paren_children: &Vec<usize>) -> String {
+pub fn get_formatted_dyn_fn_type_sig(
+    compiler: &mut Compiler,
+    paren_children: &Vec<usize>,
+) -> String {
+    compiler.log(format!(
+        "elements::get_formatted_dyn_fn_type_sig {:?}",
+        paren_children
+    ));
     let paren_returntype_ref = *paren_children.last().unwrap();
     let paren_returntype_el = &compiler.ast.elements[paren_returntype_ref];
     let paren_returntype = elements::get_elementinfo_type(&compiler.ast, &paren_returntype_el.0);

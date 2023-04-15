@@ -17,6 +17,7 @@ pub type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
 type LinesOfChars = Vec<Vec<char>>;
 type LinesOfTokens = Vec<Tokens>;
+type Logs = Vec<String>;
 
 fn rem_first_and_last(value: &str) -> String {
     let mut chars = value.chars();
@@ -24,16 +25,51 @@ fn rem_first_and_last(value: &str) -> String {
     chars.next_back();
     chars.as_str().to_string()
 }
+
 pub struct DebugErrorStack<'a>(&'a ErrorStack);
 
 impl<'a> fmt::Debug for DebugErrorStack<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = "".to_string();
         for el in 0..self.0.len() {
-            debug = format!("{}\r\n{}: {},", debug, el, rem_first_and_last(&self.0[el]));
+            let spaces = left_pad(self.0.len(), el);
+            debug = format!(
+                "{}\r\n  {}{}: {},",
+                debug,
+                spaces,
+                el,
+                rem_first_and_last(&self.0[el])
+            );
         }
         write!(f, "Custom Debug of ErrorStack [{}\r\n]", debug)
     }
+}
+
+pub struct DebugLogs<'a>(&'a ErrorStack);
+
+impl<'a> fmt::Debug for DebugLogs<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = "".to_string();
+        for el in 0..self.0.len() {
+            let spaces = left_pad(self.0.len(), el);
+            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, &self.0[el]);
+        }
+        write!(f, "Custom Debug of Logs\r\n{}", debug)
+    }
+}
+
+fn left_pad(total: usize, index: usize) -> String {
+    let digits = num_digits(total);
+    let num = num_digits(index);
+    " ".repeat(digits - num)
+}
+
+fn num_digits(num: usize) -> usize {
+    num.to_string()
+        .chars()
+        .filter_map(|x| x.to_digit(10))
+        .collect::<Vec<u32>>()
+        .len()
 }
 
 pub struct DebugLinesOfChars<'a>(&'a LinesOfChars);
@@ -41,9 +77,11 @@ pub struct DebugLinesOfChars<'a>(&'a LinesOfChars);
 impl<'a> fmt::Debug for DebugLinesOfChars<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = "".to_string();
+
         for el in 0..self.0.len() {
+            let spaces = left_pad(self.0.len(), el);
             let el_debug = format!("{:?}", self.0[el]);
-            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
+            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, el_debug);
         }
         write!(f, "Custom Debug of LinesOfChars [{}\r\n]", debug)
     }
@@ -55,8 +93,9 @@ impl<'a> fmt::Debug for DebugLinesOfTokens<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = "".to_string();
         for el in 0..self.0.len() {
+            let spaces = left_pad(self.0.len(), el);
             let el_debug = format!("{:?}", self.0[el]);
-            debug = format!("{}\r\n  {}: {},", debug, el, el_debug);
+            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, el_debug);
         }
         write!(f, "Custom Debug of LinesOfTokens [{}\r\n]", debug)
     }
@@ -77,6 +116,7 @@ pub struct Compiler {
     pub current_line_token: usize,
     pub error_stack: ErrorStack,
     pub ast: Ast,
+    pub logs: Logs,
 }
 
 impl Compiler {
@@ -96,8 +136,8 @@ impl Compiler {
         let debug_line = 0 as usize;
         //println!("2");
         let mut outputdir = "".to_string();
-        if let Some(outputdir_found) = option_outputdir {
-            outputdir = outputdir_found;
+        if let Some(outputdir_found) = &option_outputdir {
+            outputdir = outputdir_found.to_owned();
         }
         let file = File::new();
         let lines_of_chars = vec![];
@@ -107,6 +147,10 @@ impl Compiler {
         let current_line_token = 0;
         let error_stack = vec![];
         let ast = Ast::new();
+        let logs = vec![format!(
+            "lib::new {:?} {:?} {:?}",
+            filepath, debug, option_outputdir
+        )];
         Ok(Compiler {
             file,
             debug,
@@ -121,12 +165,13 @@ impl Compiler {
             current_line_token,
             error_stack,
             ast,
+            logs,
         })
     }
 
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
+        self.log(format!("lib::run {:?}", ""));
         self.file.get(&self.filepath)?;
-        //dbg!(&self.file);
         match self.run_main_tasks() {
             Ok(_) => (),
             Err(_e) => (),
@@ -138,7 +183,12 @@ impl Compiler {
         )
     }
 
+    pub fn log(self: &mut Self, string: String) {
+        self.logs.push(string);
+    }
+
     pub fn debug_step(self: &mut Self, step: usize) -> usize {
+        self.log(format!("lib::debug_step {:?}", step));
         let mut completed_step: usize = 99;
         self.debug_step = step;
         if self.debug_step < 99 as usize {
@@ -203,12 +253,14 @@ impl Compiler {
     }
 
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
+        self.log(format!("lib::run_main_tasks {:?}", ""));
         self.set_lines_of_chars();
         self.set_lines_of_tokens();
         self.run_main_loop()
     }
 
     fn run_main_loop(self: &mut Self) -> Result<(), ()> {
+        self.log(format!("lib::run_main_loop {:?}", ""));
         // ref: https://doc.rust-lang.org/reference/tokens.html
         // ref: https://elm-lang.org/docs/syntax
 
@@ -244,6 +296,7 @@ impl Compiler {
     }
 
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
+        self.log(format!("lib::main_loop_over_lines_of_tokens {:?}", ""));
         //self.set_ast_output_for_main_fn_start();
         if self.debug {
             let line = self.debug_line;
@@ -257,6 +310,7 @@ impl Compiler {
     }
 
     fn parse_one_line(self: &mut Self, line: usize) -> Result<(), ()> {
+        self.log(format!("lib::parse_one_line {:?}", line));
         if line < self.lines_of_tokens.len() && self.lines_of_tokens[line].len() > 0 {
             self.current_line = line;
             self.current_line_token = 0;
@@ -266,6 +320,7 @@ impl Compiler {
     }
 
     fn set_lines_of_chars(self: &mut Self) {
+        self.log(format!("lib::set_lines_of_chars {:?}", ""));
         let mut index_from = 0;
         let mut index_to = 0;
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
@@ -312,6 +367,7 @@ impl Compiler {
     }
 
     fn set_lines_of_tokens(self: &mut Self) {
+        self.log(format!("lib::set_lines_of_tokens {:?}", ""));
         for line in 0..self.lines_of_chars.len() {
             let mut index_from = 0;
             let mut index_to = 0;

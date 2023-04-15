@@ -24,6 +24,7 @@ pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
 }
 
 pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
+    compiler.log(format!("append::types {:?}", index_of_type));
     indent_if_first_in_line(compiler);
     let el = compiler.ast.elements[index_of_type].clone();
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
@@ -46,6 +47,7 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
 }
 
 pub fn indent_if_first_in_line(compiler: &mut Compiler) {
+    compiler.log(format!("append::indent_if_first_in_line {:?}", ""));
     //or if first part of the expression in a single line function (after the colon)
     //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
     if compiler.current_line_token == 0 {
@@ -54,6 +56,7 @@ pub fn indent_if_first_in_line(compiler: &mut Compiler) {
 }
 
 pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), ()> {
+    compiler.log(format!("append::comment_single_line {:?}", val));
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     append(
         &mut compiler.ast,
@@ -65,6 +68,7 @@ pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), (
 }
 
 pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::println {:?}", ""));
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     append(&mut compiler.ast, (ElementInfo::Println, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -73,6 +77,7 @@ pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::if_expression {:?}", ""));
     let undefined = "Undefined".to_string();
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     append(&mut compiler.ast, (ElementInfo::If(undefined), vec![]));
@@ -82,6 +87,7 @@ pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.log(format!("append::string {:?}", current_token));
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
@@ -93,6 +99,7 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
 }
 
 pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
+    compiler.log(format!("append::outdent_if_last_expected_child {:?}", ""));
     let mut prev_parents_len = 999999999;
 
     // loop upwards through parents until reaching root or some scenario causes no further progress.
@@ -158,6 +165,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
 }
 
 pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::seol_if_last_in_line {:?}", ""));
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
     //dbg!("test", is_last_token_in_this_line);
@@ -241,6 +249,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
 }
 
 pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.log(format!("append::int {:?}", current_token));
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
@@ -252,6 +261,7 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
 }
 
 pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.log(format!("append::float {:?}", current_token));
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
@@ -263,6 +273,7 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
 }
 
 pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::assignment {:?}", ""));
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, ((ElementInfo::Assignment), vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -276,6 +287,10 @@ pub fn inbuilt_function_call(
     current_token: &String,
     index_of_function: usize,
 ) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::int {:?} {:?}",
+        current_token, index_of_function
+    ));
     indent_if_first_in_line(compiler);
     let el = &compiler.ast.elements[index_of_function];
     let returntype = elements::get_elementinfo_type(&compiler.ast, &el.0);
@@ -309,6 +324,10 @@ pub fn function_call1(
     current_token: &String,
     index_of_function: usize,
 ) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::function_call1 {:?} {:?}",
+        current_token, index_of_function
+    ));
     //TODO find difference with other append_function_call
     indent_if_first_in_line(compiler);
     let el = &compiler.ast.elements[index_of_function];
@@ -327,6 +346,7 @@ pub fn function_call1(
 }
 
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::list_start {:?}", ""));
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
@@ -338,6 +358,7 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::function_definition_start {:?}", ""));
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::FunctionDefWIP, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -346,6 +367,7 @@ pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::loop_for_range_start {:?}", ""));
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::LoopForRangeWIP, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -354,6 +376,10 @@ pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
 }
 
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::functiontypesig_or_functionreference_start {:?}",
+        ""
+    ));
     indent_if_first_in_line(compiler);
     append(&mut compiler.ast, (ElementInfo::Parens, vec![]));
     errors::error_if_parent_is_invalid(compiler)?;
@@ -362,6 +388,10 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
 }
 
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::functiontypesig_or_functionreference_end {:?}",
+        ""
+    ));
     parents::outdent::outdent(compiler);
     outdent_if_last_expected_child(compiler);
     seol_if_last_in_line(compiler)
@@ -372,6 +402,10 @@ pub fn constant_ref(
     current_token: &String,
     returntype: &String,
 ) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::constant_ref {:?} {:?}",
+        current_token, returntype
+    ));
     indent_if_first_in_line(compiler);
     append(
         &mut compiler.ast,
@@ -390,6 +424,7 @@ pub fn constant_ref(
 }
 
 pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.log(format!("append::new_constant_or_arg {:?}", current_token));
     let typename = "Undefined".to_string();
     indent_if_first_in_line(compiler);
     //TODO change this to inbuiltfunction?
@@ -432,6 +467,10 @@ pub fn function_ref_or_call(
     args: usize,
     returntype: &String,
 ) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::function_ref_or_call {:?} {:?} {:?}",
+        current_token, args, returntype
+    ));
     //dbg!("FunctionCall", &current_token);
     indent_if_first_in_line(compiler);
 
@@ -471,6 +510,10 @@ pub fn function_call(
     returntype: &String,
     seol: bool,
 ) -> Result<(), ()> {
+    compiler.log(format!(
+        "append::function_call {:?} {:?} {:?} {:?}",
+        current_token, args, returntype, seol
+    ));
     append(
         &mut compiler.ast,
         (

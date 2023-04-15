@@ -5,6 +5,7 @@ use crate::parse;
 use crate::Compiler;
 
 pub fn outdent(compiler: &mut Compiler) {
+    compiler.log(format!("outdent::outdent {:?}", ""));
     compiler.ast.parents = if compiler.ast.parents.len() < 2 {
         vec![0]
     } else {
@@ -13,6 +14,10 @@ pub fn outdent(compiler: &mut Compiler) {
 }
 
 pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
+    compiler.log(format!(
+        "outdent::within_fndef_from_return_expression {:?}",
+        ""
+    ));
     //dbg!("FunctionDef");
     let previous_element = compiler.ast.elements[compiler.ast.elements.len() - 2].clone();
     // (should be safe to subtract 2 since there should always be a root)
@@ -101,6 +106,10 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
 }
 
 pub fn within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: &mut Compiler, fndefref: usize) {
+    compiler.log(format!(
+        "outdent::within_fndef_for_inbuiltfncall_from_inbuiltfndef {:?}",
+        fndefref
+    ));
     let fndef = &compiler.ast.elements[fndefref];
     match &fndef.0 {
         ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
@@ -130,6 +139,10 @@ pub fn inbuiltfncall_from_inbuiltfndef(
     current_parent: Element,
     fndefref: usize,
 ) {
+    compiler.log(format!(
+        "outdent::within_fndef_for_inbuiltfncall_from_inbuiltfndef {:?} {:?}",
+        current_parent, fndefref
+    ));
     //dbg!("InbuiltFunctionCall", &fndefref);
     let fndef = compiler.ast.elements[fndefref].clone();
     match fndef.0 {
@@ -146,6 +159,10 @@ pub fn inbuiltfncall_from_inbuiltfndef(
 }
 
 pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String) {
+    compiler.log(format!(
+        "outdent::within_fndef_for_fncall_from_fndef {:?}",
+        name
+    ));
     if let Some(index) = elements::get_function_index_by_name(&mut compiler.ast, name) {
         let fndef = &compiler.ast.elements[index];
         match &fndef.0 {
@@ -165,6 +182,7 @@ pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String
 }
 
 pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
+    compiler.log(format!("outdent::fncall {:?} {:?}", current_parent, name));
     match current_parent.0 {
         ElementInfo::Println => println(compiler, current_parent),
         _ => {
@@ -194,6 +212,7 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
 //}
 
 pub fn println(compiler: &mut Compiler, current_parent: Element) {
+    compiler.log(format!("outdent::println {:?}", current_parent));
     //dbg!("outdent.println");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -201,6 +220,7 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
 }
 
 pub fn constant(compiler: &mut Compiler, current_parent: Element) {
+    compiler.log(format!("outdent::constant {:?}", current_parent));
     //dbg!("Constant");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -208,6 +228,7 @@ pub fn constant(compiler: &mut Compiler, current_parent: Element) {
 }
 
 pub fn assignment(compiler: &mut Compiler, current_parent: Element) {
+    compiler.log(format!("outdent::assignment {:?}", current_parent));
     //dbg!("Assignment");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -215,6 +236,7 @@ pub fn assignment(compiler: &mut Compiler, current_parent: Element) {
 }
 
 pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
+    compiler.log(format!("outdent::if_expression {:?}", current_parent));
     //dbg!("If");
     if current_parent.1.len() > 2 {
         outdent(compiler);
@@ -222,6 +244,10 @@ pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
 }
 
 pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_children: usize) {
+    compiler.log(format!(
+        "outdent::functioncall_of_arg {:?} {:?}",
+        returntype, num_children
+    ));
     let args = parse::get_args_from_dyn_fn(returntype);
     if num_children > 0 && num_children == args {
         outdent(compiler);
@@ -231,6 +257,10 @@ pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_chi
 }
 
 pub fn functioncall_of_functiondef(compiler: &mut Compiler, num_children: usize, args: usize) {
+    compiler.log(format!(
+        "outdent::functioncall_of_functiondef {:?} {:?}",
+        num_children, args
+    ));
     if num_children > 0 && num_children == args {
         outdent(compiler);
     }

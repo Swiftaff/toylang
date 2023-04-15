@@ -11,7 +11,7 @@ use nwg::NativeUi;
 
 use crate::ast::elements::ElementsVec;
 use crate::file::DebugFileContents;
-use crate::{Compiler, DebugErrorStack, DebugLinesOfChars, DebugLinesOfTokens};
+use crate::{Compiler, DebugErrorStack, DebugLinesOfChars, DebugLinesOfTokens, DebugLogs};
 use std::process;
 
 const APP_NAME: &str = "Toylang - Compiler debugger";
@@ -142,21 +142,29 @@ pub struct ToylangDebugger {
 
     // Row 4
     #[nwg_control(text: "Error stack")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 0, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 0, col_span: 3)]
     label5: nwg::Label,
+
+    #[nwg_control(text: "Logs")]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 3, col_span: 3)]
+    label6: nwg::Label,
 
     #[nwg_control(text: "AST Current (Tree)")]
     #[nwg_layout_item(layout: grid, row: 8,  col: 6, col_span: 3)]
-    label6: nwg::Label,
+    label7: nwg::Label,
 
     #[nwg_control(text: "Output")]
     #[nwg_layout_item(layout: grid, row: 8,  col: 9, col_span: 6)]
-    label7: nwg::Label,
+    label8: nwg::Label,
 
     // Row 5
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 0, row_span: 5, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 9, col: 0, row_span: 5, col_span: 3)]
     richtext_error_stack: nwg::RichTextBox,
+
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 9, col: 3, row_span: 5, col_span: 3)]
+    richtext_logs: nwg::RichTextBox,
 
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: grid, row: 9, col: 6, row_span: 5, col_span: 3)]
@@ -260,6 +268,7 @@ fn reset(
     ui.rich_text_control_set_text(&ui.richtext_ast_previous, " ");
     ui.rich_text_control_set_text(&ui.richtext_ast_current, " ");
     ui.rich_text_control_set_text(&ui.richtext_error_stack, " ");
+    ui.rich_text_control_set_text(&ui.richtext_logs, " ");
     ui.rich_text_control_set_text(&ui.richtext_tree, " ");
     ui.rich_text_control_set_text(&ui.richtext_output, " ");
     return Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
@@ -292,11 +301,13 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 let txt_ast = format!("{:?}", compiler.ast);
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
                 let txt_output = format!("{}", compiler.output);
 
                 ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
                 ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
                 ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+                ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
                 if step == 0 as usize {
@@ -337,6 +348,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if step >= 3 as usize {
                 let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
+                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let new_len = new_text.len() as u32;
                 let mut first_non_matching_char = 0;
@@ -380,6 +392,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 });
                 ui.label5
                     .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
+
+                ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
 
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 

@@ -304,6 +304,7 @@ pub fn get_output_for_element_index(
 }
 
 pub fn set_output(compiler: &mut Compiler) {
+    compiler.log(format!("output::set_output {:?}", ""));
     //dbg!(&ast);
     //let ast = &mut compiler.ast;
 

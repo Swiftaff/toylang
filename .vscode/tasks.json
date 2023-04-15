@@ -95,8 +95,6 @@
 			],
 			"label": "1.9 watch test_get_depths_vec_show_output"
 		},
-
-		
 		{
 			"type": "cargo",
 			"command": "build",
@@ -111,8 +109,6 @@
 			],
 			"label": "2.2 build release toylang",
 		},
-
-
 		{
 			"type": "process",
 			"command":"target\\debug\\toylang.exe",
@@ -145,8 +141,6 @@
 			],
 			"label": "3.3 run release -d toylang on src\\test.toy",
 		},
-
-
 		{
 			"type": "cargo",
 			"command":"run",
