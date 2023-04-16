@@ -364,9 +364,9 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
         if step_is_running {
             let mut completed_step = compiler.debug_step(step);
-            dbg!(step, step_max, completed_step);
+            //dbg!(step, step_max, completed_step);
             if reset {
-                dbg!("## reset");
+                //dbg!("## reset");
                 compiler = init(&ui, input.clone(), debug, output.clone());
                 ui.button0.set_enabled(true);
                 ui.button1.set_enabled(true);
@@ -386,7 +386,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             }
 
             if completed_step == 1 {
-                dbg!(step, step_max, completed_step);
+                //dbg!(step, step_max, completed_step);
                 let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
                 let txt_input = format!("{:?}", txt_input_debug);
                 let txt_ast = format!("{:?}", compiler.ast);
@@ -412,7 +412,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             }
 
             if completed_step == 2 {
-                dbg!(step, step_max, completed_step);
+                //dbg!(step, step_max, completed_step);
                 let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
                 ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
                 ui.label1.set_text(&format!(
@@ -430,8 +430,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             }
 
             if completed_step == 3 {
-                dbg!(step, step_max, completed_step);
-
+                //dbg!(step, step_max, completed_step);
                 let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
                 ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
                 ui.label2.set_text(&format!(
@@ -451,7 +450,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
             if step_max >= 4 as usize {
                 if completed_step == 3 {
-                    dbg!(step, step_max, completed_step);
+                    //dbg!(step, step_max, completed_step);
                     let current_text = ui.richtext_ast_current.text();
                     let new_text = format!("{:?}", compiler.ast);
                     let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
@@ -528,9 +527,10 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             }
 
             if completed_step == 5 {
-                dbg!(step, step_max, completed_step);
+                //dbg!(step, step_max, completed_step);
                 let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
+                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let new_len = new_text.len() as u32;
                 let mut first_non_matching_char = 0;
@@ -557,6 +557,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.richtext_ast_current.scroll_lastline();
                 ui.richtext_ast_current.scroll(-20);
 
+                ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
                 if compiler.logs.len() as usize > 0 {
@@ -593,11 +594,9 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.button2.set_enabled(false);
                 ui.button3.set_enabled(false);
                 ui.button4.set_enabled(false);
-                if step_max == 5 as usize {
-                    ui.mydata.borrow_mut().step_is_running_update(false);
-                } else {
-                    ui.mydata.borrow_mut().step_update(0);
-                }
+
+                ui.mydata.borrow_mut().step_is_running_update(false);
+                ui.mydata.borrow_mut().step_update(0);
             }
         }
     });
