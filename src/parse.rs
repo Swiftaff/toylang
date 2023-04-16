@@ -1173,6 +1173,17 @@ mod tests {
     }
 
     #[test]
+    fn test_pass_fndef_return_statement() {
+        let tests = vec![
+            vec![
+                "= a \\ i64 => ? == 1 1 1 0\r\na",
+                "fn main() {\r\n    fn a() -> i64 {\r\n        if 1 == 1 {\r\n            1\r\n        } else {\r\n            0\r\n        }\r\n    }\r\n    a();\r\n}\r\n",
+            ],
+        ];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
     fn test_pass_funccall_zero_args() {
         let tests = vec![
             vec![

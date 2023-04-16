@@ -275,7 +275,13 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
                 }
             }
             ElementInfo::If(_returntype) => {
-                let second_child_type = get_infered_type_of_any_element(&ast, el.1[1]);
+                let mut second_child_type =
+                    "error in get_updated_elementinfo_with_infered_type".to_string();
+                if el.1.len() > 1 {
+                    second_child_type = get_infered_type_of_any_element(&ast, el.1[1]);
+                } else {
+                    dbg!(&el.1);
+                }
                 return ElementInfo::If(second_child_type);
             }
             // explicitly listing other types rather than using _ to not overlook new types in future.
@@ -486,8 +492,13 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
 }
 
 pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String {
-    let second_child = &ast.elements[children[1]];
-    get_elementinfo_type(ast, &second_child.0)
+    if children.len() > 1 {
+        let second_child = &ast.elements[children[1]];
+        get_elementinfo_type(ast, &second_child.0)
+    } else {
+        dbg!("error in get_infered_type_of_if_element");
+        "error".to_string()
+    }
 }
 
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {

@@ -18,19 +18,36 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
         "outdent::within_fndef_from_return_expression {:?}",
         ""
     ));
-    //dbg!("FunctionDef");
-    let previous_element = compiler.ast.elements[compiler.ast.elements.len() - 2].clone();
+
+    // really not sure when this version of previous_element would have ever worked
+    // in conjunction with elements::get_last_element(&mut compiler.ast) too
+    // it's not the last items in the ast it needs the second last and the last child
+    // of the function instead based on the current parent pointing to the function
+    // ...
+    //let previous_element = compiler.ast.elements[compiler.ast.elements.len() - 2].clone();
+
+    let this_fn_ref = compiler.ast.parents[compiler.ast.parents.len() - 1];
+    let this_fn_children = compiler.ast.elements[this_fn_ref].1.clone();
+    if this_fn_children.len() < 2 {
+        dbg!("error in within_fndef_from_return_expression");
+        return ();
+    }
+    let last_child_ref = this_fn_children[this_fn_children.len() - 1];
     // (should be safe to subtract 2 since there should always be a root)
+    let second_last_child_ref = this_fn_children[this_fn_children.len() - 2];
+
+    let last_child = compiler.ast.elements[last_child_ref].clone();
+    let second_last_child = compiler.ast.elements[second_last_child_ref].clone();
 
     // outdent if a return expression i.e.
     // if previous element is an indent
     // then the last element on that row is the next element after the indent
     // so it can be checked for being a return expression
-    match previous_element.0 {
+    match second_last_child.0 {
         ElementInfo::Indent => {
             // outdent if it is a return expression
             // based on these valid examples of return expression
-            match elements::get_last_element(&mut compiler.ast).0 {
+            match last_child.0 {
                 ElementInfo::List(_) => {
                     //dbg!("FunctionDef outdent List", &self.ast.parents,);
                     outdent(compiler);
