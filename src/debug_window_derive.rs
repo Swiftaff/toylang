@@ -21,15 +21,30 @@ const APP_NAME: &str = "Toylang - Compiler debugger";
 pub struct MyData {
     pub history_max: String,
     pub history: Vec<String>,
+    pub step: usize,
+    pub step_max: usize,
+    pub step_is_running: bool,
+    pub step_is_resetting: bool,
 }
 
 impl MyData {
     pub fn history_update(&mut self, new_vec: &Vec<String>) {
         self.history = new_vec.clone();
     }
-
     pub fn history_max_update(&mut self, string: String) {
         self.history_max = string;
+    }
+    pub fn step_update(&mut self, val: usize) {
+        self.step = val;
+    }
+    pub fn step_max_update(&mut self, val: usize) {
+        self.step_max = val;
+    }
+    pub fn step_is_running_update(&mut self, val: bool) {
+        self.step_is_running = val;
+    }
+    pub fn step_is_resetting_update(&mut self, val: bool) {
+        self.step_is_resetting = val;
     }
 }
 
@@ -49,10 +64,6 @@ pub struct ToylangDebugger {
 
     #[nwg_layout(parent: window, spacing: 1)]
     grid: nwg::GridLayout,
-
-    #[nwg_control(text: "", flags: "NONE", position: (99, 0))]
-    #[nwg_layout_item(layout: grid, row: 0,  col: 0)]
-    label_hidden_step: nwg::Label,
 
     // Tray Menu
     #[nwg_control(icon: Some(&data.icon_128), balloon_icon: Some(&data.icon_200), tip: Some(APP_NAME))]
@@ -89,27 +100,27 @@ pub struct ToylangDebugger {
     // Row 1
     #[nwg_control(text: "1. get file")]
     #[nwg_layout_item(layout: grid, row: 1, col: 0, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_0_get_file] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_1_get_file] )]
     button0: nwg::Button,
 
     #[nwg_control(text: "2. set lines of chars")]
     #[nwg_layout_item(layout: grid, row: 1, col: 2, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_1_set_lines_of_chars] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_2_set_lines_of_chars] )]
     button1: nwg::Button,
 
     #[nwg_control(text: "3. set lines of tokens")]
     #[nwg_layout_item(layout: grid, row: 1, col: 4, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_2_set_lines_of_tokens] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_set_lines_of_tokens] )]
     button2: nwg::Button,
 
     #[nwg_control(text: "4. parse each line...")]
     #[nwg_layout_item(layout: grid, row: 1, col: 6, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_3_parse_each_line] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_4_parse_each_line] )]
     button3: nwg::Button,
 
     #[nwg_control(text: "5. set output")]
     #[nwg_layout_item(layout: grid, row: 1, col: 8, col_span: 2)]
-    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_4_set_output] )]
+    #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_5_set_output] )]
     button4: nwg::Button,
 
     #[nwg_control(text: "reset")]
@@ -212,32 +223,43 @@ impl ToylangDebugger {
         self.tray_menu.popup(x, y);
     }
 
-    pub fn change_step_0_get_file(&self) {
-        self.label_hidden_step.set_position(0, 0);
+    pub fn change_step_1_get_file(&self) {
+        self.mydata.borrow_mut().step_update(1);
+        self.mydata.borrow_mut().step_max_update(1);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
-    pub fn change_step_1_set_lines_of_chars(&self) {
-        self.label_hidden_step.set_position(1, 0);
+    pub fn change_step_2_set_lines_of_chars(&self) {
+        self.mydata.borrow_mut().step_update(1);
+        self.mydata.borrow_mut().step_max_update(2);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
-    pub fn change_step_2_set_lines_of_tokens(&self) {
-        self.label_hidden_step.set_position(2, 0);
+    pub fn change_step_3_set_lines_of_tokens(&self) {
+        self.mydata.borrow_mut().step_update(1);
+        self.mydata.borrow_mut().step_max_update(3);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
-    pub fn change_step_3_parse_each_line(&self) {
-        self.label_hidden_step.set_position(3, 0);
+    pub fn change_step_4_parse_each_line(&self) {
+        self.mydata.borrow_mut().step_update(1);
+        self.mydata.borrow_mut().step_max_update(4);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
-    pub fn change_step_4_set_output(&self) {
-        self.label_hidden_step.set_position(4, 0);
+    pub fn change_step_5_set_output(&self) {
+        self.mydata.borrow_mut().step_update(1);
+        self.mydata.borrow_mut().step_max_update(5);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
     pub fn change_step_reset(&self) {
-        self.label_hidden_step.set_position(5, 0);
+        self.mydata.borrow_mut().step_is_resetting_update(true);
+        self.mydata.borrow_mut().step_is_running_update(true);
     }
 
     pub fn change_step_stop(&self) {
-        self.label_hidden_step.set_position(99, 0);
+        self.mydata.borrow_mut().step_is_running_update(false);
     }
 
     pub fn rich_text_input_init(&self) {
@@ -294,11 +316,13 @@ impl ToylangDebugger {
         self.rich_text_control_set_text(
             &self.richtext_dynamic_ast,
             &self.mydata.borrow_mut().history[self.history_trackbar.pos()],
-        )
+        );
+        self.richtext_dynamic_ast.scroll_lastline();
+        self.richtext_dynamic_ast.scroll(-20);
     }
 }
 
-fn reset(
+fn init(
     ui: &toylang_debugger_ui::ToylangDebuggerUi,
     input: String,
     debug: bool,
@@ -321,24 +345,48 @@ fn reset(
 }
 
 pub fn run(input: String, debug: bool, output: Option<String>) {
-    //let data: RefCell<MyData> = {};
     nwg::init().expect("Failed to init Native Windows GUI");
     nwg::Font::set_global_family("Segoe UI").expect("Failed to set default font");
     let ui = ToylangDebugger::build_ui(Default::default()).expect("Failed to build UI");
-
-    let mut compiler = reset(&ui, input.clone(), debug, output.clone());
+    let mut compiler = init(&ui, input.clone(), debug, output.clone());
+    let mut log_prev = "".to_string();
 
     nwg::dispatch_thread_events_with_callback(move || {
-        let mut step: usize = ui.label_hidden_step.position().0 as usize;
-        // we are using the first tuple of position on this element as a weird place to store the persistent state of the "step"
-        // but for some reason the label has a first position of 6 for a while, if so set it to the default 99!
-        if step > 5 && step < 98 {
-            step = 99
+        let step: usize = ui.mydata.borrow().step;
+        let step_max: usize = ui.mydata.borrow().step_max;
+        let step_is_running: bool = ui.mydata.borrow().step_is_running;
+        let reset: bool = ui.mydata.borrow().step_is_resetting;
+        let log = format!("# {} {} {} {}", step, step_max, step_is_running, reset);
+        if log != log_prev {
+            println!("{}", &log);
+            log_prev = log;
         }
-        if step < 99 as usize {
-            let completed_step = compiler.debug_step(step);
 
-            if step >= 0 as usize {
+        if step_is_running {
+            let mut completed_step = compiler.debug_step(step);
+            dbg!(step, step_max, completed_step);
+            if reset {
+                dbg!("## reset");
+                compiler = init(&ui, input.clone(), debug, output.clone());
+                ui.button0.set_enabled(false); //gets file when it resets anyway
+                ui.button1.set_enabled(true);
+                ui.button2.set_enabled(true);
+                ui.button3.set_enabled(true);
+                ui.button4.set_enabled(true);
+                ui.mydata.borrow_mut().history_update(&vec![String::new()]);
+                ui.mydata.borrow_mut().history_max_update("".to_string());
+                ui.history_trackbar.set_pos(0);
+                ui.history_trackbar.set_range_max(0);
+                ui.history_update();
+                ui.mydata.borrow_mut().step_update(0);
+                ui.mydata.borrow_mut().step_max_update(0);
+                ui.mydata.borrow_mut().step_is_running_update(false);
+                ui.mydata.borrow_mut().step_is_resetting_update(false);
+                completed_step = 0;
+            }
+
+            if completed_step == 1 {
+                dbg!(step, step_max, completed_step);
                 let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
                 let txt_input = format!("{:?}", txt_input_debug);
                 let txt_ast = format!("{:?}", compiler.ast);
@@ -353,125 +401,134 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-                if step == 0 as usize {
-                    ui.label_hidden_step.set_position(99, 0);
-                }
+
                 ui.button0.set_enabled(false);
+
+                if step_max == 1 as usize {
+                    ui.mydata.borrow_mut().step_is_running_update(false);
+                } else {
+                    ui.mydata.borrow_mut().step_update(2);
+                }
             }
 
-            if step >= 1 as usize {
+            if completed_step == 2 {
+                dbg!(step, step_max, completed_step);
                 let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
                 ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
                 ui.label1.set_text(&format!(
                     "Lines of chars (0 - {})",
                     &compiler.lines_of_chars.len() - 1
                 ));
-                if step == 1 as usize {
-                    ui.label_hidden_step.set_position(99, 0);
-                }
+
                 ui.button0.set_enabled(false);
                 ui.button1.set_enabled(false);
+                if step_max == 2 as usize {
+                    ui.mydata.borrow_mut().step_is_running_update(false);
+                } else {
+                    ui.mydata.borrow_mut().step_update(3);
+                }
             }
 
-            if step >= 2 as usize {
+            if completed_step == 3 {
+                dbg!(step, step_max, completed_step);
+
                 let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
                 ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
                 ui.label2.set_text(&format!(
                     "Lines of tokens (0 - {})",
                     &compiler.lines_of_tokens.len() - 1
                 ));
-                if step == 2 as usize {
-                    ui.label_hidden_step.set_position(99, 0);
-                }
+
                 ui.button0.set_enabled(false);
                 ui.button1.set_enabled(false);
                 ui.button2.set_enabled(false);
+                if step_max == 3 as usize {
+                    ui.mydata.borrow_mut().step_is_running_update(false);
+                } else {
+                    ui.mydata.borrow_mut().step_update(4);
+                }
             }
 
-            if step >= 3 as usize {
-                let current_text = ui.richtext_ast_current.text();
-                let new_text = format!("{:?}", compiler.ast);
-                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
-                let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
-                let new_len = new_text.len() as u32;
-                let mut first_non_matching_char = 0;
-                for (c1, c2) in new_text.chars().zip(current_text.chars()) {
-                    if c1 != c2 {
-                        break;
-                    }
-                    first_non_matching_char += 1;
-                }
-
-                ui.label2.set_text(&format!(
-                    "Lines of tokens ({} of {})",
-                    &compiler.debug_line - 1,
-                    &compiler.lines_of_tokens.len() - 1
-                ));
-
-                // update richtext_ast_previous
-                ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
-                ui.richtext_ast_previous.scroll_lastline();
-                ui.richtext_ast_previous.scroll(-20);
-
-                // update richtext_ast_current
-                ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
-                ui.richtext_ast_current
-                    .set_selection(first_non_matching_char..new_len - 1);
-                ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
-                    text_color: Some([20, 200, 20]),
-                    ..Default::default()
-                });
-                ui.richtext_ast_current.scroll_lastline();
-                ui.richtext_ast_current.scroll(-20);
-
-                // update richtext_error_stack
-                let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
-                ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
-                ui.richtext_error_stack
-                    .set_selection(28..((txt_error.len() as u32) - 4));
-                ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
-                    text_color: Some([200, 20, 20]),
-                    ..Default::default()
-                });
-                ui.label5
-                    .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
-
-                ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
-
-                ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
-
-                if compiler.logs.len() as usize > 0 {
-                    ui.mydata.borrow_mut().history_max_update(format!(
-                        "{}",
-                        &compiler.debug_compiler_history.len() - 1
-                    ));
-                    ui.mydata
-                        .borrow_mut()
-                        .history_update(&compiler.debug_compiler_history);
-                    ui.history_trackbar
-                        .set_range_max(&compiler.debug_compiler_history.len() - 1);
-                    ui.history_update();
-                }
-
-                // update richtext_output
-                let txt_output = format!("{}", compiler.ast.output);
-                ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
-
-                ui.button0.set_enabled(false);
-                ui.button1.set_enabled(false);
-                ui.button2.set_enabled(false);
-
-                if step == 3 {
-                    ui.label_hidden_step.set_position(99, 0);
-                }
-
-                //disable button when done
+            if step_max >= 4 as usize {
                 if completed_step == 3 {
+                    dbg!(step, step_max, completed_step);
+                    let current_text = ui.richtext_ast_current.text();
+                    let new_text = format!("{:?}", compiler.ast);
+                    let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
+                    let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
+                    let new_len = new_text.len() as u32;
+                    let mut first_non_matching_char = 0;
+                    for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                        if c1 != c2 {
+                            break;
+                        }
+                        first_non_matching_char += 1;
+                    }
+
+                    // update richtext_ast_previous
+                    ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
+                    ui.richtext_ast_previous.scroll_lastline();
+                    ui.richtext_ast_previous.scroll(-20);
+
+                    // update richtext_ast_current
+                    ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
+                    ui.richtext_ast_current
+                        .set_selection(first_non_matching_char..new_len - 1);
+                    ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
+                        text_color: Some([20, 200, 20]),
+                        ..Default::default()
+                    });
+                    ui.richtext_ast_current.scroll_lastline();
+                    ui.richtext_ast_current.scroll(-20);
+
+                    // update richtext_error_stack
+                    let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
+                    ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
+                    ui.richtext_error_stack
+                        .set_selection(28..((txt_error.len() as u32) - 4));
+                    ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
+                        text_color: Some([200, 20, 20]),
+                        ..Default::default()
+                    });
+                    ui.label5
+                        .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
+
+                    ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
+
+                    ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
+
+                    if compiler.logs.len() as usize > 0 {
+                        let pos = &compiler.debug_compiler_history.len() - 1;
+                        ui.mydata
+                            .borrow_mut()
+                            .history_max_update(format!("{}", pos));
+                        ui.mydata
+                            .borrow_mut()
+                            .history_update(&compiler.debug_compiler_history);
+                        ui.history_trackbar.set_range_max(pos);
+                        ui.history_update();
+                        ui.history_trackbar.set_pos(pos);
+                    }
+
+                    // update richtext_output
+                    let txt_output = format!("{}", compiler.ast.output);
+                    ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
+                }
+                if completed_step == 4 {
+                    ui.button0.set_enabled(false);
+                    ui.button1.set_enabled(false);
+                    ui.button2.set_enabled(false);
                     ui.button3.set_enabled(false);
+                    if step_max == 4 as usize {
+                        ui.mydata.borrow_mut().step_is_running_update(false);
+                    } else {
+                        ui.mydata.borrow_mut().step_update(5);
+                    }
                 }
             }
 
-            if step >= 4 as usize {
+            if completed_step == 5 {
+                dbg!(step, step_max, completed_step);
                 let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
@@ -483,12 +540,6 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     }
                     first_non_matching_char += 1;
                 }
-
-                ui.label2.set_text(&format!(
-                    "Lines of tokens ({} of {})",
-                    &compiler.lines_of_tokens.len() - 1,
-                    &compiler.lines_of_tokens.len() - 1
-                ));
 
                 // update richtext_ast_previous
                 ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
@@ -509,16 +560,16 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
                 if compiler.logs.len() as usize > 0 {
-                    ui.mydata.borrow_mut().history_max_update(format!(
-                        "{}",
-                        &compiler.debug_compiler_history.len() - 1
-                    ));
+                    let pos = &compiler.debug_compiler_history.len() - 1;
+                    ui.mydata
+                        .borrow_mut()
+                        .history_max_update(format!("{}", pos));
                     ui.mydata
                         .borrow_mut()
                         .history_update(&compiler.debug_compiler_history);
-                    ui.history_trackbar
-                        .set_range_max(&compiler.debug_compiler_history.len() - 1);
+                    ui.history_trackbar.set_range_max(pos);
                     ui.history_update();
+                    ui.history_trackbar.set_pos(pos);
                 }
 
                 // update richtext_error_stack
@@ -537,23 +588,16 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 let txt_output = format!("{}", compiler.ast.output);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
 
-                if completed_step >= 3 {
-                    ui.button3.set_enabled(false);
-                    ui.button4.set_enabled(false);
+                ui.button0.set_enabled(false);
+                ui.button1.set_enabled(false);
+                ui.button2.set_enabled(false);
+                ui.button3.set_enabled(false);
+                ui.button4.set_enabled(false);
+                if step_max == 5 as usize {
+                    ui.mydata.borrow_mut().step_is_running_update(false);
+                } else {
+                    ui.mydata.borrow_mut().step_update(0);
                 }
-                if completed_step >= 4 {
-                    ui.label_hidden_step.set_position(99, 0);
-                }
-            }
-
-            if step == 5 as usize {
-                compiler = reset(&ui, input.clone(), debug, output.clone());
-                ui.button0.set_enabled(false); //gets file when it resets anyway
-                ui.button1.set_enabled(true);
-                ui.button2.set_enabled(true);
-                ui.button3.set_enabled(true);
-                ui.button4.set_enabled(true);
-                ui.label_hidden_step.set_position(99, 0);
             }
         }
     });

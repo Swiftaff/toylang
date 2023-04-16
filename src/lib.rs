@@ -193,52 +193,58 @@ impl Compiler {
 
     pub fn debug_step(self: &mut Self, step: usize) -> usize {
         self.log(format!("lib::debug_step {:?}", step));
-        let mut completed_step: usize = 99;
+        let mut completed_step: usize = 0;
         self.debug_step = step;
-        if self.debug_step < 99 as usize {
-            if self.debug_step >= 0 as usize {
-                if self.file.filepath == "".to_string() {
-                    println!("0: {}", &self.debug_step);
-                    let _result = self.file.get(&self.filepath);
-                    completed_step = 0;
-                }
-            }
 
-            if self.debug_step >= 1 as usize {
-                if self.lines_of_chars.len() == 0 {
-                    println!("1: {}", &self.debug_step);
-                    self.set_lines_of_chars();
-                    completed_step = 1;
-                }
-            }
+        if self.debug_step == 1 as usize {
+            dbg!("1");
+            let _result = self.file.get(&self.filepath);
+        }
 
-            if self.debug_step >= 2 as usize {
-                if self.lines_of_tokens.len() == 0 {
-                    println!("2: {}", &self.debug_step);
-                    self.set_lines_of_tokens();
-                    completed_step = 2;
-                }
-            }
+        if self.debug_step == 2 as usize {
+            println!("2");
+            self.set_lines_of_chars();
+        }
 
-            if self.debug_step >= 3 as usize {
-                if self.debug_line < self.lines_of_tokens.len() {
-                    let _result = self.main_loop_over_lines_of_tokens();
-                    self.debug_line = self.debug_line + 1;
-                    if self.debug_line == self.lines_of_tokens.len() {
-                        completed_step = 3;
-                    }
-                }
-            }
+        if self.debug_step == 3 as usize {
+            println!("3");
+            self.set_lines_of_tokens();
+        }
 
-            if self.debug_step >= 4 as usize {
-                self.ast.output = "".to_string();
-                println!("3: {}", &self.debug_step);
-                output::set_output(self);
-                if self.debug_step == 4 && completed_step == 3 {
-                    completed_step = 4;
-                }
+        if self.debug_step == 4 as usize {
+            if self.debug_line < self.lines_of_tokens.len() {
+                let _result = self.main_loop_over_lines_of_tokens();
+                self.debug_line = self.debug_line + 1;
+                println!("4");
             }
         }
+
+        if self.debug_step == 5 as usize {
+            self.ast.output = "".to_string();
+            println!("5");
+            output::set_output(self);
+        }
+
+        if self.file.filepath != "".to_string() {
+            completed_step = 1;
+        }
+
+        if self.lines_of_chars.len() > 0 {
+            completed_step = 2;
+        }
+
+        if self.lines_of_tokens.len() > 0 {
+            completed_step = 3;
+        }
+
+        if self.debug_line > 0 && self.debug_line == self.lines_of_tokens.len() {
+            completed_step = 4;
+        }
+
+        if self.ast.output.len() > 0 {
+            completed_step = 5;
+        }
+
         completed_step
 
         /*
