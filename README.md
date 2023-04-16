@@ -231,6 +231,8 @@ fn main() {
 //                 \       \_ argument names
 //                  \_argument types, return type last
 
+
+
 // multi line functions
 // two i64 arguments, returns i64
 = multiline_fn_name \ i64 i64 i64 arg1 arg2 =>
@@ -258,7 +260,6 @@ z
 arg1 arg2
 
 
-
 // function calls
 function_name 123
 multiline_fn_name + 123 456 789
@@ -266,6 +267,20 @@ multiline_fn_name + 123 456 789
 // also when passing a function as a parameter
 // must wrap it in parenthesis so it doesn't evaluate
 take_fn_as_first_parameter ( function_name ) 321
+
+
+// fibonacci Example
+= fibonacci \ i64 i64 n => ? < n 2 1 + fibonacci - n 1 fibonacci - n 2
+@ fibonacci 10
+
+
+
+
+
+
+
+
+
 
 ```
 
@@ -277,6 +292,7 @@ fn main() {
     fn function_name(arg1: i64) -> i64 {
         123 + arg1
     }
+
 
 
 
@@ -315,6 +331,20 @@ fn main() {
     // also when passing a function as a parameter
     // must wrap it in parenthesis so it doesn't evaluate
     take_fn_as_first_parameter(&function_name, 321);
+
+
+    // fibonacci example
+    fn main() {
+        fn fibonacci(n: i64) -> i64 {
+            if n < 2 {
+                1
+            } else {
+                fibonacci(n - 1) + fibonacci(n - 2)
+            }
+        }
+        println!("{}", fibonacci(10));
+    }
+
 }
 ```
 

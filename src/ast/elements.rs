@@ -534,10 +534,18 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     }
 }
 
-pub fn is_existing_constant(compiler: &mut Compiler) -> bool {
+pub fn _is_existing_constant(compiler: &mut Compiler) -> bool {
     compiler.log(format!("elements::is_existing_constant {:?}", ""));
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
-    let mut parent_assignment_has_no_children = false;
+    let parent_assignment_has_no_children = false;
+    if compiler.logs.len() == 150 {
+        dbg!(compiler.logs.len(), &parent, &compiler.ast.parents);
+    }
+
+    /*
+    //The below may be nonsense - it is not checking if there is a pre-existing constant of the same name!
+    Instead replacing it with a function which will check all parents for containing "Arg"s like "Arg: n scope:24 (i64) [ ]"
+
     match parent.0 {
         ElementInfo::Assignment => {
             parent_assignment_has_no_children = parent.1.len() == 0;
@@ -548,6 +556,8 @@ pub fn is_existing_constant(compiler: &mut Compiler) -> bool {
         }
         _ => (),
     }
+    */
+
     parent_assignment_has_no_children
 }
 

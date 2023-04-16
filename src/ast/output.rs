@@ -177,7 +177,6 @@ pub fn get_output_for_element_index(
                         //dbg!(&output);
                         for i in 0..argnames.len() {
                             let arg_var_num = format!("arg~{}", i + 1);
-                            dbg!("output error", &name, &children, i);
                             if i >= children.len() {
                                 dbg!("output error", &name, &children, i);
                             } else {

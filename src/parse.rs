@@ -221,11 +221,13 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
     let el_option = elements::get_element_by_name(&compiler.ast, current_token);
     match el_option {
         Some(_) => {
-            if elements::is_existing_constant(compiler) {
-                return errors::append_error(compiler, 0, 1, ERRORS.constants_are_immutable);
-            }
             match el_option {
+                //you may find the original constant...
                 Some((ElementInfo::Constant(_, returntype), _)) => {
+                    return elements::append::constant_ref(compiler, current_token, &returntype);
+                }
+                //...or a later reference to it
+                Some((ElementInfo::ConstantRef(_, returntype, _), _)) => {
                     return elements::append::constant_ref(compiler, current_token, &returntype);
                 }
                 Some((ElementInfo::Arg(_, _, returntype), _)) => {
@@ -266,7 +268,6 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::Float(_), _)) => (),
                 Some((ElementInfo::String(_), _)) => (),
                 Some((ElementInfo::Bool(_), _)) => (),
-                Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
                 Some((ElementInfo::Assignment, _)) => (),
                 Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
                 Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
@@ -1261,6 +1262,17 @@ mod tests {
             //(TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
             //vec!["= a ? true 1 0", "fn main() {\r\n    let a: i64 =             if true {\r\n                1\r\n            } else {\r\n                0\r\n            };\r\n}\r\n"],
             ];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
+    fn test_pass_fibonacci() {
+        let tests = vec![
+            vec![
+                "= fibonacci \\ i64 i64 n => ? < n 2 1 + fibonacci - n 1 fibonacci - n 2\r\n@ fibonacci 10",
+                "fn main() {\r\n    fn fibonacci(n: i64) -> i64 {\r\n        if n < 2 {\r\n            1\r\n        } else {\r\n            fibonacci(n - 1) + fibonacci(n - 2)\r\n        }\r\n    }\r\n    println!(\"{}\", fibonacci(10));\r\n}\r\n",
+            ],
+        ];
         test_pass_scenario(tests);
     }
 
