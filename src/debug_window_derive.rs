@@ -368,7 +368,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if reset {
                 dbg!("## reset");
                 compiler = init(&ui, input.clone(), debug, output.clone());
-                ui.button0.set_enabled(false); //gets file when it resets anyway
+                ui.button0.set_enabled(true);
                 ui.button1.set_enabled(true);
                 ui.button2.set_enabled(true);
                 ui.button3.set_enabled(true);
