@@ -4,8 +4,14 @@
 		{
 			"type": "cargo",
 			"command":"test",
-			"args":[],
+			"args":["--features","dox"],
 			"label": "1.1 test",
+		},
+		{
+			"type": "cargo",
+			"command":"doc",
+			"args":["--document-private-items","--features","dox"],
+			"label": "1.1b doc",
 		},
 		{
 			"type": "cargo",

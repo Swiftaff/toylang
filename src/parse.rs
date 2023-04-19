@@ -699,10 +699,12 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
     input[..first_non_whitespace_index].to_string()
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "dox"))]
+#[allow(dead_code)]
 mod tests {
     use crate::Compiler;
 
+    /// helper function for tests
     fn test_pass_scenario(tests: Vec<Vec<&str>>) {
         for test in tests {
             let input = &test[0];
@@ -719,14 +721,29 @@ mod tests {
         }
     }
 
-    #[test]
+    /// ```
+    #[doc = "fn main() {\r\n}\r\n"]
+    /// ```
+    #[cfg_attr(not(feature = "dox"), test)]
     fn test_pass_empty_file() {
         //empty file
         let tests = vec![vec!["", "fn main() {\r\n}\r\n"]];
         test_pass_scenario(tests);
     }
 
-    #[test]
+    /// comment single line
+    /// ```
+    #[doc = "fn main() {\r\n    //comment\r\n}\r\n"]
+    /// ```
+    /// comment single line with space
+    /// ```
+    #[doc = "fn main() {\r\n    //    comment\r\n}\r\n"]
+    /// ```
+    /// comment single line with complicated content
+    /// ```
+    #[doc = "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n"]
+    /// ```
+    #[cfg_attr(not(feature = "dox"), test)]
     fn test_pass_comment_singleline() {
         let tests = vec![
             //comment single line

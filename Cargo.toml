@@ -24,3 +24,6 @@ name = "output"
 
 [[bin]]
 name = "testy"
+
+[features]
+dox = []
