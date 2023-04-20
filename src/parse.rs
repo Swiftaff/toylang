@@ -632,7 +632,12 @@ mod tests {
 
     macro_rules! doc_and_int_test {
         ( $test_name:ident, $x:expr, $y:expr ) => {
+            #[doc = "Toylang code:"]
+            #[doc = "```toylang"]
+            #[doc = $x]
             #[doc = "```"]
+            #[doc = "generates rust code:"]
+            #[doc = "```rust"]
             #[doc = $y]
             #[doc = "```"]
             #[cfg_attr(not(feature = "dox"), test)]
