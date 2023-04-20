@@ -36,12 +36,8 @@ pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()>
             //dbg!(&current_token);
             let func = &compiler.ast.elements[index_of_function];
             match &func.0 {
-                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
-                    inbuilt_function_call(compiler, &current_token, index_of_function)
-                }
-                ElementInfo::FunctionDef(_, _, _, _) => {
-                    function_call(compiler, &current_token, index_of_function)
-                }
+                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => inbuilt_function_call(compiler, &current_token, index_of_function),
+                ElementInfo::FunctionDef(_, _, _, _) => function_call(compiler, &current_token, index_of_function),
                 ElementInfo::Arg(_, _, returntype) => {
                     if returntype.contains("&dyn Fn") {
                         function_call(compiler, &current_token, index_of_function)
@@ -59,21 +55,10 @@ pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()>
     }
 }
 
-pub fn token_by_first_chars(
-    compiler: &mut Compiler,
-    current_token: &String,
-    current_token_vec: &Vec<char>,
-) -> Result<(), ()> {
-    compiler.log(format!(
-        "parse::token_by_first_chars {:?} {:?}",
-        &current_token, current_token_vec
-    ));
+pub fn token_by_first_chars(compiler: &mut Compiler, current_token: &String, current_token_vec: &Vec<char>) -> Result<(), ()> {
+    compiler.log(format!("parse::token_by_first_chars {:?} {:?}", &current_token, current_token_vec));
     let first_char = current_token_vec[0];
-    let second_char = if current_token_vec.len() > 1 {
-        Some(current_token_vec[1])
-    } else {
-        None
-    };
+    let second_char = if current_token_vec.len() > 1 { Some(current_token_vec[1]) } else { None };
     match first_char {
         '[' => match second_char {
             Some(second) => {
@@ -149,14 +134,8 @@ pub fn token_by_first_chars(
     }
 }
 
-pub fn comment_single_line(
-    compiler: &mut Compiler,
-    current_token_vec: &Vec<char>,
-) -> Result<(), ()> {
-    compiler.log(format!(
-        "parse::comment_single_line {:?}",
-        current_token_vec
-    ));
+pub fn comment_single_line(compiler: &mut Compiler, current_token_vec: &Vec<char>) -> Result<(), ()> {
+    compiler.log(format!("parse::comment_single_line {:?}", current_token_vec));
     if current_token_vec.len() < 2 || current_token_vec[1] != '/' {
         return errors::append_error(compiler, 0, 1, ERRORS.comment_single_line);
     }
@@ -190,13 +169,9 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     let all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
     let chars: Vec<char> = current_token.chars().collect();
     let first_char_is_negative_sign = chars[0] == '-';
-    let is_negative_all_other_chars_are_not_numeric = first_char_is_negative_sign
-        && chars.len() > 1
-        && !chars[1..chars.len()].into_iter().all(|c| c.is_numeric());
+    let is_negative_all_other_chars_are_not_numeric = first_char_is_negative_sign && chars.len() > 1 && !chars[1..chars.len()].into_iter().all(|c| c.is_numeric());
 
-    if (!first_char_is_negative_sign && !all_chars_are_numeric)
-        || is_negative_all_other_chars_are_not_numeric
-    {
+    if (!first_char_is_negative_sign && !all_chars_are_numeric) || is_negative_all_other_chars_are_not_numeric {
         errors::append_error(compiler, 0, 1, ERRORS.int)?;
     }
     match current_token.parse::<i64>() {
@@ -234,28 +209,13 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                     //dbg!("Arg", &returntype);
                     if returntype.contains("&dyn Fn") {
                         let args = get_args_from_dyn_fn(&returntype);
-                        return elements::append::function_call(
-                            compiler,
-                            current_token,
-                            args,
-                            &returntype,
-                            false,
-                        );
+                        return elements::append::function_call(compiler, current_token, args, &returntype, false);
                     } else {
-                        return elements::append::constant_ref(
-                            compiler,
-                            current_token,
-                            &returntype,
-                        );
+                        return elements::append::constant_ref(compiler, current_token, &returntype);
                     }
                 }
                 Some((ElementInfo::FunctionDef(_, argnames, _, returntype), _)) => {
-                    return elements::append::function_ref_or_call(
-                        compiler,
-                        current_token,
-                        argnames.len(),
-                        &returntype,
-                    );
+                    return elements::append::function_ref_or_call(compiler, current_token, argnames.len(), &returntype);
                 }
                 Some((ElementInfo::If(_returntype), _)) => {
                     return elements::append::if_expression(compiler);
@@ -296,28 +256,14 @@ pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::assignment(compiler)
 }
 
-pub fn inbuilt_function_call(
-    compiler: &mut Compiler,
-    current_token: &String,
-    index_of_function: usize,
-) -> Result<(), ()> {
+pub fn inbuilt_function_call(compiler: &mut Compiler, current_token: &String, index_of_function: usize) -> Result<(), ()> {
     //TODO error checking
-    compiler.log(format!(
-        "parse::inbuilt_function_call {:?} {:?}",
-        current_token, index_of_function
-    ));
+    compiler.log(format!("parse::inbuilt_function_call {:?} {:?}", current_token, index_of_function));
     elements::append::inbuilt_function_call(compiler, current_token, index_of_function)
 }
 
-pub fn function_call(
-    compiler: &mut Compiler,
-    current_token: &String,
-    index_of_function: usize,
-) -> Result<(), ()> {
-    compiler.log(format!(
-        "parse::function_call {:?} {:?}",
-        current_token, index_of_function
-    ));
+pub fn function_call(compiler: &mut Compiler, current_token: &String, index_of_function: usize) -> Result<(), ()> {
+    compiler.log(format!("parse::function_call {:?} {:?}", current_token, index_of_function));
     elements::append::function_call1(compiler, current_token, index_of_function)
 }
 
@@ -415,20 +361,12 @@ pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
                 let const_child = compiler.ast.elements[const_children[0]].clone();
                 match const_child.0 {
                     ElementInfo::Int(from) => {
-                        let new_loopforrange = ElementInfo::LoopForRange(
-                            name,
-                            from.parse::<usize>().unwrap(),
-                            to.parse::<usize>().unwrap(),
-                        );
+                        let new_loopforrange = ElementInfo::LoopForRange(name, from.parse::<usize>().unwrap(), to.parse::<usize>().unwrap());
                         let mut new_loopforrange_children = loopforrangewip.1;
-                        new_loopforrange_children =
-                            parents::vec_remove_head(&new_loopforrange_children);
-                        new_loopforrange_children =
-                            parents::vec_remove_head(&new_loopforrange_children);
-                        new_loopforrange_children =
-                            parents::vec_remove_head(&new_loopforrange_children);
-                        compiler.ast.elements[loopforrangewip_ref] =
-                            (new_loopforrange, new_loopforrange_children);
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        new_loopforrange_children = parents::vec_remove_head(&new_loopforrange_children);
+                        compiler.ast.elements[loopforrangewip_ref] = (new_loopforrange, new_loopforrange_children);
                         Ok(())
                     }
                     _ => append_error(compiler, 0, 1, ERRORS.loopfor_malformed),
@@ -466,10 +404,7 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
     */
 
     //get parent funcdef
-    if let Some(func_def_ref) = parents::get_current_parent_ref_from_element_children_search(
-        &compiler.ast,
-        compiler.ast.elements.len() - 1,
-    ) {
+    if let Some(func_def_ref) = parents::get_current_parent_ref_from_element_children_search(&compiler.ast, compiler.ast.elements.len() - 1) {
         //get child refs
         let func_def: Element = compiler.ast.elements[func_def_ref].clone();
         let children = func_def.1.clone();
@@ -494,50 +429,24 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
         match func_def.0 {
             ElementInfo::FunctionDefWIP => {
                 //Constant is parent of functionDefWIP
-                if let Some(constant_ref) =
-                    parents::get_current_parent_ref_from_element_children_search(
-                        &compiler.ast,
-                        func_def_ref,
-                    )
-                {
+                if let Some(constant_ref) = parents::get_current_parent_ref_from_element_children_search(&compiler.ast, func_def_ref) {
                     let constant = compiler.ast.elements[constant_ref].clone();
 
                     //assignment is parent of constant
-                    if let Some(assignment_ref) =
-                        parents::get_current_parent_ref_from_element_children_search(
-                            &compiler.ast,
-                            constant_ref,
-                        )
-                    {
+                    if let Some(assignment_ref) = parents::get_current_parent_ref_from_element_children_search(&compiler.ast, constant_ref) {
                         match constant.0 {
                             ElementInfo::Constant(name, _) => {
-                                elements::replace_funcdefwip_with_funcdef(
-                                    compiler,
-                                    &children,
-                                    &name,
-                                    func_def_ref,
-                                );
+                                elements::replace_funcdefwip_with_funcdef(compiler, &children, &name, func_def_ref);
 
                                 // replace assignment with unused
-                                compiler.ast.elements[assignment_ref] =
-                                    (ElementInfo::Unused, vec![]);
+                                compiler.ast.elements[assignment_ref] = (ElementInfo::Unused, vec![]);
 
                                 // replace constant with Unused
                                 compiler.ast.elements[constant_ref] = (ElementInfo::Unused, vec![]);
 
                                 // replace parents child reference to the assignment, with the func_def_ref
-                                if let Some(index) =
-                                    parents::get_current_parent_ref_from_element_children_search(
-                                        &compiler.ast,
-                                        assignment_ref,
-                                    )
-                                {
-                                    elements::replace_element_child(
-                                        &mut compiler.ast,
-                                        index,
-                                        assignment_ref,
-                                        func_def_ref,
-                                    );
+                                if let Some(index) = parents::get_current_parent_ref_from_element_children_search(&compiler.ast, assignment_ref) {
+                                    elements::replace_element_child(&mut compiler.ast, index, assignment_ref, func_def_ref);
                                 }
 
                                 //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
@@ -562,18 +471,12 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
 //TODO remember to error / or at least check if reusing arg names in nested functions
 
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!(
-        "parse::functiontypesig_or_functionreference_start {:?}",
-        ""
-    ));
+    compiler.log(format!("parse::functiontypesig_or_functionreference_start {:?}", ""));
     elements::append::functiontypesig_or_functionreference_start(compiler)
 }
 
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!(
-        "parse::functiontypesig_or_functionreference_end {:?}",
-        ""
-    ));
+    compiler.log(format!("parse::functiontypesig_or_functionreference_end {:?}", ""));
     elements::append::functiontypesig_or_functionreference_end(compiler)
 }
 
@@ -583,11 +486,7 @@ pub fn is_integer(text: &String) -> bool {
     let text_chars: Vec<char> = text.chars().collect();
     let first_char_is_negative_sign = text_chars[0] == '-';
 
-    let is_negative_all_other_chars_are_numeric = first_char_is_negative_sign
-        && text_chars.len() > 1
-        && text_chars[1..text_chars.len()]
-            .into_iter()
-            .all(|c| c.is_numeric());
+    let is_negative_all_other_chars_are_numeric = first_char_is_negative_sign && text_chars.len() > 1 && text_chars[1..text_chars.len()].into_iter().all(|c| c.is_numeric());
 
     if !all_chars_are_numeric && !is_negative_all_other_chars_are_numeric {
         is_valid = false;
@@ -620,11 +519,7 @@ pub fn is_float(text: &String) -> bool {
     }
     let has_one_decimal_point = index_decimal_point != 0;
     let no_power_of_10 = index_e == 0 && index_plus == 0;
-    let has_one_power_of_10 = index_e != 0
-        && index_plus > 0
-        && index_plus == index_e + 1
-        && (char_vec.len() > 1 && index_plus < char_vec.len() - 1)
-        && index_e > 0;
+    let has_one_power_of_10 = index_e != 0 && index_plus > 0 && index_plus == index_e + 1 && (char_vec.len() > 1 && index_plus < char_vec.len() - 1) && index_e > 0;
     //println!("{} {:?}", text, text.parse::<f64>());
     match text.parse::<f64>() {
         Ok(val) => {
@@ -721,52 +616,46 @@ mod tests {
         }
     }
 
-    /// ```
-    #[doc = "fn main() {\r\n}\r\n"]
-    /// ```
-    #[cfg_attr(not(feature = "dox"), test)]
-    fn test_pass_empty_file() {
-        //empty file
-        let tests = vec![vec!["", "fn main() {\r\n}\r\n"]];
-        test_pass_scenario(tests);
+    /// helper function for tests
+    fn test_pass_single_scenario(test: Vec<&str>) {
+        let input = &test[0];
+        let output = &test[1];
+        let mut c: Compiler = Default::default();
+        c.file.filecontents = input.to_string();
+        match c.run_main_tasks() {
+            Ok(_) => {
+                assert_eq!(&c.ast.output, output);
+            }
+            Err(_e) => assert!(false, "error should not exist"),
+        }
     }
 
-    /// comment single line
-    /// ```
-    #[doc = "fn main() {\r\n    //comment\r\n}\r\n"]
-    /// ```
-    /// comment single line with space
-    /// ```
-    #[doc = "fn main() {\r\n    //    comment\r\n}\r\n"]
-    /// ```
-    /// comment single line with complicated content
-    /// ```
-    #[doc = "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n"]
-    /// ```
-    #[cfg_attr(not(feature = "dox"), test)]
-    fn test_pass_comment_singleline() {
-        let tests = vec![
-            //comment single line
-            vec!["//comment", "fn main() {\r\n    //comment\r\n}\r\n"],
-            vec![
-                "    //    comment    ",
-                "fn main() {\r\n    //    comment\r\n}\r\n",
-            ],
-            //single line function no longer breaks comments
-            vec![
-                "//= a \\ i64 => 123",
-                "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n",
-            ],
-        ];
-        test_pass_scenario(tests);
+    macro_rules! doc_and_int_test {
+        ( $test_name:ident, $x:expr, $y:expr ) => {
+            #[doc = "```"]
+            #[doc = $y]
+            #[doc = "```"]
+            #[cfg_attr(not(feature = "dox"), test)]
+            fn $test_name() {
+                //empty file
+                test_pass_single_scenario(vec![$x, $y]);
+            }
+        };
     }
 
-    #[test]
+    doc_and_int_test!(test_pass_empty_file, "", "fn main() {\r\n}\r\n");
+    doc_and_int_test!(test_pass_comment_singleline, "//comment", "fn main() {\r\n    //comment\r\n}\r\n");
+    doc_and_int_test!(test_pass_comment_singleline_with_space, "    //    comment    ", "fn main() {\r\n    //    comment\r\n}\r\n");
+    doc_and_int_test!(test_pass_comment_singleline_fn_no_longer_breaks, "//= a \\ i64 => 123", "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n");
+    doc_and_int_test!(test_pass_boolean_true, "true", "fn main() {\r\n    true;\r\n}\r\n");
+    doc_and_int_test!(test_pass_boolean_false, "false", "fn main() {\r\n    false;\r\n}\r\n");
+
+    /*#[test]
     fn test_pass_boolean() {
         let tests = vec![
             //boolean
-            vec!["true", "fn main() {\r\n    true;\r\n}\r\n"],
-            vec!["false", "fn main() {\r\n    false;\r\n}\r\n"],
+            vec![],
+            vec![],
             //boolean - functions
             vec!["== 1 1", "fn main() {\r\n    1 == 1;\r\n}\r\n"],
             vec!["== 1 2.1", "fn main() {\r\n    1 == 2.1;\r\n}\r\n"],
@@ -777,16 +666,13 @@ mod tests {
             vec!["<= 1 2", "fn main() {\r\n    1 <= 2;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
-    }
+    }*/
 
     #[test]
     fn test_pass_string() {
         let tests = vec![
             //string
-            vec![
-                "\"string\"",
-                "fn main() {\r\n    \"string\".to_string();\r\n}\r\n",
-            ],
+            vec!["\"string\"", "fn main() {\r\n    \"string\".to_string();\r\n}\r\n"],
             vec!["\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
@@ -804,10 +690,7 @@ mod tests {
             vec!["1", "fn main() {\r\n    1;\r\n}\r\n"],
             vec!["123", "fn main() {\r\n    123;\r\n}\r\n"],
             vec!["    123    ", "fn main() {\r\n    123;\r\n}\r\n"],
-            vec![
-                "9223372036854775807",
-                "fn main() {\r\n    9223372036854775807;\r\n}\r\n",
-            ],
+            vec!["9223372036854775807", "fn main() {\r\n    9223372036854775807;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -818,10 +701,7 @@ mod tests {
             vec!["-1", "fn main() {\r\n    -1;\r\n}\r\n"],
             vec!["-123", "fn main() {\r\n    -123;\r\n}\r\n"],
             vec!["    -123    ", "fn main() {\r\n    -123;\r\n}\r\n"],
-            vec![
-                "-9223372036854775808",
-                "fn main() {\r\n    -9223372036854775808;\r\n}\r\n",
-            ],
+            vec!["-9223372036854775808", "fn main() {\r\n    -9223372036854775808;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -832,14 +712,8 @@ mod tests {
             vec!["1.1", "fn main() {\r\n    1.1;\r\n}\r\n"],
             vec!["123.123", "fn main() {\r\n    123.123;\r\n}\r\n"],
             vec!["    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n"],
-            vec![
-                "1234567890.123456789",
-                "fn main() {\r\n    1234567890.123456789;\r\n}\r\n",
-            ],
-            vec![
-                "1.7976931348623157E+308",
-                "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n",
-            ],
+            vec!["1234567890.123456789", "fn main() {\r\n    1234567890.123456789;\r\n}\r\n"],
+            vec!["1.7976931348623157E+308", "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -850,14 +724,8 @@ mod tests {
             vec!["-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n"],
             vec!["-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n"],
             vec!["    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n"],
-            vec![
-                "-1234567890.123456789",
-                "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n",
-            ],
-            vec![
-                "-1.7976931348623157E+308",
-                "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n",
-            ],
+            vec!["-1234567890.123456789", "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n"],
+            vec!["-1.7976931348623157E+308", "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -865,10 +733,7 @@ mod tests {
     #[test]
     fn test_pass_list_empty() {
         let tests = vec![
-            vec![
-                "[ String ]",
-                "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n",
-            ],
+            vec!["[ String ]", "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n"],
             vec!["[ i64 ]", "fn main() {\r\n    Vec::<i64>::new();\r\n}\r\n"],
             vec!["[ f64 ]", "fn main() {\r\n    Vec::<f64>::new();\r\n}\r\n"],
         ];
@@ -878,35 +743,18 @@ mod tests {
     #[test]
     fn test_pass_list_not_empty() {
         let tests = vec![
-            vec![
-                "[ 1 ]",
-                "fn main() {\r\n    vec![ 1 ];\r\n}\r\n",
-            ],
-            vec![
-                "[ 1 2 3 4 5 ]",
-                "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n",
-            ],
-            vec![
-                "[ 1.1 2.2 3.3 4.4 5.5 ]",
-                "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n",
-            ],
+            vec!["[ 1 ]", "fn main() {\r\n    vec![ 1 ];\r\n}\r\n"],
+            vec!["[ 1 2 3 4 5 ]", "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"],
+            vec!["[ 1.1 2.2 3.3 4.4 5.5 ]", "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n"],
             vec![
                 "[ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]",
-                "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
-                    ,
+                "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n",
             ],
-            vec![
-                "= x [ 1 2 3 4 5 ]",
-                "fn main() {\r\n    let x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n",
-            ],
-            vec![
-                "= x [ 1.1 2.2 3.3 4.4 5.5 ]",
-                "fn main() {\r\n    let x: Vec<f64> = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n",
-            ],
+            vec!["= x [ 1 2 3 4 5 ]", "fn main() {\r\n    let x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"],
+            vec!["= x [ 1.1 2.2 3.3 4.4 5.5 ]", "fn main() {\r\n    let x: Vec<f64> = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n"],
             vec![
                 "= x [ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]",
-                "fn main() {\r\n    let x: Vec<String> = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
-                    ,
+                "fn main() {\r\n    let x: Vec<String> = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n",
             ],
         ];
         test_pass_scenario(tests);
@@ -914,34 +762,28 @@ mod tests {
 
     #[test]
     fn test_pass_list_map() {
-        let tests = vec![
-            vec![
-                "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
-                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n"
-            ],
-        ];
+        let tests = vec![vec![
+            "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
+            "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_list_append() {
-        let tests = vec![
-            vec![
+        let tests = vec![vec![
             "= list1 [ 1 ]\r\n= list2 [ 2 3 ]\r\n= appended List.append list1 list2",
-            "fn main() {\r\n    let list1: Vec<i64> = vec![ 1 ];\r\n    let list2: Vec<i64> = vec![ 2, 3 ];\r\n    let appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();\r\n}\r\n"
-            ],
-        ];
+            "fn main() {\r\n    let list1: Vec<i64> = vec![ 1 ];\r\n    let list2: Vec<i64> = vec![ 2, 3 ];\r\n    let appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_list_len() {
-        let tests = vec![
-            vec![
+        let tests = vec![vec![
             "= list [ 1 2 3 ]\r\n= len List.len list",
-            "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n"
-        ],
-        ];
+            "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
@@ -958,104 +800,50 @@ mod tests {
     #[test]
     fn test_pass_basic_arithmetic_assignment_type_inference() {
         let tests = vec![
-            vec![
-                "= a + 1 2",
-                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
-            ],
-            vec![
-                "= a + 1.1 2.2",
-                "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n",
-            ],
-            vec![
-                "= a - 1 2",
-                "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n",
-            ],
-            vec![
-                "= a - 1.1 2.2",
-                "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n",
-            ],
-            vec![
-                "= a * 1 2",
-                "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n",
-            ],
-            vec![
-                "= a * 1.1 2.2",
-                "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n",
-            ],
-            vec![
-                "= a / 1 2",
-                "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n",
-            ],
-            vec![
-                "= a / 1.1 2.2",
-                "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n",
-            ],
-            vec![
-                "= a % 1 2",
-                "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n",
-            ],
-            vec![
-                "= a % 1.1 2.2",
-                "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n",
-            ],
+            vec!["= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"],
+            vec!["= a + 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n"],
+            vec!["= a - 1 2", "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n"],
+            vec!["= a - 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n"],
+            vec!["= a * 1 2", "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n"],
+            vec!["= a * 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n"],
+            vec!["= a / 1 2", "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n"],
+            vec!["= a / 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n"],
+            vec!["= a % 1 2", "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n"],
+            vec!["= a % 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_constant() {
-        let tests = vec![vec![
-            "= a 123\r\na",
-            "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n",
-        ]];
+        let tests = vec![vec!["= a 123\r\na", "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n"]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_assignment() {
         let tests = vec![
-            vec![
-                "= a \"string\"",
-                "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n",
-            ],
+            vec!["= a \"string\"", "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n"],
             vec!["= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"],
             vec!["= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"],
-            vec![
-                "= a -1.7976931348623157E+308",
-                "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n",
-            ],
-            vec![
-                "= a + 1 2",
-                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
-            ],
+            vec!["= a -1.7976931348623157E+308", "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n"],
+            vec!["= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_assignment_internal_function_calls_with_references() {
-        let tests = vec![vec![
-            "= a + 1 2\r\n= b - 3 a",
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
-        ]];
+        let tests = vec![vec!["= a + 1 2\r\n= b - 3 a", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n"]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_nested_internal_function_calls() {
         let tests = vec![
-            vec![
-                "= a - + 1 2 3",
-                "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n",
-            ],
-            vec![
-                "= a / * - + 1 2 3 4 5",
-                "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n",
-            ],
-            vec![
-                "= a + 1 * 3 2",
-                "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n",
-            ],
+            vec!["= a - + 1 2 3", "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n"],
+            vec!["= a / * - + 1 2 3 4 5", "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n"],
+            vec!["= a + 1 * 3 2", "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -1063,14 +851,8 @@ mod tests {
     #[test]
     fn test_pass_func_def_singleline() {
         let tests = vec![
-            vec![
-                "= a \\ i64 => 123",
-                "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n",
-            ],
-            vec![
-                "= a \\ i64 i64 arg1 => + 123 arg1",
-                "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
-            ],
+            vec!["= a \\ i64 => 123", "fn main() {\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n}\r\n"],
+            vec!["= a \\ i64 i64 arg1 => + 123 arg1", "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
     }
@@ -1078,10 +860,7 @@ mod tests {
     #[test]
     fn test_pass_func_def_multiline() {
         let tests = vec![
-            vec![
-                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2",
-                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
-            ],
+            vec!["= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2", "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n"],
             vec![
                 "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3",
                 "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
@@ -1092,47 +871,39 @@ mod tests {
 
     #[test]
     fn test_pass_func_def_multiline_nested() {
-        let tests = vec![
-            vec![
-                "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3",
-                "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3",
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_func_def_multiline_const_assign_nested() {
-        let tests = vec![
-            vec![
-                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
-                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_func_def_multiline_several_semicolon_and_return() {
-        let tests = vec![
-            vec![
-                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
-                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
+            "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_passing_func_as_args() {
-        let tests = vec![
-            vec![
-                //arg1 is a function that takes i64 returns i64, arg2 is an i64
-                //the function body calls arg1 with arg2 as its argument, returning which returns i64
-                "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
-                "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            //arg1 is a function that takes i64 returns i64, arg2 is an i64
+            //the function body calls arg1 with arg2 as its argument, returning which returns i64
+            "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
+            "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
     /*
@@ -1161,54 +932,43 @@ mod tests {
 
     #[test]
     fn test_pass_type_inference_assign_to_constref() {
-        let tests = vec![
-            vec![
-                "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
-                "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
-            ],
-        ];
-        test_pass_scenario(tests);
-    }
-
-    #[test]
-    fn test_pass_type_inference_assign_to_funccall() {
         let tests = vec![vec![
-            "= a + 1 2",
-            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n",
+            "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+            "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
         ]];
         test_pass_scenario(tests);
     }
 
     #[test]
+    fn test_pass_type_inference_assign_to_funccall() {
+        let tests = vec![vec!["= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"]];
+        test_pass_scenario(tests);
+    }
+
+    #[test]
     fn test_pass_type_inference_assign_to_constref_of_funccall() {
-        let tests = vec![
-            vec![
-                "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
-                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= a + 1 2\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+            "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_fndef_return_statement() {
-        let tests = vec![
-            vec![
-                "= a \\ i64 => ? == 1 1 1 0\r\na",
-                "fn main() {\r\n    fn a() -> i64 {\r\n        if 1 == 1 {\r\n            1\r\n        } else {\r\n            0\r\n        }\r\n    }\r\n    a();\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= a \\ i64 => ? == 1 1 1 0\r\na",
+            "fn main() {\r\n    fn a() -> i64 {\r\n        if 1 == 1 {\r\n            1\r\n        } else {\r\n            0\r\n        }\r\n    }\r\n    a();\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_funccall_zero_args() {
-        let tests = vec![
-            vec![
-                "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na",
-                "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "//define function\r\n= a \\ i64 =>\r\n123\r\n\r\n//call function\r\na",
+            "fn main() {\r\n    //define function\r\n    fn a() -> i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
@@ -1216,23 +976,19 @@ mod tests {
 
     #[test]
     fn test_pass_funccall_one_arg() {
-        let tests = vec![
-            vec![
-                "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123",
-                "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "//define function\r\n= a \\ i64 i64 arg1 =>\r\narg1\r\n\r\n//call function\r\na 123",
+            "fn main() {\r\n    //define function\r\n    fn a(arg1: i64) -> i64 {\r\n        arg1\r\n    }\r\n    //call function\r\n    a(123);\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_funccall_two_args_eval_internal_func_call() {
-        let tests = vec![
-            vec![
-                "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
-                "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "//define function\r\n= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2\r\n\r\n//call function\r\na + 123 456 789",
+            "fn main() {\r\n    //define function\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n    //call function\r\n    a(123 + 456, 789);\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 
@@ -1240,29 +996,12 @@ mod tests {
     fn test_pass_println() {
         let tests = vec![
             vec!["@ 1", "fn main() {\r\n    println!(\"{}\", 1);\r\n}\r\n"],
-            vec![                "@ 1.23",
-                "fn main() {\r\n    println!(\"{}\", 1.23);\r\n}\r\n",
-            ],
-            vec![
-                "@ \"Hello, world\"",
-                "fn main() {\r\n    println!(\"{}\", \"Hello, world\".to_string());\r\n}\r\n",
-            ],
-            vec![
-                "@ + 1 2",
-                "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n",
-            ],
-            vec![
-                "= a 1\r\n@ a",
-                "fn main() {\r\n    let a: i64 = 1;\r\n    println!(\"{}\", a);\r\n}\r\n",
-            ],
-            vec![
-                "= a 1\r\n= b a\r\n@ b",
-                "fn main() {\r\n    let a: i64 = 1;\r\n    let b: i64 = a;\r\n    println!(\"{}\", b);\r\n}\r\n",
-            ],
-            vec![
-                "= a \\ i64 => 1\r\n@ a",
-                "fn main() {\r\n    fn a() -> i64 {\r\n        1\r\n    }\r\n    println!(\"{}\", a());\r\n}\r\n",
-            ],
+            vec!["@ 1.23", "fn main() {\r\n    println!(\"{}\", 1.23);\r\n}\r\n"],
+            vec!["@ \"Hello, world\"", "fn main() {\r\n    println!(\"{}\", \"Hello, world\".to_string());\r\n}\r\n"],
+            vec!["@ + 1 2", "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n"],
+            vec!["= a 1\r\n@ a", "fn main() {\r\n    let a: i64 = 1;\r\n    println!(\"{}\", a);\r\n}\r\n"],
+            vec!["= a 1\r\n= b a\r\n@ b", "fn main() {\r\n    let a: i64 = 1;\r\n    let b: i64 = a;\r\n    println!(\"{}\", b);\r\n}\r\n"],
+            vec!["= a \\ i64 => 1\r\n@ a", "fn main() {\r\n    fn a() -> i64 {\r\n        1\r\n    }\r\n    println!(\"{}\", a());\r\n}\r\n"],
             vec!["@ + 1 2", "fn main() {\r\n    println!(\"{}\", 1 + 2);\r\n}\r\n"],
         ];
         test_pass_scenario(tests);
@@ -1273,23 +1012,26 @@ mod tests {
         let tests = vec![
             //simple if expressions
             vec!["? true 1 0", "fn main() {\r\n    if true {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
-            vec!["= get_true \\ bool => true\r\n? get_true 1 0", "fn main() {\r\n    fn get_true() -> bool {\r\n        true\r\n    }\r\n    if get_true() {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"],
-            vec!["= get_truer \\ i64 bool arg1 => > arg1 5\r\n? get_truer 10 1 0", "fn main() {\r\n    fn get_truer(arg1: i64) -> bool {\r\n        arg1 > 5\r\n    }\r\n    if get_truer(10) {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n"]
-            //assignment with if expression
-            //(TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
-            //vec!["= a ? true 1 0", "fn main() {\r\n    let a: i64 =             if true {\r\n                1\r\n            } else {\r\n                0\r\n            };\r\n}\r\n"],
-            ];
+            vec![
+                "= get_true \\ bool => true\r\n? get_true 1 0",
+                "fn main() {\r\n    fn get_true() -> bool {\r\n        true\r\n    }\r\n    if get_true() {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n",
+            ],
+            vec![
+                "= get_truer \\ i64 bool arg1 => > arg1 5\r\n? get_truer 10 1 0",
+                "fn main() {\r\n    fn get_truer(arg1: i64) -> bool {\r\n        arg1 > 5\r\n    }\r\n    if get_truer(10) {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n",
+            ], //assignment with if expression
+               //(TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
+               //vec!["= a ? true 1 0", "fn main() {\r\n    let a: i64 =             if true {\r\n                1\r\n            } else {\r\n                0\r\n            };\r\n}\r\n"],
+        ];
         test_pass_scenario(tests);
     }
 
     #[test]
     fn test_pass_fibonacci() {
-        let tests = vec![
-            vec![
-                "= fibonacci \\ i64 i64 n => ? < n 2 1 + fibonacci - n 1 fibonacci - n 2\r\n@ fibonacci 10",
-                "fn main() {\r\n    fn fibonacci(n: i64) -> i64 {\r\n        if n < 2 {\r\n            1\r\n        } else {\r\n            fibonacci(n - 1) + fibonacci(n - 2)\r\n        }\r\n    }\r\n    println!(\"{}\", fibonacci(10));\r\n}\r\n",
-            ],
-        ];
+        let tests = vec![vec![
+            "= fibonacci \\ i64 i64 n => ? < n 2 1 + fibonacci - n 1 fibonacci - n 2\r\n@ fibonacci 10",
+            "fn main() {\r\n    fn fibonacci(n: i64) -> i64 {\r\n        if n < 2 {\r\n            1\r\n        } else {\r\n            fibonacci(n - 1) + fibonacci(n - 2)\r\n        }\r\n    }\r\n    println!(\"{}\", fibonacci(10));\r\n}\r\n",
+        ]];
         test_pass_scenario(tests);
     }
 

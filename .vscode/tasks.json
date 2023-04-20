@@ -9,9 +9,15 @@
 		},
 		{
 			"type": "cargo",
+			"command":"test",
+			"args":["--doc","--features","dox"],
+			"label": "1.1b test doc",
+		},
+		{
+			"type": "cargo",
 			"command":"doc",
 			"args":["--document-private-items","--features","dox"],
-			"label": "1.1b doc",
+			"label": "1.1c doc",
 		},
 		{
 			"type": "cargo",
