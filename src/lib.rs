@@ -1,3 +1,13 @@
+/*!
+    ## Toylang
+    A toy language which compiles to rust for fun and experimentation (Windows only for now)
+
+    Private functions are provided for information, the main info is here:
+    - [Github](https://github.com/Swiftaff/toylang) or the [compiler_runner] for general usage instructions
+    - [debug_window_derive] for an extra debug windows app
+    - [integration_tests][crate::integration_tests::integration_tests] for examples
+*/
+
 // TODO make most function arguments refs
 mod ast;
 pub mod compiler_runner;
@@ -5,6 +15,7 @@ pub mod debug_window_derive;
 mod errors;
 mod file;
 mod formatting;
+pub mod integration_tests;
 mod parse;
 use ast::elements;
 use ast::output;
@@ -33,13 +44,7 @@ impl<'a> fmt::Debug for DebugErrorStack<'a> {
         let mut debug = "".to_string();
         for el in 0..self.0.len() {
             let spaces = left_pad(self.0.len(), el);
-            debug = format!(
-                "{}\r\n  {}{}: {},",
-                debug,
-                spaces,
-                el,
-                rem_first_and_last(&self.0[el])
-            );
+            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, rem_first_and_last(&self.0[el]));
         }
         write!(f, "Custom Debug of ErrorStack [{}\r\n]", debug)
     }
@@ -65,11 +70,7 @@ fn left_pad(total: usize, index: usize) -> String {
 }
 
 fn num_digits(num: usize) -> usize {
-    num.to_string()
-        .chars()
-        .filter_map(|x| x.to_digit(10))
-        .collect::<Vec<u32>>()
-        .len()
+    num.to_string().chars().filter_map(|x| x.to_digit(10)).collect::<Vec<u32>>().len()
 }
 
 pub struct DebugLinesOfChars<'a>(&'a LinesOfChars);
@@ -121,11 +122,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(
-        filepath: String,
-        debug: bool,
-        option_outputdir: Option<String>,
-    ) -> Result<Compiler, String> {
+    pub fn new(filepath: String, debug: bool, option_outputdir: Option<String>) -> Result<Compiler, String> {
         println!("\r\nOUTPUT: {:?}", &option_outputdir);
         if debug {
             println!("DEBUG:  true");
@@ -149,10 +146,7 @@ impl Compiler {
         let current_line_token = 0;
         let error_stack = vec![];
         let ast = Ast::new();
-        let logs = vec![format!(
-            "lib::new {:?} {:?} {:?}",
-            filepath, debug, option_outputdir
-        )];
+        let logs = vec![format!("lib::new {:?} {:?} {:?}", filepath, debug, option_outputdir)];
         Ok(Compiler {
             file,
             debug,
@@ -179,11 +173,7 @@ impl Compiler {
             Ok(_) => (),
             Err(_e) => (),
         }
-        self.file.writefile_or_error(
-            &self.ast.output,
-            &self.outputdir,
-            self.error_stack.len() > 0,
-        )
+        self.file.writefile_or_error(&self.ast.output, &self.outputdir, self.error_stack.len() > 0)
     }
 
     pub fn log(self: &mut Self, string: String) {
@@ -336,26 +326,14 @@ impl Compiler {
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
-            let d = if index_to + 1 < char_vec.len() {
-                char_vec[index_to + 1]
-            } else {
-                ' '
-            };
-            let incr = if index_to + 1 < char_vec.len()
-                && ((c == '\r' && char_vec[index_to + 1] == '\n') || c == '=' && d == '>')
-            {
-                2
-            } else {
-                1
-            };
+            let d = if index_to + 1 < char_vec.len() { char_vec[index_to + 1] } else { ' ' };
+            let incr = if index_to + 1 < char_vec.len() && ((c == '\r' && char_vec[index_to + 1] == '\n') || c == '=' && d == '>') { 2 } else { 1 };
             let eof = index_to == char_vec.len() - 1;
 
             // split line at colon for single line functions (after args, before body of function)
             // except if part of a comment in which case ignore
             let this_line_so_far = char_vec[index_from..index_to].to_vec();
-            let is_a_comment_line = this_line_so_far.len() > 1
-                && this_line_so_far[0] == '/'
-                && this_line_so_far[1] == '/';
+            let is_a_comment_line = this_line_so_far.len() > 1 && this_line_so_far[0] == '/' && this_line_so_far[1] == '/';
             let is_colon_for_singlelinefunction = c == '=' && d == '>' && !is_a_comment_line;
             if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
@@ -386,8 +364,7 @@ impl Compiler {
             let char_vec_initial: &Vec<char> = &self.lines_of_chars[line];
             let char_as_string = char_vec_initial.iter().collect::<String>();
             let removed_leading_whitespace = parse::strip_leading_whitespace(&char_as_string);
-            let removed_trailing_whitespace =
-                parse::strip_trailing_whitespace(&removed_leading_whitespace);
+            let removed_trailing_whitespace = parse::strip_trailing_whitespace(&removed_leading_whitespace);
             let char_vec: Vec<char> = removed_trailing_whitespace.chars().collect();
 
             let mut inside_quotes = false;
@@ -405,14 +382,8 @@ impl Compiler {
                     }
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
-                    || eof
-                    || count_quotes == 2
-                {
-                    let token_chars = char_vec
-                        [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
-                        .iter()
-                        .collect::<String>();
+                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment) || eof || count_quotes == 2 {
+                    let token_chars = char_vec[index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })].iter().collect::<String>();
                     line_of_tokens.push(token_chars);
                     index_from = index_to + 1;
                     inside_quotes = false;
@@ -436,16 +407,7 @@ mod tests {
 
     #[test]
     fn test_is_integer() {
-        let test_case_passes = [
-            "1",
-            "123",
-            "1234567890",
-            "9223372036854775807",
-            "-1",
-            "-123",
-            "-1234567890",
-            "-9223372036854775808",
-        ];
+        let test_case_passes = ["1", "123", "1234567890", "9223372036854775807", "-1", "-123", "-1234567890", "-9223372036854775808"];
         for test in test_case_passes {
             let input = &test.to_string();
             assert!(parse::is_integer(input));
@@ -459,29 +421,12 @@ mod tests {
 
     #[test]
     fn test_is_float() {
-        let test_case_passes = [
-            "1.1",
-            "123.123",
-            "1234567890.123456789",
-            "1.7976931348623157E+308",
-            "-1.1",
-            "-123.123",
-            "-1234567890.123456789",
-            "-1.7976931348623157E+308",
-        ];
+        let test_case_passes = ["1.1", "123.123", "1234567890.123456789", "1.7976931348623157E+308", "-1.1", "-123.123", "-1234567890.123456789", "-1.7976931348623157E+308"];
         for test in test_case_passes {
             let input = &test.to_string();
             assert!(parse::is_float(input));
         }
-        let test_case_fails = [
-            "123",
-            "-123",
-            "1.1.1",
-            "1.7976931348623157E+309",
-            "-1.7976931348623157E+309",
-            "1.797693134E+8623157E+309",
-            "-1.79769313E+48623157E+309",
-        ];
+        let test_case_fails = ["123", "-123", "1.1.1", "1.7976931348623157E+309", "-1.7976931348623157E+309", "1.797693134E+8623157E+309", "-1.79769313E+48623157E+309"];
         for test in test_case_fails {
             let input = &test.to_string();
             assert!(!parse::is_float(input));

@@ -1,0 +1,30 @@
+= a \ i64 => ? == 1 1 1 0
+a
+
+// If statement is not outdenting at end?
+
+// 28: InbuiltFunctionCall: == (Undefined) [ 29, 30, ]
+// 29: Int: 1 [ ]
+// 30: Int: 1 [ ]
+// 31: Int: 1 [ ]
+// 32: Int: 0 [ ]
+// 33: Indent [ ] -> should be outdent?
+// 34: FunctionCall: a (i64) [ ]
+// Parents: [ 0, 24, ]
+
+
+// logs 113-126
+// 113: append::outdent_if_last_expected_child "",
+// 114: outdent::if_expression (If (Undefined), [28, 31, 32]),
+// 115: outdent::outdent "",
+// 116: outdent::within_fndef_from_return_expression "", <-- should be another outdent here
+// 117: append::seol_if_last_in_line "",
+// 118: lib::debug_step 4,
+// 119: lib::main_loop_over_lines_of_tokens "",
+// 120: lib::parse_one_line 2,
+// 121: parse::current_line "",
+// 122: parse::current_token ["a"],
+// 123: parse::token_by_first_chars "a" ['a'],
+// 124: parse::constant "a",
+// 125: elements::is_existing_constant "",
+// 126: append::function_ref_or_call "a" 0 "i64",

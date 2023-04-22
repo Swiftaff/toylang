@@ -24,3 +24,4 @@ name = "output"
 
 [features]
 dox = []
+dox2 = []

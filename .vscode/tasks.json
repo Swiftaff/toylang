@@ -16,8 +16,14 @@
 		{
 			"type": "cargo",
 			"command":"doc",
-			"args":["--document-private-items","--features","dox"],
+			"args":["--document-private-items","--no-deps","--features","dox","--open","--lib"],
 			"label": "1.1c doc",
+		},
+		{
+			"type": "cargo",
+			"command":"doc",
+			"args":["--document-private-items","--no-deps","--features","dox2","--open","--lib"],
+			"label": "1.1d doc just integration",
 		},
 		{
 			"type": "cargo",

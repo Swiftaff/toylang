@@ -1,6 +1,6 @@
 /*!
-    A very simple application that shows your name in a message box.
-    Unlike `basic_d`, this example uses layout to position the controls in the window
+    ## A windows app to help with debugging development of Toylang
+    Pass the debug flag to toylang.exe (-d or --debug) to open this interactive debugger which steps through the state of the Compiler's AST to troublshoot compilation errors.
 */
 
 extern crate native_windows_derive as nwd;
@@ -268,8 +268,7 @@ impl ToylangDebugger {
         let all_text = [&heading, text].join("");
         self.richtext_input.set_text(&all_text);
 
-        self.richtext_input
-            .set_selection(0..(heading.len() - 1) as u32);
+        self.richtext_input.set_selection(0..(heading.len() - 1) as u32);
         self.richtext_input.set_char_format(&nwg::CharFormat {
             height: Some(400),
             text_color: Some([23, 105, 170]),
@@ -277,8 +276,7 @@ impl ToylangDebugger {
             ..Default::default()
         });
 
-        self.richtext_input
-            .set_selection((heading.len() - 1) as u32..(all_text.len() - 1) as u32);
+        self.richtext_input.set_selection((heading.len() - 1) as u32..(all_text.len() - 1) as u32);
         self.richtext_input.set_char_format(&nwg::CharFormat {
             height: Some(300),
             text_color: Some([10, 10, 10]),
@@ -308,26 +306,14 @@ impl ToylangDebugger {
     }
 
     fn history_update(&self) {
-        self.label7.set_text(&format!(
-            "History ({} of {})",
-            &self.history_trackbar.pos(),
-            &self.mydata.borrow().history_max
-        ));
-        self.rich_text_control_set_text(
-            &self.richtext_dynamic_ast,
-            &self.mydata.borrow_mut().history[self.history_trackbar.pos()],
-        );
+        self.label7.set_text(&format!("History ({} of {})", &self.history_trackbar.pos(), &self.mydata.borrow().history_max));
+        self.rich_text_control_set_text(&self.richtext_dynamic_ast, &self.mydata.borrow_mut().history[self.history_trackbar.pos()]);
         self.richtext_dynamic_ast.scroll_lastline();
         self.richtext_dynamic_ast.scroll(-20);
     }
 }
 
-fn init(
-    ui: &toylang_debugger_ui::ToylangDebuggerUi,
-    input: String,
-    debug: bool,
-    output: Option<String>,
-) -> Compiler {
+fn init(ui: &toylang_debugger_ui::ToylangDebuggerUi, input: String, debug: bool, output: Option<String>) -> Compiler {
     ui.textinput_filepath.set_text(&input);
     ui.textinput_outputdir.set_text(&(output.clone().unwrap()));
     ui.rich_text_control_set_text(&ui.richtext_loc, " ");
@@ -415,10 +401,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 //dbg!(step, step_max, completed_step);
                 let txt_loc = format!("{:?}", DebugLinesOfChars(&compiler.lines_of_chars));
                 ui.rich_text_control_set_text(&ui.richtext_loc, &txt_loc);
-                ui.label1.set_text(&format!(
-                    "Lines of chars (0 - {})",
-                    &compiler.lines_of_chars.len() - 1
-                ));
+                ui.label1.set_text(&format!("Lines of chars (0 - {})", &compiler.lines_of_chars.len() - 1));
 
                 ui.button0.set_enabled(false);
                 ui.button1.set_enabled(false);
@@ -433,10 +416,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 //dbg!(step, step_max, completed_step);
                 let txt_lot = format!("{:?}", DebugLinesOfTokens(&compiler.lines_of_tokens));
                 ui.rich_text_control_set_text(&ui.richtext_lot, &txt_lot);
-                ui.label2.set_text(&format!(
-                    "Lines of tokens (0 - {})",
-                    &compiler.lines_of_tokens.len() - 1
-                ));
+                ui.label2.set_text(&format!("Lines of tokens (0 - {})", &compiler.lines_of_tokens.len() - 1));
 
                 ui.button0.set_enabled(false);
                 ui.button1.set_enabled(false);
@@ -471,8 +451,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                     // update richtext_ast_current
                     ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
-                    ui.richtext_ast_current
-                        .set_selection(first_non_matching_char..new_len - 1);
+                    ui.richtext_ast_current.set_selection(first_non_matching_char..new_len - 1);
                     ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
                         text_color: Some([20, 200, 20]),
                         ..Default::default()
@@ -483,14 +462,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     // update richtext_error_stack
                     let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
                     ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
-                    ui.richtext_error_stack
-                        .set_selection(28..((txt_error.len() as u32) - 4));
+                    ui.richtext_error_stack.set_selection(28..((txt_error.len() as u32) - 4));
                     ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
                         text_color: Some([200, 20, 20]),
                         ..Default::default()
                     });
-                    ui.label5
-                        .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
+                    ui.label5.set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
 
                     ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
 
@@ -498,12 +475,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                     if compiler.logs.len() as usize > 0 {
                         let pos = &compiler.debug_compiler_history.len() - 1;
-                        ui.mydata
-                            .borrow_mut()
-                            .history_max_update(format!("{}", pos));
-                        ui.mydata
-                            .borrow_mut()
-                            .history_update(&compiler.debug_compiler_history);
+                        ui.mydata.borrow_mut().history_max_update(format!("{}", pos));
+                        ui.mydata.borrow_mut().history_update(&compiler.debug_compiler_history);
                         ui.history_trackbar.set_range_max(pos);
                         ui.history_update();
                         ui.history_trackbar.set_pos(pos);
@@ -548,8 +521,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                 // update richtext_ast_current
                 ui.rich_text_control_set_text(&ui.richtext_ast_current, &new_text);
-                ui.richtext_ast_current
-                    .set_selection(first_non_matching_char..new_len - 1);
+                ui.richtext_ast_current.set_selection(first_non_matching_char..new_len - 1);
                 ui.richtext_ast_current.set_char_format(&nwg::CharFormat {
                     text_color: Some([20, 200, 20]),
                     ..Default::default()
@@ -562,12 +534,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                 if compiler.logs.len() as usize > 0 {
                     let pos = &compiler.debug_compiler_history.len() - 1;
-                    ui.mydata
-                        .borrow_mut()
-                        .history_max_update(format!("{}", pos));
-                    ui.mydata
-                        .borrow_mut()
-                        .history_update(&compiler.debug_compiler_history);
+                    ui.mydata.borrow_mut().history_max_update(format!("{}", pos));
+                    ui.mydata.borrow_mut().history_update(&compiler.debug_compiler_history);
                     ui.history_trackbar.set_range_max(pos);
                     ui.history_update();
                     ui.history_trackbar.set_pos(pos);
@@ -576,14 +544,12 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 // update richtext_error_stack
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
                 ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
-                ui.richtext_error_stack
-                    .set_selection(28..((txt_error.len() as u32) - 4));
+                ui.richtext_error_stack.set_selection(28..((txt_error.len() as u32) - 4));
                 ui.richtext_error_stack.set_char_format(&nwg::CharFormat {
                     text_color: Some([200, 20, 20]),
                     ..Default::default()
                 });
-                ui.label5
-                    .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
+                ui.label5.set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
 
                 // update richtext_output
                 let txt_output = format!("{}", compiler.ast.output);
