@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"toylang":[["impl NativeUi&lt;<a class=\"struct\" href=\"toylang/debug_window_derive/toylang_debugger_ui/struct.ToylangDebuggerUi.html\" title=\"struct toylang::debug_window_derive::toylang_debugger_ui::ToylangDebuggerUi\">ToylangDebuggerUi</a>&gt; for <a class=\"struct\" href=\"toylang/debug_window_derive/struct.ToylangDebugger.html\" title=\"struct toylang::debug_window_derive::ToylangDebugger\">ToylangDebugger</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

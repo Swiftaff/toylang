@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"toylang":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.68.2/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"toylang/debug_window_derive/toylang_debugger_ui/struct.ToylangDebuggerUi.html\" title=\"struct toylang::debug_window_derive::toylang_debugger_ui::ToylangDebuggerUi\">ToylangDebuggerUi</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

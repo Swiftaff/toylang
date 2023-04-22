@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":[["get_current_parent_element_from_element_children_search",""],["get_current_parent_element_from_parents",""],["get_current_parent_ref_from_element_children_search",""],["get_current_parent_ref_from_parents",""],["get_indent",""],["vec_remove_head",""],["vec_remove_tail",""]],"mod":[["indent",""],["outdent",""]]};
