@@ -5,7 +5,7 @@ A toy language which compiles to rust for fun and experimentation (Windows only 
 
 See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
 
-Basic rustdocs are here [documentation]https://swiftaff.github.io/toylang/toylang/index.html)
+Basic rustdocs are here [documentation](https://swiftaff.github.io/toylang/toylang/index.html)
 
 ## Build
 
