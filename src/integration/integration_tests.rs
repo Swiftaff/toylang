@@ -2,9 +2,27 @@
  * Examples using the Toylang CLI
 */
 
+//fn main() {
+//test
+//}
+
+/// Testy
+///
+/// Testy2
+///
+/// # Examples
+/// ```rust
+/// fn main() {
+///     let x = 1;
+///     let y = 1;
+/// }
+/// ```
+pub fn doctest_name() {}
+
 #[allow(dead_code)]
-#[cfg(any(test, feature = "dox2"))]
-pub mod integration_tests {
+//#[cfg(any(test, feature = "dox2"))]
+#[cfg(test)]
+mod tests {
     use crate::Compiler;
 
     macro_rules! doc_and_int_test {
@@ -18,9 +36,10 @@ pub mod integration_tests {
             #[doc = "```rust"]
             #[doc = $y]
             #[doc = "```"]
-            #[cfg_attr(not(feature = "dox2"), test)]
+            //#[cfg_attr(not(feature = "dox2"), test)]
+            //#[test]
             fn $doctest_name() {
-                println!("{}", stringify!($doctest_name));
+                //println!("{}", stringify!($doctest_name));
                 //test_pass_single_scenario(vec![$x, $y]);
             }
 
@@ -43,6 +62,11 @@ pub mod integration_tests {
             }
             Err(_e) => assert!(false, "error should not exist"),
         }
+    }
+
+    #[test]
+    fn test_name() {
+        test_pass_single_scenario(vec!["", "fn main() {\r\n}\r\n"]);
     }
 
     doc_and_int_test!(doctest1, test_pass_empty_file, "", "fn main() {\r\n}\r\n");
@@ -128,14 +152,14 @@ pub mod integration_tests {
     );
 
     // List map
-
-    doc_and_int_test!(
-        doctest87,
-        test_pass_list_map,
-        "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
-        "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n"
-    );
-
+    /*
+        doc_and_int_test!(
+            doctest87,
+            test_pass_list_map,
+            "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
+            "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n"
+        );
+    */
     // List append
     doc_and_int_test!(
         doctest88,

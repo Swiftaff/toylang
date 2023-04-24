@@ -15,12 +15,13 @@ pub mod debug_window_derive;
 mod errors;
 mod file;
 mod formatting;
-pub mod integration_tests;
+mod integration;
 mod parse;
 use ast::elements;
 use ast::output;
 use ast::Ast;
 use file::File;
+//use integration::integration_tests;
 use std::error::Error;
 use std::fmt;
 
