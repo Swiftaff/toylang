@@ -29,7 +29,10 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
     let this_fn_ref = compiler.ast.parents[compiler.ast.parents.len() - 1];
     let this_fn_children = compiler.ast.elements[this_fn_ref].1.clone();
     if this_fn_children.len() < 2 {
-        dbg!("error in within_fndef_from_return_expression");
+        dbg!(
+            "error in within_fndef_from_return_expression",
+            &compiler.ast
+        );
         return ();
     }
     let last_child_ref = this_fn_children[this_fn_children.len() - 1];
@@ -73,7 +76,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                     outdent(compiler);
                     outdent(compiler);
                 }
-                ElementInfo::Arg(_, _, _) => {
+                ElementInfo::Arg(_, _, _, _) => {
                     //TODO
                 }
                 ElementInfo::Constant(_, _) => {
@@ -105,7 +108,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
                 ElementInfo::Assignment => (),
-                ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+                ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
                 ElementInfo::FunctionDefWIP => (),
                 ElementInfo::FunctionDef(_, _, _, _) => (),
                 ElementInfo::Type(_) => (),
@@ -129,7 +132,7 @@ pub fn within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: &mut Compiler,
     ));
     let fndef = &compiler.ast.elements[fndefref];
     match &fndef.0 {
-        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _, _) => {
             // current assumption is inbuiltFunctionCalls expect a fixed number
             // of children to match args
             if fndef.1.len() == argnames.len() {
@@ -163,7 +166,7 @@ pub fn inbuiltfncall_from_inbuiltfndef(
     //dbg!("InbuiltFunctionCall", &fndefref);
     let fndef = compiler.ast.elements[fndefref].clone();
     match fndef.0 {
-        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _, _) => {
             // current assumption is inbuiltfunctionCalls expect a fixed number
             // of children to match args.
             //dbg!("InbuiltFunctionCall", &current_parent.1, &argnames);
@@ -210,7 +213,7 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
                         let args = argnames.clone().len();
                         functioncall_of_functiondef(compiler, current_parent.1.len(), args);
                     }
-                    ElementInfo::Arg(_, _, returntype) => {
+                    ElementInfo::Arg(_, _, _, returntype) => {
                         let r = returntype.clone();
                         functioncall_of_arg(compiler, &r, current_parent.1.len());
                     }

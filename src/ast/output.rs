@@ -90,10 +90,10 @@ pub fn get_output_for_element_index(
             Some((ElementInfo::Float(_), _)) => (),
             Some((ElementInfo::String(_), _)) => (),
             Some((ElementInfo::Bool(_), _)) => (),
-            Some((ElementInfo::Arg(_, _, _), _)) => (),
+            Some((ElementInfo::Arg(_, _, _, _), _)) => (),
             Some((ElementInfo::Constant(_, _), _)) => (),
             Some((ElementInfo::ConstantRef(_, _, _), _)) => (),
-            Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => (),
+            Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => (),
             Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
             Some((ElementInfo::FunctionDefWIP, _)) => (),
             Some((ElementInfo::FunctionDef(_, _, _, _), _)) => (),
@@ -116,7 +116,9 @@ pub fn get_output_for_element_index(
         ElementInfo::Float(val) => format!("{}", val),
         ElementInfo::String(val) => format!("{}.to_string()", val),
         ElementInfo::Bool(val) => format!("{}.to_string()", val),
-        ElementInfo::Arg(name, _scope, _returntype) => format!("{}", name).to_string(),
+        ElementInfo::Arg(name, _scope, _argmodifier, _returntype) => {
+            format!("{}", name).to_string()
+        }
         ElementInfo::Constant(name, _returntype) => format!("{}", name).to_string(),
         ElementInfo::ConstantRef(name, _typename, _reference) => {
             format!("{}", name)
@@ -139,7 +141,7 @@ pub fn get_output_for_element_index(
                 format!("let {}: {} = ", constant_output, returntype)
             }
         }
-        ElementInfo::InbuiltFunctionDef(name, _argnames, _argtypes, _returntype, _format) => {
+        ElementInfo::InbuiltFunctionDef(name, _, _, _, _, _) => {
             format!("fn {}() ->{{ /* stuff */ }}", name)
         }
         ElementInfo::List(returntype) => {
@@ -169,8 +171,8 @@ pub fn get_output_for_element_index(
         ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) => {
             //dbg!("InbuiltFunctionCall");
             if let Some(def) = elements::get_inbuilt_function_by_name(ast, &name) {
-                match def {
-                    ElementInfo::InbuiltFunctionDef(_, argnames, _, _, format) => {
+                match def.clone() {
+                    ElementInfo::InbuiltFunctionDef(_, argnames, _, argmodifiers, _, format) => {
                         let children = element.1;
                         //dbg!(&argnames, &children);
                         let mut output = format;
@@ -181,8 +183,52 @@ pub fn get_output_for_element_index(
                                 dbg!("output error", &name, &children, i);
                             } else {
                                 let arg_value_el_ref = children[i];
-                                let arg_output =
+                                let mut arg_output =
                                     get_output_for_element_index(ast, arg_value_el_ref, true);
+
+                                // partially implemented inserting argmodifiers into each function arg
+
+                                /*
+                                // TODO look at again, may not be the best solution...
+                                // Assuming that an InbuiltFunctionCall's children are only
+                                // Args as ConstantRefs i.e. refs to previously defined constants (or functions)
+                                // we will do the following so that the user does not need to be concerned with annotating modifiers in toylang functions.
+                                // Probably a niaive approach, but hey ho for now...
+                                // 1. if there is a modifier for this arg
+                                let this_arg_has_a_modifier = argmodifiers[i].len() > 0;
+                                if this_arg_has_a_modifier {
+                                    dbg!("###", &children);
+                                    // 2. find the constant from the children index
+                                    let c_index = children[i];
+
+                                    dbg!("#", c_index);
+                                    // 3. if it is a constantref to a functiondef
+                                    let el = ast.elements[c_index].0.clone();
+                                    match el {
+                                        ElementInfo::ConstantRef(c_name, _, c_refname) => {
+                                            if let Some(fn_index_being_referenced) = elements::get_function_index_by_name(ast, &c_refname) {
+                                                // 3. create a new name for the duplicate fn e.g. constant_name & "_for_" & name_of_this_function
+                                                let new_fn_name = format!("{}_for_{}", c_name, name);
+                                                dbg!("# #", &new_fn_name, &c_refname, &fn_index_being_referenced);
+
+                                                // 4. check a previous arg hasn't already duplicated it first
+                                                if let None = get_constant_index_by_name(ast, &new_fn_name) {
+                                                    // 5. if not, insert the function in the ast
+                                                    dbg!("# # # TODO insert fn", fn_index_being_referenced);
+                                                    let mut duplicate_fn = ast.elements[fn_index_being_referenced].clone();
+                                                    //append::append(ast, );
+                                                }
+                                                if let Some(index_of_duplicate_fn) = get_constant_index_by_name(ast, &new_fn_name) {
+                                                    // 6. update this type with the argmodifier
+                                                    // 7. switch out the reference from the original fn to the duplicate fn instead
+                                                }
+                                            }
+                                        }
+                                        _ => (),
+                                    }
+                                }
+                                */
+
                                 output = output.replace(&arg_var_num, &arg_output);
                             }
                             //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
@@ -206,7 +252,12 @@ pub fn get_output_for_element_index(
         }
         ElementInfo::FunctionDefWIP => "".to_string(),
         ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-            let args = formatting::get_formatted_argname_argtype_pairs(&argnames, &argtypes);
+            let empty_arg_modifiers = argnames.iter().map(|_s| String::new()).collect();
+            let args = formatting::get_formatted_argname_argtype_pairs(
+                &argnames,
+                &argtypes,
+                &empty_arg_modifiers,
+            );
             format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
         }
         ElementInfo::FunctionCall(name, _) => {

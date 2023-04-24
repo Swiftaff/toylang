@@ -68,6 +68,7 @@ fn get_booleans() -> Elements {
                 bool_name.to_string(),
                 vec![],
                 vec![],
+                vec![],
                 "bool".to_string(),
                 bool_name.to_string(),
             ),
@@ -88,6 +89,7 @@ fn get_boolean_fns() -> Elements {
                     "i64|f64|String|bool".to_string(),
                     "i64|f64|String|bool".to_string(),
                 ],
+                vec!["".to_string(), "".to_string()],
                 "bool".to_string(),
                 format!("arg~1 {} arg~2", bool_fn_name).to_string(),
             ),
@@ -105,6 +107,7 @@ fn get_initial_arithmetic_operators() -> Elements {
                 fn_name.to_string(),
                 vec!["arg~1".to_string(), "arg~2".to_string()],
                 vec!["i64|f64".to_string(), "i64|f64".to_string()],
+                vec!["".to_string(), "".to_string()],
                 "i64|f64".to_string(),
                 format!("arg~1 {} arg~2", fn_name).to_string(),
             ),
@@ -117,33 +120,51 @@ fn get_initial_arithmetic_operators() -> Elements {
 fn get_list_functions() -> Vec<elements::Element> {
     let vecs: &str = "Vec<i64>|Vec<f64>|Vec<String>";
     let list_fns = vec![
-        ("map", "arg~1.iter().map(arg~2).collect()", vecs),
+        (
+            "map",
+            "arg~1.iter().map(|i: &~returntype~| arg~2(*i)).collect::<Vec<~returntype~>>()",
+            vec!["", "&"],
+            vecs,
+            vecs,
+        ),
         (
             "append",
             "arg~1.iter().cloned().chain(arg~2.iter().cloned()).collect()",
+            vec!["", ""],
+            vecs,
             vecs,
         ),
-        ("len", "arg~1.len() as i64", "i64|f64|String"),
-    ];
-    let list_closure = |(fn_name, output, returntype): (&str, &str, &str)| {
-        let num_args = output.matches("arg~").count();
-        let mut arg_names: Vec<String> = vec![];
-        let mut arg_types: Vec<String> = vec![];
-        for i in 0..num_args {
-            arg_names.push(format!("arg~{}", i + 1));
-            arg_types.push(vecs.to_string());
-        }
         (
-            ElementInfo::InbuiltFunctionDef(
-                format!("List.{}", fn_name),
-                arg_names,
-                arg_types,
-                returntype.to_string(),
-                output.to_string(),
-            ),
-            vec![],
-        )
-    };
+            "len",
+            "arg~1.len() as i64",
+            vec!["", ""],
+            vecs,
+            "i64|f64|String",
+        ),
+    ];
+    let list_closure =
+        |(fn_name, output, modifier, argtype, returntype): (&str, &str, Vec<&str>, &str, &str)| {
+            let num_args = output.matches("arg~").count();
+            let mut arg_names: Vec<String> = vec![];
+            let mut arg_types: Vec<String> = vec![];
+            let mut arg_modifiers: Vec<String> = vec![];
+            for i in 0..num_args {
+                arg_names.push(format!("arg~{}", i + 1));
+                arg_modifiers.push(modifier[i].to_string());
+                arg_types.push(argtype.to_string());
+            }
+            (
+                ElementInfo::InbuiltFunctionDef(
+                    format!("List.{}", fn_name),
+                    arg_names,
+                    arg_types,
+                    arg_modifiers,
+                    returntype.to_string(),
+                    output.to_string(),
+                ),
+                vec![],
+            )
+        };
     list_fns.into_iter().map(list_closure).collect()
 }
 

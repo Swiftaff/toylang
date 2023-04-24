@@ -156,7 +156,7 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::Float(_) => error_if_parent_is_invalid_for_float(compiler, &parent)?,
         ElementInfo::String(_) => error_if_parent_is_invalid_for_string(compiler, &parent)?,
         ElementInfo::Bool(_) => error_if_parent_is_invalid_for_bool(compiler, &parent)?,
-        ElementInfo::Arg(_, _, _) => error_if_parent_is_invalid_for_arg(compiler, &parent)?,
+        ElementInfo::Arg(_, _, _, _) => error_if_parent_is_invalid_for_arg(compiler, &parent)?,
         ElementInfo::ConstantRef(_, _, _) => {
             error_if_parent_is_invalid_for_constantref(compiler, &parent)?
         }
@@ -179,7 +179,7 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::Seol => (),
         ElementInfo::Indent => (),
         ElementInfo::Unused => (),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => error_if_parent_is_invalid_for_fndefwip(compiler, &parent)?,
         ElementInfo::FunctionDef(_, _, _, _) => (),
         ElementInfo::Println => error_if_parent_is_invalid_for_println(compiler, &parent)?,
@@ -201,7 +201,7 @@ pub fn error_if_parent_is_invalid_for_list(
         ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
@@ -216,7 +216,7 @@ pub fn error_if_parent_is_invalid_for_list(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -240,7 +240,7 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
         ElementInfo::List(_) => Ok(()),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::If(_) => Ok(()),
@@ -268,7 +268,7 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -295,7 +295,7 @@ pub fn error_if_parent_is_invalid_for_int(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
@@ -312,7 +312,7 @@ pub fn error_if_parent_is_invalid_for_int(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -338,7 +338,7 @@ pub fn error_if_parent_is_invalid_for_float(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
@@ -355,7 +355,7 @@ pub fn error_if_parent_is_invalid_for_float(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -381,7 +381,7 @@ pub fn error_if_parent_is_invalid_for_string(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
@@ -398,7 +398,7 @@ pub fn error_if_parent_is_invalid_for_string(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -424,7 +424,7 @@ pub fn error_if_parent_is_invalid_for_bool(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
@@ -441,7 +441,7 @@ pub fn error_if_parent_is_invalid_for_bool(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -471,7 +471,7 @@ pub fn error_if_parent_is_invalid_for_arg(
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -483,7 +483,7 @@ pub fn error_if_parent_is_invalid_for_arg(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -510,7 +510,7 @@ pub fn error_if_parent_is_invalid_for_constantref(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
         ElementInfo::If(_) => Ok(()),
         ElementInfo::Assignment => append_error(compiler, 0, 1, ERRORS.constants_are_immutable),
@@ -528,7 +528,7 @@ pub fn error_if_parent_is_invalid_for_constantref(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -597,7 +597,7 @@ pub fn error_if_parent_is_invalid_for_assignment(
             ERRORS.assignment_cant_be_child_of_parenthesis,
         ),
         // explicitly listing other types rather than using _ to not overlook new types in future.
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -605,7 +605,7 @@ pub fn error_if_parent_is_invalid_for_assignment(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -633,7 +633,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
@@ -650,7 +650,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -677,7 +677,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::If(_) => Ok(()),
@@ -691,7 +691,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -715,7 +715,7 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::FunctionCall(_, _) => Ok(()),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::If(_) => Ok(()),
         ElementInfo::List(_) => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
@@ -741,7 +741,7 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -768,7 +768,7 @@ pub fn error_if_parent_is_invalid_for_loopfor(
         ElementInfo::FunctionCall(_, _) => {
             append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child)
         }
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
         ElementInfo::Root => Ok(()),
@@ -783,7 +783,7 @@ pub fn error_if_parent_is_invalid_for_loopfor(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -851,7 +851,7 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
             ERRORS.fndefwip_can_only_be_child_of_constant,
         ),
         // explicitly listing other types rather than using _ to not overlook new types in future.
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -859,7 +859,7 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -902,7 +902,7 @@ pub fn error_if_parent_is_invalid_for_println(
         }
         // explicitly listing other types rather than using _ to not overlook new types in future.
         ElementInfo::Constant(_, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -910,7 +910,7 @@ pub fn error_if_parent_is_invalid_for_println(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -947,7 +947,7 @@ pub fn error_if_parent_is_invalid_for_if_expression(
             append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element)
         }
         // explicitly listing other types rather than using _ to not overlook new types in future.
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -955,7 +955,7 @@ pub fn error_if_parent_is_invalid_for_if_expression(
         ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
-        ElementInfo::Arg(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.impossible_error),
@@ -1161,10 +1161,7 @@ mod tests {
         let tests = vec![
             // fncall_cant_be_child_of_parenthesis
             // but fails with other error funcdef_argtypes_first
-            vec![
-            ERRORS.funcdef_argtypes_first,
-            "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123",
-        ],
+            vec![ERRORS.funcdef_argtypes_first, "= myfun1 \\ i64 i64 arg1 => + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 => arg2 123"],
             //but not here
             //[
             //    ERRORS.fncall_cant_be_child_of_parenthesis,

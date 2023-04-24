@@ -9,22 +9,22 @@ use std::fmt;
 #[derive(Clone)]
 
 pub enum ElementInfo {
-    List(ReturnType),                       //children = list items of same type
-    CommentSingleLine(Value),               //no children
-    Int(Value),                             //no children
-    Float(Value),                           //no children
-    String(Value),                          //no children
-    Bool(Value),                            //no children
-    Arg(Name, Scope, ReturnType),           //no children
-    Type(Name),                             //no children
-    Eol,                                    //no children
-    Seol,                                   //no children
-    Indent,                                 //no children
-    Unused,                                 //no children
-    ConstantRef(Name, ReturnType, RefName), //no children
-    Constant(Name, ReturnType),             //1 child, value
-    Assignment,                             //1 child, constant
-    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), //children = lines of function contents
+    List(ReturnType),                          //children = list items of same type
+    CommentSingleLine(Value),                  //no children
+    Int(Value),                                //no children
+    Float(Value),                              //no children
+    String(Value),                             //no children
+    Bool(Value),                               //no children
+    Arg(Name, Scope, ArgModifier, ReturnType), //no children
+    Type(Name),                                //no children
+    Eol,                                       //no children
+    Seol,                                      //no children
+    Indent,                                    //no children
+    Unused,                                    //no children
+    ConstantRef(Name, ReturnType, RefName),    //no children
+    Constant(Name, ReturnType),                //1 child, value
+    Assignment,                                //1 child, constant
+    InbuiltFunctionDef(Name, ArgNames, ArgTypes, ArgModifiers, ReturnType, Format), //children = lines of function contents
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
     FunctionDefWIP,                                 //children = lines of function contents
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //children = lines of function contents
@@ -49,11 +49,11 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::Float(_) => replaceme,
         ElementInfo::String(_) => replaceme,
         ElementInfo::Bool(_) => replaceme,
-        ElementInfo::Arg(_, _, _) => replaceme,
+        ElementInfo::Arg(_, _, _, _) => replaceme,
         ElementInfo::Constant(_, _) => replaceme,
         ElementInfo::ConstantRef(_, _, _) => replaceme,
         ElementInfo::Assignment => replaceme,
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => replaceme,
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => replaceme,
         ElementInfo::InbuiltFunctionCall(_, _, _) => replaceme,
         ElementInfo::FunctionDefWIP => replaceme,
         ElementInfo::FunctionDef(_, _, _, _) => replaceme,
@@ -84,11 +84,11 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::Float(_), _)) => replaceme,
         Some((ElementInfo::String(_), _)) => replaceme,
         Some((ElementInfo::Bool(_), _)) => replaceme,
-        Some((ElementInfo::Arg(_, _, _), _)) => replaceme,
+        Some((ElementInfo::Arg(_, _, _, _), _)) => replaceme,
         Some((ElementInfo::Constant(_, _), _)) => replaceme,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
         Some((ElementInfo::Assignment, _)) => replaceme,
-        Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _), _)) => replaceme,
+        Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => replaceme,
         Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => replaceme,
         Some((ElementInfo::FunctionDefWIP, _)) => replaceme,
         Some((ElementInfo::FunctionDef(_, _, _, _), _)) => replaceme,
@@ -116,6 +116,8 @@ type Name = String;
 type RefName = String;
 type ArgNames = Vec<String>;
 type ArgTypes = Vec<String>;
+type ArgModifier = String;
+type ArgModifiers = Vec<ArgModifier>;
 type Format = String;
 type Scope = ElIndex;
 // no need to track parents in Element
@@ -160,7 +162,7 @@ pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
 
 pub fn get_arg_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
-        ElementInfo::Arg(n, _, _) => n == name,
+        ElementInfo::Arg(n, _, _, _) => n == name,
         _ => false,
     })
 }
@@ -190,15 +192,15 @@ pub fn get_constant_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
 pub fn get_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
         ElementInfo::FunctionDef(n, _, _, _) => n == name,
-        ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
+        ElementInfo::Arg(n, _, _, r) => n == name && r.contains("&dyn Fn"),
         _ => false,
     })
 }
 
 pub fn get_inbuilt_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
-        ElementInfo::InbuiltFunctionDef(n, _, _, _, _) => n == name,
-        ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn"),
+        ElementInfo::InbuiltFunctionDef(n, _, _, _, _, _) => n == name,
+        ElementInfo::Arg(n, _, _, r) => n == name && r.contains("&dyn Fn"),
         _ => false,
     })
 }
@@ -210,11 +212,13 @@ pub fn _get_inbuilt_function_index_by_name_and_returntype(
 ) -> Option<usize> {
     //dbg!(returntype);
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
-        ElementInfo::InbuiltFunctionDef(n, _, _, r, _) => {
+        ElementInfo::InbuiltFunctionDef(n, _, _, _, r, _) => {
             //dbg!("here", n, r, name, returntype);
             n == name && (r.contains(returntype) || returntype.contains(r))
         }
-        ElementInfo::Arg(n, _, r) => n == name && r.contains("&dyn Fn") && r.contains(returntype),
+        ElementInfo::Arg(n, _, _, r) => {
+            n == name && r.contains("&dyn Fn") && r.contains(returntype)
+        }
         _ => false,
     })
 }
@@ -248,8 +252,8 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
     if el_type == "Undefined".to_string() || el_type.contains("|") {
         let infered_type = get_infered_type_of_any_element(ast, el_index);
         match el.0 {
-            ElementInfo::Arg(name, scope, _) => {
-                return ElementInfo::Arg(name, scope, infered_type);
+            ElementInfo::Arg(name, scope, argmodifier, _) => {
+                return ElementInfo::Arg(name, scope, argmodifier, infered_type);
             }
             ElementInfo::Constant(name, _) => {
                 return ElementInfo::Constant(name, infered_type);
@@ -292,7 +296,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Float(_) => (),
             ElementInfo::String(_) => (),
             ElementInfo::Bool(_) => (),
-            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+            ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
             ElementInfo::Parens => (),
@@ -314,7 +318,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
     let el = ast.elements[el_index].clone();
     let el_info = &el.0;
     match el_info {
-        ElementInfo::Arg(_, _, _) => {
+        ElementInfo::Arg(_, _, _, _) => {
             return get_infered_type_of_arg_element(ast, el_info, el_index);
         }
         ElementInfo::Constant(_, _) => {
@@ -349,7 +353,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::String(_) => (),
         ElementInfo::Bool(_) => (),
         ElementInfo::Assignment => (),
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),
         ElementInfo::FunctionDef(_, _, _, _) => (),
         ElementInfo::Parens => (),
@@ -372,7 +376,7 @@ pub fn get_infered_type_of_arg_element(
 ) -> String {
     let mut infered_type = "Undefined".to_string();
     match el_info {
-        ElementInfo::Arg(name, _, _) => {
+        ElementInfo::Arg(name, _, _, _) => {
             // get type of this arg, from the argtypes of parent funcdef
             if let Some(parent_funcdef) =
                 parents::get_current_parent_element_from_element_children_search(ast, el_index)
@@ -436,7 +440,7 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
     let el = &ast.elements[funcdef_el_index];
     let elinfo = &el.0;
     match elinfo {
-        ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, returntype, _) => {
+        ElementInfo::InbuiltFunctionDef(_, _argnames, argtypes, _argmodifiers, returntype, _) => {
             //dbg!(funcdef_el_index, &returntype);
             if returntype.contains("|") {
                 //dbg!("2.5", &el_children, &argtypes, &returntype);
@@ -478,7 +482,7 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
         let funcdef = &ast.elements[index];
         match &funcdef.0 {
             ElementInfo::FunctionDef(_, _, _, returntype) => return returntype.clone(),
-            ElementInfo::Arg(_, _, returntype) => {
+            ElementInfo::Arg(_, _, _, returntype) => {
                 if returntype.contains("&dyn Fn") {
                     return returntype.clone();
                 } else {
@@ -513,14 +517,14 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Constant(_, returntype) => returntype.clone(),
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
         ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
-        ElementInfo::Arg(_, _, returntype) => returntype.clone(),
+        ElementInfo::Arg(_, _, _, returntype) => returntype.clone(),
         ElementInfo::FunctionCall(name, _) => get_infered_type_of_functioncall_element(ast, &name),
         ElementInfo::Type(returntype) => returntype.clone(),
         ElementInfo::If(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => undefined,
         ElementInfo::CommentSingleLine(_) => undefined,
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => undefined, // don't want to 'find' definitions
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => undefined, // don't want to 'find' definitions
         ElementInfo::FunctionDefWIP => undefined,
         ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
         ElementInfo::Parens => undefined,
@@ -653,11 +657,15 @@ pub fn get_argnames_from_argtokens(
     for i in 0..argname_refs.len() {
         let a = argname_refs[i];
         match &compiler.ast.elements[a] {
-            (ElementInfo::Arg(argname, scope, _), _) => {
+            (ElementInfo::Arg(argname, scope, argmodifier, _), _) => {
                 argnames.push(argname.clone());
                 let returntype = argtypes[i].clone();
-                let updated_arg_token =
-                    ElementInfo::Arg(argname.clone(), scope.clone(), returntype);
+                let updated_arg_token = ElementInfo::Arg(
+                    argname.clone(),
+                    scope.clone(),
+                    argmodifier.clone(),
+                    returntype,
+                );
                 compiler.ast.elements[a].0 = updated_arg_token;
             }
             _ => (),
@@ -706,8 +714,11 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::Float(float) => format!("Float: {}", float),
             ElementInfo::String(string) => format!("String: {}", string),
             ElementInfo::Bool(boolean) => format!("Bool: {}", boolean),
-            ElementInfo::Arg(name, scope, returntype) => {
-                format!("Arg: {} scope:{} ({})", name, scope, returntype)
+            ElementInfo::Arg(name, scope, argmodifier, returntype) => {
+                format!(
+                    "Arg: {} scope:{} argmodifier:({}) ({})",
+                    name, scope, argmodifier, returntype
+                )
             }
             ElementInfo::Constant(name, returntype) => {
                 format!("Constant: {} ({})", name, returntype)
@@ -718,10 +729,17 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::Assignment => {
                 format!("Assignment")
             }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, argtypes, returntype, _format) => {
+            ElementInfo::InbuiltFunctionDef(
+                name,
+                _argnames,
+                argtypes,
+                argmodifiers,
+                returntype,
+                _format,
+            ) => {
                 format!(
-                    "InbuiltFunctionDef: \"{}\" ({:?}) -> ({})",
-                    name, argtypes, returntype
+                    "InbuiltFunctionDef: \"{}\" argtypes({:?}) argmodifiers({:?}) -> ({})",
+                    name, argtypes, argmodifiers, returntype
                 )
             }
             ElementInfo::InbuiltFunctionCall(name, _, returntype) => {
@@ -729,7 +747,12 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::FunctionDefWIP => format!("FunctionDefWIP"),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) => {
-                let args = formatting::get_formatted_argname_argtype_pairs(&argnames, &argtypes);
+                let empty_arg_modifiers = argnames.iter().map(|_s| String::new()).collect();
+                let args = formatting::get_formatted_argname_argtype_pairs(
+                    &argnames,
+                    &argtypes,
+                    &empty_arg_modifiers,
+                );
                 format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
             }
             ElementInfo::FunctionCall(name, returntype) => {

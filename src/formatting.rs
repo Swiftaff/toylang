@@ -1,6 +1,7 @@
 pub fn get_formatted_argname_argtype_pairs(
     argnames: &Vec<String>,
     argtypes: &Vec<String>,
+    argmodifiers: &Vec<String>,
 ) -> String {
     let mut args = "".to_string();
     for a in 0..argnames.len() {
@@ -9,7 +10,10 @@ pub fn get_formatted_argname_argtype_pairs(
         } else {
             ", ".to_string()
         };
-        args = format!("{}{}: {}{}", args, argnames[a], argtypes[a], comma);
+        args = format!(
+            "{}{}: {}{}{}",
+            args, argnames[a], argmodifiers[a], argtypes[a], comma
+        );
     }
     args
 }
@@ -25,25 +29,47 @@ mod tests {
             vec![
                 vec!["arg1".to_string()],
                 vec!["i64".to_string()],
+                vec!["".to_string()],
                 vec!["arg1: i64".to_string()],
             ],
             vec![
                 vec!["arg1".to_string(), "arg2".to_string()],
                 vec!["i64".to_string(), "f64".to_string()],
+                vec!["".to_string(), "".to_string()],
                 vec!["arg1: i64, arg2: f64".to_string()],
             ],
             vec![
                 vec!["arg1".to_string(), "arg2".to_string(), "arg3".to_string()],
                 vec!["i64".to_string(), "f64".to_string(), "String".to_string()],
+                vec!["".to_string(), "".to_string(), "".to_string()],
                 vec!["arg1: i64, arg2: f64, arg3: String".to_string()],
+            ],
+            vec![
+                vec!["arg1".to_string()],
+                vec!["i64".to_string()],
+                vec!["&".to_string()],
+                vec!["arg1: &i64".to_string()],
+            ],
+            vec![
+                vec!["arg1".to_string(), "arg2".to_string()],
+                vec!["i64".to_string(), "f64".to_string()],
+                vec!["&".to_string(), "&mut ".to_string()],
+                vec!["arg1: &i64, arg2: &mut f64".to_string()],
+            ],
+            vec![
+                vec!["arg1".to_string(), "arg2".to_string(), "arg3".to_string()],
+                vec!["i64".to_string(), "f64".to_string(), "String".to_string()],
+                vec!["&".to_string(), "&mut ".to_string(), "mut ".to_string()],
+                vec!["arg1: &i64, arg2: &mut f64, arg3: mut String".to_string()],
             ],
         ];
         for test in test_case_passes {
             let argnames = &test[0];
             let argtypes = &test[1];
-            let output = &test[2][0];
+            let argmodifiers = &test[2];
+            let output = &test[3][0];
             assert_eq!(
-                &get_formatted_argname_argtype_pairs(&argnames, &argtypes),
+                &get_formatted_argname_argtype_pairs(&argnames, &argtypes, &argmodifiers),
                 output
             );
         }
