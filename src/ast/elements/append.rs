@@ -148,9 +148,9 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Float(_) => (),
             ElementInfo::String(_) => (),
             ElementInfo::Bool(_) => (),
-            ElementInfo::Arg(_, _, _) => (),
+            ElementInfo::Arg(_, _, _, _) => (),
             ElementInfo::ConstantRef(_, _, _) => (),
-            ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => (),
+            ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::Parens => (),
             ElementInfo::Type(_) => (),
@@ -188,8 +188,20 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
                                 first_element_after_indent_ref,
                             );
                         let first_element_after_indent_el =
-                            &compiler.ast.elements[first_element_after_indent_ref];
+                            compiler.ast.elements[first_element_after_indent_ref].clone();
 
+                        // Add "as i64" to any int as return expression, since Rust seems to type infer it as i32 otherwise
+                        match first_element_after_indent_el.0.clone() {
+                            ElementInfo::Int(x) => {
+                                compiler.ast.elements[first_element_after_indent_ref] = (
+                                    ElementInfo::Int(format!("{} as i64", x)),
+                                    first_element_after_indent_el.1.clone(),
+                                )
+                            }
+                            _ => (),
+                        }
+
+                        //don't add semicolon if it is the return expression
                         match parent_of_first_el_option {
                             Some((ElementInfo::FunctionDef(_, _, _, _), _)) => {
                                 if is_return_expression(&first_element_after_indent_el.0) {
@@ -232,9 +244,9 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => false,
         ElementInfo::CommentSingleLine(_) => false,
-        ElementInfo::Arg(_, _, _) => false,
+        ElementInfo::Arg(_, _, _, _) => false,
         ElementInfo::Assignment => false,
-        ElementInfo::InbuiltFunctionDef(_, _, _, _, _) => false,
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => false,
         ElementInfo::FunctionDefWIP => false,
         ElementInfo::FunctionDef(_, _, _, _) => false,
         ElementInfo::Type(_) => false,
@@ -295,7 +307,7 @@ pub fn inbuilt_function_call(
     let el = &compiler.ast.elements[index_of_function];
     let returntype = elements::get_elementinfo_type(&compiler.ast, &el.0);
     match el.clone().0 {
-        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _) => {
+        ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _, _) => {
             append(
                 &mut compiler.ast,
                 (
@@ -436,7 +448,12 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
             append(
                 &mut compiler.ast,
                 (
-                    ElementInfo::Arg(current_token.clone(), parent_ref, "Undefined".to_string()),
+                    ElementInfo::Arg(
+                        current_token.clone(),
+                        parent_ref,
+                        "Undefined".to_string(),
+                        "Undefined".to_string(),
+                    ),
                     vec![],
                 ),
             );
