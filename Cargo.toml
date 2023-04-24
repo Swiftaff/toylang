@@ -11,6 +11,7 @@ build = "build.rs"
 clap = { version = "4.2.1", features = ["derive"] }
 native-windows-gui = "1.0.12"
 native-windows-derive = "1.0.3"
+toylang_macros = { path = "toylang_macros" }
 
 [build-dependencies]
 winres = "0.1"

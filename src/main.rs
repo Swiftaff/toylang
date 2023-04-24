@@ -1,6 +1,8 @@
 //#![windows_subsystem = "windows"]
 //needed for debug_window.rs
 
+extern crate toylang_macros;
+
 use clap::Parser;
 use toylang::compiler_runner;
 use toylang::debug_window_derive;
@@ -31,6 +33,7 @@ fn main() {
     let debug = cli.debug;
     let output = cli.output;
     let nosave = cli.nosave;
+
     if debug {
         debug_window_derive::run(input, debug, output);
     } else {

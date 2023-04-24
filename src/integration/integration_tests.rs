@@ -24,6 +24,7 @@ pub fn doctest_name() {}
 #[cfg(test)]
 mod tests {
     use crate::Compiler;
+    use toylang_macros::make_answer;
 
     macro_rules! doc_and_int_test {
         ( $doctest_name:ident, $test_name:ident, $x:expr, $y:expr ) => {
@@ -63,6 +64,8 @@ mod tests {
             Err(_e) => assert!(false, "error should not exist"),
         }
     }
+
+    make_answer!();
 
     #[test]
     fn test_name() {
