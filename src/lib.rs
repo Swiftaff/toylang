@@ -122,7 +122,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
-    pub fn new(filepath: String, debug: bool, option_outputdir: Option<String>) -> Result<Compiler, String> {
+    pub fn new(filepath: String, debug: bool, option_outputdir: Option<String>, nosave: bool) -> Result<Compiler, String> {
         println!("\r\nOUTPUT: {:?}", &option_outputdir);
         if debug {
             println!("DEBUG:  true");
@@ -138,7 +138,7 @@ impl Compiler {
         if let Some(outputdir_found) = &option_outputdir {
             outputdir = outputdir_found.to_owned();
         }
-        let file = File::new();
+        let file = File::new(nosave);
         let lines_of_chars = vec![];
         let lines_of_tokens = vec![];
         let output = "".to_string();

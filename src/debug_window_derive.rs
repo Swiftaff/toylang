@@ -324,7 +324,7 @@ fn init(ui: &toylang_debugger_ui::ToylangDebuggerUi, input: String, debug: bool,
     ui.rich_text_control_set_text(&ui.richtext_logs, " ");
     ui.rich_text_control_set_text(&ui.richtext_tree, " ");
     ui.rich_text_control_set_text(&ui.richtext_output, " ");
-    return Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
+    return Compiler::new(input.clone(), debug, output.clone(), true).unwrap_or_else(|err| {
         println!("Problem parsing arguments: {}", err);
         process::exit(1);
     });

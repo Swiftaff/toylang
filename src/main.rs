@@ -19,6 +19,10 @@ struct Cli {
     /// optional - output directory. Default is current directory
     #[arg(short, long)]
     output: Option<String>,
+
+    /// optional - nosave flag. Avoid saving output, useful if compiling an in progress toylang file causes an invalid rust output file, which then won't allow compilation next time. Default is false, i.e. it will save
+    #[arg(short, long)]
+    nosave: bool,
 }
 
 fn main() {
@@ -26,9 +30,10 @@ fn main() {
     let input = cli.input;
     let debug = cli.debug;
     let output = cli.output;
+    let nosave = cli.nosave;
     if debug {
         debug_window_derive::run(input, debug, output);
     } else {
-        compiler_runner::main(input, debug, output);
+        compiler_runner::main(input, debug, output, nosave);
     }
 }

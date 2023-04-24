@@ -4,20 +4,14 @@
 		{
 			"type": "cargo",
 			"command":"test",
-			"args":["--features","dox"],
+			"args":["--features","dox2"],
 			"label": "1.1 test",
 		},
 		{
 			"type": "cargo",
 			"command":"test",
-			"args":["--doc","--features","dox"],
+			"args":["--doc","--features","dox2"],
 			"label": "1.1b test doc",
-		},
-		{
-			"type": "cargo",
-			"command":"doc",
-			"args":["--document-private-items","--no-deps","--features","dox","--open","--lib"],
-			"label": "1.1c doc",
 		},
 		{
 			"type": "cargo",
@@ -139,7 +133,15 @@
 			"args":[
 				"-i", "src\\test.toy", "-o", "src\\bin"
 			],
-			"label": "3.0 run dev no debug toylang on src\\test.toy",
+			"label": "3.0 run dev toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command":"target\\debug\\toylang.exe",
+			"args":[
+				"-i", "src\\test.toy", "-n"
+			],
+			"label": "3.0 run dev no save toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
@@ -147,7 +149,7 @@
 			"args":[
 				"-i", "src\\test.toy", "-o", "src\\bin", "-d"
 			],
-			"label": "3.1 run dev toylang on src\\test.toy",
+			"label": "3.1 run dev debug toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
