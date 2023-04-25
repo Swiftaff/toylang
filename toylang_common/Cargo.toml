@@ -1,5 +1,5 @@
 [package]
-name = "toylang_macros"
+name = "toylang_common"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,6 @@ edition = "2021"
 syn = { version = "1.0.82", features = ["full", "extra-traits"] }
 quote = "1.0"
 lazy_static = "1.4.0"
-toylang_common = { path = "../toylang_common" }
 
 [lib]
-proc-macro = true
+path = "src/lib.rs"

@@ -400,8 +400,18 @@ dependencies = [
  "native-windows-derive",
  "native-windows-gui",
  "syn 1.0.109",
+ "toylang_common",
  "toylang_macros",
  "winres",
+]
+
+[[package]]
+name = "toylang_common"
+version = "0.1.0"
+dependencies = [
+ "lazy_static",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -411,6 +421,7 @@ dependencies = [
  "lazy_static",
  "quote",
  "syn 1.0.109",
+ "toylang_common",
 ]
 
 [[package]]

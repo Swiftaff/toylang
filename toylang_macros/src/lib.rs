@@ -7,11 +7,12 @@ by having it in the doctests this is checked automatically at compile time!
 I am hoping to have a central variable containing all the tests
 which both sets of proc_macros could refer to, rather than manually duplicate them.
 */
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::{Error, Parse, ParseStream};
 use syn::parse_macro_input;
-mod example_tests;
+use toylang_common;
 
 /// DocTest's first three strings are expected for parsing
 /// the last two are generated, one for tests, the other for doctests
@@ -74,7 +75,7 @@ impl Parse for Example4 {
 }
 
 lazy_static::lazy_static! {
-    static ref ALL_TESTS: example_tests::ExampleTests = example_tests::ExampleTests::new();
+    static ref ALL_TESTS: toylang_common::ExampleTests = toylang_common::ExampleTests::new();
 }
 
 #[proc_macro]
@@ -212,14 +213,11 @@ pub fn call_to_generate_doctest5(input: TokenStream) -> TokenStream {
 pub fn call_to_generate_doctest6(input: TokenStream) -> TokenStream {
     let Example4 { index } = parse_macro_input!(input as Example4);
     let i = index.to_string().parse::<usize>().unwrap();
-
     let fn_name = &ALL_TESTS.tests[i].0;
     let toy = &ALL_TESTS.tests[i].1;
     let rust = &ALL_TESTS.tests[i].2;
     let output = quote! {
         generate_doctest!(#fn_name,#toy,#rust);
     };
-    dbg!(fn_name, toy, rust);
-    //dbg!(&output);
     output.into()
 }

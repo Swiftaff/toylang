@@ -1,1 +1,1 @@
-pub mod doctests;
+mod doctests;

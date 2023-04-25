@@ -7,7 +7,7 @@
 
 //use syn::LitStr;
 //extern crate toylang_macros; //::{call_to_generate_doctest, call_to_generate_doctest4, call_to_generate_doctest5, generate_doctest};
-use toylang_macros::{call_to_generate_doctest5, call_to_generate_doctest6, generate_doctest};
+use toylang_macros::{call_to_generate_doctest6, generate_doctest};
 
 /*
 macro_rules! generate_multiple_doctests {
@@ -23,6 +23,8 @@ macro_rules! generate_multiple_doctests {
 */
 
 call_to_generate_doctest6!(0);
+call_to_generate_doctest6!(1);
+call_to_generate_doctest6!(2);
 
 #[allow(dead_code)]
 //#[cfg(any(test, feature = "dox2"))]
@@ -80,72 +82,297 @@ mod tests {
     //doc_and_int_test!(doctest1, test_pass_empty_file, "", "fn main() {\r\n}\r\n");
 
     // Comment
-    doc_and_int_test!(doctest10, test_pass_comment_singleline, "//comment", "fn main() {\r\n    //comment\r\n}\r\n");
-    doc_and_int_test!(doctest11, test_pass_comment_singleline_with_space, "    //    comment    ", "fn main() {\r\n    //    comment\r\n}\r\n");
-    doc_and_int_test!(doctest12, test_pass_comment_singleline_fn_no_longer_breaks, "//= a \\ i64 => 123", "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n");
+    //doc_and_int_test!(doctest10, test_pass_comment_singleline, "//comment", "fn main() {\r\n    //comment\r\n}\r\n");
+    //doc_and_int_test!(
+    //    doctest11,
+    //    test_pass_comment_singleline_with_space,
+    //    "    //    comment    ",
+    //    "fn main() {\r\n    //    comment\r\n}\r\n"
+    //);
+    doc_and_int_test!(
+        doctest12,
+        test_pass_comment_singleline_fn_no_longer_breaks,
+        "//= a \\ i64 => 123",
+        "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n"
+    );
 
     // Boolean
-    doc_and_int_test!(doctest20, test_pass_boolean_true, "true", "fn main() {\r\n    true;\r\n}\r\n");
-    doc_and_int_test!(doctest21, test_pass_boolean_false, "false", "fn main() {\r\n    false;\r\n}\r\n");
-    doc_and_int_test!(doctest22, test_pass_boolean_eq_equality_true, "== 1 1", "fn main() {\r\n    1 == 1;\r\n}\r\n");
-    doc_and_int_test!(doctest23, test_pass_boolean_eq_equality_false, "== 1 2", "fn main() {\r\n    1 == 2;\r\n}\r\n");
-    doc_and_int_test!(doctest24, test_pass_boolean_neq_non_equality_true, "!= 1 2", "fn main() {\r\n    1 != 2;\r\n}\r\n");
-    doc_and_int_test!(doctest25, test_pass_boolean_neq_non_equality_false, "!= 1 1", "fn main() {\r\n    1 != 1;\r\n}\r\n");
-    doc_and_int_test!(doctest26, test_pass_boolean_gt_greater_than_true, "> 2 1", "fn main() {\r\n    2 > 1;\r\n}\r\n");
-    doc_and_int_test!(doctest27, test_pass_boolean_gt_greater_than_false, "> 1 2", "fn main() {\r\n    1 > 2;\r\n}\r\n");
-    doc_and_int_test!(doctest28, test_pass_boolean_lt_less_than_true, "< 1 2", "fn main() {\r\n    1 < 2;\r\n}\r\n");
-    doc_and_int_test!(doctest29, test_pass_boolean_lt_less_than_false, "< 2 1", "fn main() {\r\n    2 < 1;\r\n}\r\n");
-    doc_and_int_test!(doctest30, test_pass_boolean_gte_greater_than_equal_true, ">= 3 2", "fn main() {\r\n    3 >= 2;\r\n}\r\n");
-    doc_and_int_test!(doctest31, test_pass_boolean_gte_greater_than_equal_true2, ">= 2 2", "fn main() {\r\n    2 >= 2;\r\n}\r\n");
-    doc_and_int_test!(doctest32, test_pass_boolean_gte_greater_than_equal_false, ">= 1 2", "fn main() {\r\n    1 >= 2;\r\n}\r\n");
-    doc_and_int_test!(doctest33, test_pass_boolean_lte_less_than_equal_true, "<= 2 3", "fn main() {\r\n    2 <= 3;\r\n}\r\n");
-    doc_and_int_test!(doctest34, test_pass_boolean_lte_less_than_equal_true2, "<= 2 2", "fn main() {\r\n    2 <= 2;\r\n}\r\n");
-    doc_and_int_test!(doctest35, test_pass_boolean_lte_less_than_equal_false, "<= 3 2", "fn main() {\r\n    3 <= 2;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest20,
+        test_pass_boolean_true,
+        "true",
+        "fn main() {\r\n    true;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest21,
+        test_pass_boolean_false,
+        "false",
+        "fn main() {\r\n    false;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest22,
+        test_pass_boolean_eq_equality_true,
+        "== 1 1",
+        "fn main() {\r\n    1 == 1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest23,
+        test_pass_boolean_eq_equality_false,
+        "== 1 2",
+        "fn main() {\r\n    1 == 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest24,
+        test_pass_boolean_neq_non_equality_true,
+        "!= 1 2",
+        "fn main() {\r\n    1 != 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest25,
+        test_pass_boolean_neq_non_equality_false,
+        "!= 1 1",
+        "fn main() {\r\n    1 != 1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest26,
+        test_pass_boolean_gt_greater_than_true,
+        "> 2 1",
+        "fn main() {\r\n    2 > 1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest27,
+        test_pass_boolean_gt_greater_than_false,
+        "> 1 2",
+        "fn main() {\r\n    1 > 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest28,
+        test_pass_boolean_lt_less_than_true,
+        "< 1 2",
+        "fn main() {\r\n    1 < 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest29,
+        test_pass_boolean_lt_less_than_false,
+        "< 2 1",
+        "fn main() {\r\n    2 < 1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest30,
+        test_pass_boolean_gte_greater_than_equal_true,
+        ">= 3 2",
+        "fn main() {\r\n    3 >= 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest31,
+        test_pass_boolean_gte_greater_than_equal_true2,
+        ">= 2 2",
+        "fn main() {\r\n    2 >= 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest32,
+        test_pass_boolean_gte_greater_than_equal_false,
+        ">= 1 2",
+        "fn main() {\r\n    1 >= 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest33,
+        test_pass_boolean_lte_less_than_equal_true,
+        "<= 2 3",
+        "fn main() {\r\n    2 <= 3;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest34,
+        test_pass_boolean_lte_less_than_equal_true2,
+        "<= 2 2",
+        "fn main() {\r\n    2 <= 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest35,
+        test_pass_boolean_lte_less_than_equal_false,
+        "<= 3 2",
+        "fn main() {\r\n    3 <= 2;\r\n}\r\n"
+    );
 
     // String
-    doc_and_int_test!(doctest40, test_pass_string, "\"string\"", "fn main() {\r\n    \"string\".to_string();\r\n}\r\n");
-    doc_and_int_test!(doctest41, test_pass_string_escaped_quote, "\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n");
+    doc_and_int_test!(
+        doctest40,
+        test_pass_string,
+        "\"string\"",
+        "fn main() {\r\n    \"string\".to_string();\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest41,
+        test_pass_string_escaped_quote,
+        "\"\"",
+        "fn main() {\r\n    \"\".to_string();\r\n}\r\n"
+    );
 
     // Int
-    doc_and_int_test!(doctest50, test_pass_int, "1", "fn main() {\r\n    1 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest51, test_pass_int_longer, "123", "fn main() {\r\n    123 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest52, test_pass_int_space_before, "    123    ", "fn main() {\r\n    123 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest53, test_pass_int_max, "9223372036854775807", "fn main() {\r\n    9223372036854775807 as i64;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest50,
+        test_pass_int,
+        "1",
+        "fn main() {\r\n    1 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest51,
+        test_pass_int_longer,
+        "123",
+        "fn main() {\r\n    123 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest52,
+        test_pass_int_space_before,
+        "    123    ",
+        "fn main() {\r\n    123 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest53,
+        test_pass_int_max,
+        "9223372036854775807",
+        "fn main() {\r\n    9223372036854775807 as i64;\r\n}\r\n"
+    );
 
-    doc_and_int_test!(doctest54, test_pass_int_neg, "-1", "fn main() {\r\n    -1 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest55, test_pass_int_longer_neg, "-123", "fn main() {\r\n    -123 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest56, test_pass_int_space_before_neg, "    -123    ", "fn main() {\r\n    -123 as i64;\r\n}\r\n");
-    doc_and_int_test!(doctest57, test_pass_int_max_neg, "-9223372036854775808", "fn main() {\r\n    -9223372036854775808 as i64;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest54,
+        test_pass_int_neg,
+        "-1",
+        "fn main() {\r\n    -1 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest55,
+        test_pass_int_longer_neg,
+        "-123",
+        "fn main() {\r\n    -123 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest56,
+        test_pass_int_space_before_neg,
+        "    -123    ",
+        "fn main() {\r\n    -123 as i64;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest57,
+        test_pass_int_max_neg,
+        "-9223372036854775808",
+        "fn main() {\r\n    -9223372036854775808 as i64;\r\n}\r\n"
+    );
 
     // Float
-    doc_and_int_test!(doctest60, test_pass_float, "1.1", "fn main() {\r\n    1.1;\r\n}\r\n");
-    doc_and_int_test!(doctest61, test_pass_float_longer, "123.123", "fn main() {\r\n    123.123;\r\n}\r\n");
-    doc_and_int_test!(doctest62, test_pass_float_space_before, "    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n");
-    doc_and_int_test!(doctest63, test_pass_float_max1, "1234567890.123456789", "fn main() {\r\n    1234567890.123456789;\r\n}\r\n");
-    doc_and_int_test!(doctest64, test_pass_float_max2, "1.7976931348623157E+308", "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest60,
+        test_pass_float,
+        "1.1",
+        "fn main() {\r\n    1.1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest61,
+        test_pass_float_longer,
+        "123.123",
+        "fn main() {\r\n    123.123;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest62,
+        test_pass_float_space_before,
+        "    123.123    ",
+        "fn main() {\r\n    123.123;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest63,
+        test_pass_float_max1,
+        "1234567890.123456789",
+        "fn main() {\r\n    1234567890.123456789;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest64,
+        test_pass_float_max2,
+        "1.7976931348623157E+308",
+        "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n"
+    );
 
-    doc_and_int_test!(doctest65, test_pass_float_neg, "-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n");
-    doc_and_int_test!(doctest66, test_pass_float_longer_neg, "-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n");
-    doc_and_int_test!(doctest67, test_pass_float_space_before_neg, "    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n");
-    doc_and_int_test!(doctest68, test_pass_float_max1_neg, "-1234567890.123456789", "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n");
-    doc_and_int_test!(doctest69, test_pass_float_max2_neg, "-1.7976931348623157E+308", "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest65,
+        test_pass_float_neg,
+        "-1.1",
+        "fn main() {\r\n    -1.1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest66,
+        test_pass_float_longer_neg,
+        "-123.123",
+        "fn main() {\r\n    -123.123;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest67,
+        test_pass_float_space_before_neg,
+        "    -123.123    ",
+        "fn main() {\r\n    -123.123;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest68,
+        test_pass_float_max1_neg,
+        "-1234567890.123456789",
+        "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest69,
+        test_pass_float_max2_neg,
+        "-1.7976931348623157E+308",
+        "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n"
+    );
 
     // List empty
-    doc_and_int_test!(doctest70, test_pass_list_empty_string, "[ String ]", "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n");
-    doc_and_int_test!(doctest71, test_pass_list_empty_int, "[ i64 ]", "fn main() {\r\n    Vec::<i64>::new();\r\n}\r\n");
-    doc_and_int_test!(doctest72, test_pass_list_empty_float, "[ f64 ]", "fn main() {\r\n    Vec::<f64>::new();\r\n}\r\n");
+    doc_and_int_test!(
+        doctest70,
+        test_pass_list_empty_string,
+        "[ String ]",
+        "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest71,
+        test_pass_list_empty_int,
+        "[ i64 ]",
+        "fn main() {\r\n    Vec::<i64>::new();\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest72,
+        test_pass_list_empty_float,
+        "[ f64 ]",
+        "fn main() {\r\n    Vec::<f64>::new();\r\n}\r\n"
+    );
 
     // List not empty
-    doc_and_int_test!(doctest80, test_pass_list_int, "[ 1 ]", "fn main() {\r\n    vec![ 1 ];\r\n}\r\n");
-    doc_and_int_test!(doctest81, test_pass_list_int2, "[ 1 2 3 4 5 ]", "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n");
-    doc_and_int_test!(doctest82, test_pass_list_float, "[ 1.1 2.2 3.3 4.4 5.5 ]", "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n");
+    doc_and_int_test!(
+        doctest80,
+        test_pass_list_int,
+        "[ 1 ]",
+        "fn main() {\r\n    vec![ 1 ];\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest81,
+        test_pass_list_int2,
+        "[ 1 2 3 4 5 ]",
+        "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest82,
+        test_pass_list_float,
+        "[ 1.1 2.2 3.3 4.4 5.5 ]",
+        "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n"
+    );
     doc_and_int_test!(
         doctest83,
         test_pass_list_string,
         "[ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]",
         "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n"
     );
-    doc_and_int_test!(doctest84, test_pass_list_int_assign, "= x [ 1 2 3 4 5 ]", "fn main() {\r\n    let x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n");
+    doc_and_int_test!(
+        doctest84,
+        test_pass_list_int_assign,
+        "= x [ 1 2 3 4 5 ]",
+        "fn main() {\r\n    let x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"
+    );
     doc_and_int_test!(
         doctest85,
         test_pass_list_float_assign,
@@ -185,32 +412,132 @@ mod tests {
     );
 
     // Function calls
-    doc_and_int_test!(doctest90, test_pass_internal_function_calls_plus, "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n");
-    doc_and_int_test!(doctest91, test_pass_internal_function_calls_negative, "- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n");
-    doc_and_int_test!(doctest92, test_pass_internal_function_calls_multiply, "* 3 4", "fn main() {\r\n    3 * 4;\r\n}\r\n");
-    doc_and_int_test!(doctest93, test_pass_internal_function_calls_divide, "/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest90,
+        test_pass_internal_function_calls_plus,
+        "+ 1 2",
+        "fn main() {\r\n    1 + 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest91,
+        test_pass_internal_function_calls_negative,
+        "- 1.1 2.2",
+        "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest92,
+        test_pass_internal_function_calls_multiply,
+        "* 3 4",
+        "fn main() {\r\n    3 * 4;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest93,
+        test_pass_internal_function_calls_divide,
+        "/ 9 3",
+        "fn main() {\r\n    9 / 3;\r\n}\r\n"
+    );
 
     // Basic arithmetic assignment type inference
-    doc_and_int_test!(doctest100, test_pass_assign_type_inf_plus_int, "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n");
-    doc_and_int_test!(doctest101, test_pass_assign_type_inf_plus_float, "= a + 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n");
-    doc_and_int_test!(doctest102, test_pass_assign_type_inf_plus_minus_int, "= a - 1 2", "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n");
-    doc_and_int_test!(doctest103, test_pass_assign_type_inf_minus_float, "= a - 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n");
-    doc_and_int_test!(doctest104, test_pass_assign_type_inf_multiply_int, "= a * 1 2", "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n");
-    doc_and_int_test!(doctest105, test_pass_assign_type_inf_multiply_float, "= a * 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n");
-    doc_and_int_test!(doctest106, test_pass_assign_type_inf_divide_int, "= a / 1 2", "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n");
-    doc_and_int_test!(doctest107, test_pass_assign_type_inf_divide_float, "= a / 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n");
-    doc_and_int_test!(doctest108, test_pass_assign_type_inf_modulo_int, "= a % 1 2", "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n");
-    doc_and_int_test!(doctest109, test_pass_assign_type_inf_modulo_float, "= a % 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest100,
+        test_pass_assign_type_inf_plus_int,
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest101,
+        test_pass_assign_type_inf_plus_float,
+        "= a + 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest102,
+        test_pass_assign_type_inf_plus_minus_int,
+        "= a - 1 2",
+        "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest103,
+        test_pass_assign_type_inf_minus_float,
+        "= a - 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest104,
+        test_pass_assign_type_inf_multiply_int,
+        "= a * 1 2",
+        "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest105,
+        test_pass_assign_type_inf_multiply_float,
+        "= a * 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest106,
+        test_pass_assign_type_inf_divide_int,
+        "= a / 1 2",
+        "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest107,
+        test_pass_assign_type_inf_divide_float,
+        "= a / 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest108,
+        test_pass_assign_type_inf_modulo_int,
+        "= a % 1 2",
+        "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest109,
+        test_pass_assign_type_inf_modulo_float,
+        "= a % 1.1 2.2",
+        "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n"
+    );
 
     // Constant
-    doc_and_int_test!(doctest110, test_pass_constant, "= a 123\r\na", "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest110,
+        test_pass_constant,
+        "= a 123\r\na",
+        "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n"
+    );
 
     // Assignment
-    doc_and_int_test!(doctest120, test_pass_assignment_string, "= a \"string\"", "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n");
-    doc_and_int_test!(doctest121, test_pass_assignment_int, "= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n");
-    doc_and_int_test!(doctest122, test_pass_assignment_float, "= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n");
-    doc_and_int_test!(doctest123, test_pass_assignment_float_neg, "= a -1.7976931348623157E+308", "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n");
-    doc_and_int_test!(doctest124, test_pass_assignment_arithmetic, "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest120,
+        test_pass_assignment_string,
+        "= a \"string\"",
+        "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest121,
+        test_pass_assignment_int,
+        "= a 1",
+        "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest122,
+        test_pass_assignment_float,
+        "= a 1.1",
+        "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest123,
+        test_pass_assignment_float_neg,
+        "= a -1.7976931348623157E+308",
+        "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest124,
+        test_pass_assignment_arithmetic,
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"
+    );
     doc_and_int_test!(
         doctest125,
         test_pass_assignment_internal_function_calls_with_references,
@@ -219,11 +546,31 @@ mod tests {
     );
 
     // Functions
-    doc_and_int_test!(doctest130, test_pass_nested_internal_function_call1, "= a - + 1 2 3", "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n");
-    doc_and_int_test!(doctest131, test_pass_nested_internal_function_call2, "= a / * - + 1 2 3 4 5", "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n");
-    doc_and_int_test!(doctest132, test_pass_nested_internal_function_call3, "= a + 1 * 3 2", "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest130,
+        test_pass_nested_internal_function_call1,
+        "= a - + 1 2 3",
+        "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest131,
+        test_pass_nested_internal_function_call2,
+        "= a / * - + 1 2 3 4 5",
+        "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n"
+    );
+    doc_and_int_test!(
+        doctest132,
+        test_pass_nested_internal_function_call3,
+        "= a + 1 * 3 2",
+        "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n"
+    );
 
-    doc_and_int_test!(doctest133, test_pass_func_def_singleline1, "= a \\ i64 => 123", "fn main() {\r\n    fn a() -> i64 {\r\n        123 as i64\r\n    }\r\n}\r\n");
+    doc_and_int_test!(
+        doctest133,
+        test_pass_func_def_singleline1,
+        "= a \\ i64 => 123",
+        "fn main() {\r\n    fn a() -> i64 {\r\n        123 as i64\r\n    }\r\n}\r\n"
+    );
     doc_and_int_test!(
         doctest134,
         test_pass_func_def_singleline2,
@@ -301,7 +648,12 @@ mod tests {
         "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
         "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n"
     );
-    doc_and_int_test!(doctest142, test_pass_type_inference_assign_to_funccall, "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n");
+    doc_and_int_test!(
+        doctest142,
+        test_pass_type_inference_assign_to_funccall,
+        "= a + 1 2",
+        "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"
+    );
 
     /*
     doc_and_int_test!(doctest10, test_pass_boolean_string, );
