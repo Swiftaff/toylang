@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 syn = { version = "1.0.82", features = ["full", "extra-traits"] }
 quote = "1.0"
+lazy_static = "1.4.0"
 
 [lib]
 proc-macro = true

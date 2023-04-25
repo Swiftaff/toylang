@@ -16,14 +16,14 @@
 		{
 			"type": "cargo",
 			"command":"test",
-			"args":["--doc","--features","dox2"],
+			"args":["--doc"],
 			"label": "1.1b test doc",
 		},
 		{
 			"type": "cargo",
 			"command":"doc",
-			"args":["--document-private-items","--no-deps","--features","dox2","--open","--lib"],
-			"label": "1.1d doc just integration",
+			"args":["--document-private-items","--no-deps","--open","--lib"],
+			"label": "1.1d doc private",
 		},
 		{
 			"type": "shell",

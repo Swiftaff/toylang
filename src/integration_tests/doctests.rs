@@ -1,30 +1,51 @@
 /*!
  * Examples using the Toylang CLI
+ */
+
+//use crate::integration_tests::example_tests;
+//extern crate lazy_static;
+
+//use syn::LitStr;
+//extern crate toylang_macros; //::{call_to_generate_doctest, call_to_generate_doctest4, call_to_generate_doctest5, generate_doctest};
+use toylang_macros::{call_to_generate_doctest5, call_to_generate_doctest6, generate_doctest};
+
+/*
+macro_rules! generate_multiple_doctests {
+    ($($test:expr),*) => {
+        $(
+            let fn_name = LitStr::new($test[0], proc_macro2::Span::call_site());
+            let toy = LitStr::new($test[1], proc_macro2::Span::call_site());
+            let rust = LitStr::new($test[2], proc_macro2::Span::call_site());
+            generate_doctest!(fn_name, toy, rust);
+        )*
+    };
+}
 */
 
-use toylang_macros::generate_doctest;
-
-generate_doctest!(testy, "te", "st");
-
-/// Testy
-///
-/// Testy2
-///
-/// # Examples
-/// ```rust
-/// fn main() {
-///     let x = 1;
-///     let y = 1;
-/// }
-/// ```
-pub fn doctest_name() {}
+call_to_generate_doctest6!(0);
 
 #[allow(dead_code)]
 //#[cfg(any(test, feature = "dox2"))]
 #[cfg(test)]
 mod tests {
     use crate::Compiler;
-    use toylang_macros::example_proc_macro;
+    use toylang_macros::{call_to_generate_doctest5, call_to_generate_doctest6, generate_doctest};
+
+    call_to_generate_doctest6!(0);
+
+    /// helper function for tests
+    fn test_pass_single_scenario(test: Vec<&str>) {
+        let input = &test[0];
+        let output = &test[1];
+        let mut c: Compiler = Default::default();
+        c.file.filecontents = input.to_string();
+        match c.run_main_tasks() {
+            Ok(_) => {
+                assert_eq!(&c.ast.output, output);
+            }
+            Err(_e) => assert!(false, "error should not exist"),
+        }
+    }
 
     macro_rules! doc_and_int_test {
         ( $doctest_name:ident, $test_name:ident, $x:expr, $y:expr ) => {
@@ -51,26 +72,12 @@ mod tests {
         };
     }
 
-    /// helper function for tests
-    fn test_pass_single_scenario(test: Vec<&str>) {
-        let input = &test[0];
-        let output = &test[1];
-        let mut c: Compiler = Default::default();
-        c.file.filecontents = input.to_string();
-        match c.run_main_tasks() {
-            Ok(_) => {
-                assert_eq!(&c.ast.output, output);
-            }
-            Err(_e) => assert!(false, "error should not exist"),
-        }
-    }
-
     #[test]
     fn test_name() {
         test_pass_single_scenario(vec!["", "fn main() {\r\n}\r\n"]);
     }
 
-    doc_and_int_test!(doctest1, test_pass_empty_file, "", "fn main() {\r\n}\r\n");
+    //doc_and_int_test!(doctest1, test_pass_empty_file, "", "fn main() {\r\n}\r\n");
 
     // Comment
     doc_and_int_test!(doctest10, test_pass_comment_singleline, "//comment", "fn main() {\r\n    //comment\r\n}\r\n");

@@ -258,3 +258,16 @@ ast/parents.rs
     -   get_indent
     -   vec_remove_head
     -   vec_remove_tail
+
+# Different ways to import modules in rust
+
+1. Use the use statement to import a module or a function from another file.
+1. Use the extern crate statement to import an external crate.
+1. Use the mod statement to define a module and then use it in another file.
+1. Use the pub keyword to make a variable public and then access it from another file.
+1. Use the include! macro to include a file in another file.
+1. Use the include_str! macro to include a string from a file in another file.
+1. Use the include_bytes! macro to include bytes from a file in another file.
+1. Use the env! macro to get an environment variable and then use it in your code.
+1. Use the lazy_static! macro to create a lazy static variable that can be accessed from multiple files.
+1. Use the const keyword to define a constant and then access it from another file.

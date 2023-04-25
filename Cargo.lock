@@ -396,6 +396,7 @@ name = "toylang"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "lazy_static",
  "native-windows-derive",
  "native-windows-gui",
  "syn 1.0.109",
@@ -407,6 +408,7 @@ dependencies = [
 name = "toylang_macros"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "quote",
  "syn 1.0.109",
 ]

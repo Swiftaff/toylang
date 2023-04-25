@@ -5,7 +5,7 @@
     Private functions are provided for information, the main info is here:
     - [Github](https://github.com/Swiftaff/toylang) or the [compiler_runner] for general usage instructions
     - [debug_window_derive] for an extra debug windows app
-    - [integration_tests][crate::integration_tests::integration_tests] for examples
+    - [integration_tests][crate::integration_tests::main] for examples
 */
 
 // TODO make most function arguments refs
@@ -13,15 +13,15 @@ mod ast;
 pub mod compiler_runner;
 pub mod debug_window_derive;
 mod errors;
+//mod example_tests;
 mod file;
 mod formatting;
-mod integration;
+mod integration_tests;
 mod parse;
 use ast::elements;
 use ast::output;
 use ast::Ast;
 use file::File;
-//use integration::integration_tests;
 use std::error::Error;
 use std::fmt;
 
