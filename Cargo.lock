@@ -398,6 +398,7 @@ dependencies = [
  "clap",
  "native-windows-derive",
  "native-windows-gui",
+ "syn 1.0.109",
  "toylang_macros",
  "winres",
 ]
@@ -405,6 +406,10 @@ dependencies = [
 [[package]]
 name = "toylang_macros"
 version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "unicode-ident"

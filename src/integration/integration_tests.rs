@@ -2,9 +2,9 @@
  * Examples using the Toylang CLI
 */
 
-//fn main() {
-//test
-//}
+use toylang_macros::generate_doctest;
+
+generate_doctest!(testy, "te", "st");
 
 /// Testy
 ///
@@ -24,7 +24,7 @@ pub fn doctest_name() {}
 #[cfg(test)]
 mod tests {
     use crate::Compiler;
-    use toylang_macros::make_answer;
+    use toylang_macros::example_proc_macro;
 
     macro_rules! doc_and_int_test {
         ( $doctest_name:ident, $test_name:ident, $x:expr, $y:expr ) => {
@@ -64,8 +64,6 @@ mod tests {
             Err(_e) => assert!(false, "error should not exist"),
         }
     }
-
-    make_answer!();
 
     #[test]
     fn test_name() {
