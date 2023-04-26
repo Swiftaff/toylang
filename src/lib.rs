@@ -69,12 +69,14 @@ impl<'a> fmt::Debug for DebugLogs<'a> {
     }
 }
 
+/// Debug helper to add correct spacing before numbers
 fn left_pad(total: usize, index: usize) -> String {
     let digits = num_digits(total);
     let num = num_digits(index);
     " ".repeat(digits - num)
 }
 
+/// Debug helper for left_pad
 fn num_digits(num: usize) -> usize {
     num.to_string()
         .chars()
@@ -112,6 +114,7 @@ impl<'a> fmt::Debug for DebugLinesOfTokens<'a> {
     }
 }
 
+/// The main struct that is used from start to finish of compilation
 #[derive(Clone, Debug, Default)]
 pub struct Compiler {
     pub file: File,
@@ -132,6 +135,7 @@ pub struct Compiler {
 }
 
 impl Compiler {
+    /// Initialises a new compiler with default values. Called from compiler_runner using the values from the CLI command
     pub fn new(
         filepath: String,
         debug: bool,
@@ -184,6 +188,7 @@ impl Compiler {
         })
     }
 
+    /// Begins running the compiler, run_main_tasks, write_file_or_error
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
         self.log(format!("lib::run {:?}", ""));
         self.file.get(&self.filepath)?;
@@ -198,11 +203,14 @@ impl Compiler {
         )
     }
 
+    /// Called by all functions - inserts a single log line, and a copy of the AST state
     pub fn log(self: &mut Self, string: String) {
         self.logs.push(string);
         self.debug_compiler_history.push(format!("{:?}", self.ast));
     }
 
+    /// Used by the debugger program to request to run one of the steps in the compiler
+    /// to allow step by step debugging
     pub fn debug_step(self: &mut Self, step: usize) -> usize {
         self.log(format!("lib::debug_step {:?}", step));
         let mut completed_step: usize = 0;
@@ -274,6 +282,7 @@ impl Compiler {
         */
     }
 
+    /// The main tasks run by the compiler, set lines_of_chars, lines_of_tokens, run_main_loop
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
         self.log(format!("lib::run_main_tasks {:?}", ""));
         self.set_lines_of_chars();
@@ -281,6 +290,7 @@ impl Compiler {
         self.run_main_loop()
     }
 
+    /// Calling the main loop where the lines_of_tokens are parsed and compiler errors are generated
     fn run_main_loop(self: &mut Self) -> Result<(), ()> {
         self.log(format!("lib::run_main_loop {:?}", ""));
         // ref: https://doc.rust-lang.org/reference/tokens.html
@@ -317,6 +327,7 @@ impl Compiler {
         Ok(())
     }
 
+    /// Actually loop over parsing each line of tokens
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
         self.log(format!("lib::main_loop_over_lines_of_tokens {:?}", ""));
         //self.set_ast_output_for_main_fn_start();
@@ -331,6 +342,7 @@ impl Compiler {
         Ok(())
     }
 
+    /// Parse a single line of tokens
     fn parse_one_line(self: &mut Self, line: usize) -> Result<(), ()> {
         self.log(format!("lib::parse_one_line {:?}", line));
         if line < self.lines_of_tokens.len() && self.lines_of_tokens[line].len() > 0 {
@@ -341,6 +353,7 @@ impl Compiler {
         Ok(())
     }
 
+    /// Initially generate lines of characters based on input file
     fn set_lines_of_chars(self: &mut Self) {
         self.log(format!("lib::set_lines_of_chars {:?}", ""));
         let mut index_from = 0;
@@ -388,6 +401,7 @@ impl Compiler {
         }
     }
 
+    /// Initially generate lines_of_tokens based on lines_of_chars
     fn set_lines_of_tokens(self: &mut Self) {
         self.log(format!("lib::set_lines_of_tokens {:?}", ""));
         for line in 0..self.lines_of_chars.len() {
