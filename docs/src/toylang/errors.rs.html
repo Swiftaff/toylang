@@ -1221,9 +1221,6 @@
 <a href="#1221" id="1221">1221</a>
 <a href="#1222" id="1222">1222</a>
 <a href="#1223" id="1223">1223</a>
-<a href="#1224" id="1224">1224</a>
-<a href="#1225" id="1225">1225</a>
-<a href="#1226" id="1226">1226</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
@@ -1382,7 +1379,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_float(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::String(<span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_string(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_bool(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_arg(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_arg(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             error_if_parent_is_invalid_for_constantref(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?
         </span>}
@@ -1405,7 +1402,7 @@
         ElementInfo::Seol =&gt; (),
         ElementInfo::Indent =&gt; (),
         ElementInfo::Unused =&gt; (),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
         ElementInfo::FunctionDefWIP =&gt; error_if_parent_is_invalid_for_fndefwip(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
         ElementInfo::Println =&gt; error_if_parent_is_invalid_for_println(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
@@ -1427,7 +1424,7 @@
         ElementInfo::List(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionDefWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1442,7 +1439,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1466,7 +1463,7 @@
         ElementInfo::List(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionDefWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1494,7 +1491,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1521,7 +1518,7 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1538,7 +1535,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1564,7 +1561,7 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1581,7 +1578,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1607,7 +1604,7 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1624,7 +1621,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1650,7 +1647,7 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1667,7 +1664,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1697,7 +1694,7 @@
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::Assignment =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1709,7 +1706,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1736,7 +1733,7 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.constants_are_immutable),
@@ -1754,7 +1751,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1823,7 +1820,7 @@
             ERRORS.assignment_cant_be_child_of_parenthesis,
         ),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1831,7 +1828,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1859,7 +1856,7 @@
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1876,7 +1873,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1903,7 +1900,7 @@
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
@@ -1917,7 +1914,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1941,7 +1938,7 @@
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::List(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.list_cant_be_child),
@@ -1967,7 +1964,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1994,7 +1991,7 @@
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.loopfor_cant_be_child)
         }
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Root =&gt; <span class="prelude-val">Ok</span>(()),
@@ -2009,7 +2006,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2077,7 +2074,7 @@
             ERRORS.fndefwip_can_only_be_child_of_constant,
         ),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2085,7 +2082,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2128,7 +2125,7 @@
         }
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
         </span>ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2136,7 +2133,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2173,7 +2170,7 @@
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.println_cant_be_child_of_element)
         }
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2181,7 +2178,7 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Type(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Eol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Seol =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2387,10 +2384,7 @@
         <span class="kw">let </span>tests = <span class="macro">vec!</span>[
             <span class="comment">// fncall_cant_be_child_of_parenthesis
             // but fails with other error funcdef_argtypes_first
-            </span><span class="macro">vec!</span>[
-            ERRORS.funcdef_argtypes_first,
-            <span class="string">&quot;= myfun1 \\ i64 i64 arg1 =&gt; + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 =&gt; arg2 123&quot;</span>,
-        ],
+            </span><span class="macro">vec!</span>[ERRORS.funcdef_argtypes_first, <span class="string">&quot;= myfun1 \\ i64 i64 arg1 =&gt; + arg1 123\r\n= myfun2 \\ ( i64 myfun1 ) i64 arg2 =&gt; arg2 123&quot;</span>],
             <span class="comment">//but not here
             //[
             //    ERRORS.fncall_cant_be_child_of_parenthesis,

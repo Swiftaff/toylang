@@ -827,36 +827,6 @@
 <a href="#827" id="827">827</a>
 <a href="#828" id="828">828</a>
 <a href="#829" id="829">829</a>
-<a href="#830" id="830">830</a>
-<a href="#831" id="831">831</a>
-<a href="#832" id="832">832</a>
-<a href="#833" id="833">833</a>
-<a href="#834" id="834">834</a>
-<a href="#835" id="835">835</a>
-<a href="#836" id="836">836</a>
-<a href="#837" id="837">837</a>
-<a href="#838" id="838">838</a>
-<a href="#839" id="839">839</a>
-<a href="#840" id="840">840</a>
-<a href="#841" id="841">841</a>
-<a href="#842" id="842">842</a>
-<a href="#843" id="843">843</a>
-<a href="#844" id="844">844</a>
-<a href="#845" id="845">845</a>
-<a href="#846" id="846">846</a>
-<a href="#847" id="847">847</a>
-<a href="#848" id="848">848</a>
-<a href="#849" id="849">849</a>
-<a href="#850" id="850">850</a>
-<a href="#851" id="851">851</a>
-<a href="#852" id="852">852</a>
-<a href="#853" id="853">853</a>
-<a href="#854" id="854">854</a>
-<a href="#855" id="855">855</a>
-<a href="#856" id="856">856</a>
-<a href="#857" id="857">857</a>
-<a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::elements;
 <span class="kw">use </span><span class="kw">crate</span>::elements::{Element, ElementInfo};
@@ -865,7 +835,17 @@
 <span class="kw">use </span><span class="kw">crate</span>::Compiler;
 <span class="kw">use </span><span class="kw">crate</span>::Tokens;
 
-<span class="kw">pub fn </span>types(compiler: <span class="kw-2">&amp;mut </span>Compiler, index_of_type: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="comment">/*
+fn testy() {
+    let list: Vec&lt;i64&gt; = vec![1];
+    fn mapfn(i: &amp;i64) -&gt; i64 {
+        i * 100
+    }
+    let mapped: Vec&lt;i64&gt; = list.iter().map(mapfn).collect();
+}
+*/
+
+</span><span class="kw">pub fn </span>types(compiler: <span class="kw-2">&amp;mut </span>Compiler, index_of_type: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     <span class="comment">// TODO error checking
     </span>elements::append::types(compiler, index_of_type)
 }
@@ -895,9 +875,13 @@
             <span class="comment">//dbg!(&amp;current_token);
             </span><span class="kw">let </span>func = <span class="kw-2">&amp;</span>compiler.ast.elements[index_of_function];
             <span class="kw">match </span><span class="kw-2">&amp;</span>func.<span class="number">0 </span>{
-                ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; inbuilt_function_call(compiler, <span class="kw-2">&amp;</span>current_token, index_of_function),
-                ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; function_call(compiler, <span class="kw-2">&amp;</span>current_token, index_of_function),
-                ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
+                ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+                    inbuilt_function_call(compiler, <span class="kw-2">&amp;</span>current_token, index_of_function)
+                }
+                ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+                    function_call(compiler, <span class="kw-2">&amp;</span>current_token, index_of_function)
+                }
+                ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
                     <span class="kw">if </span>returntype.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) {
                         function_call(compiler, <span class="kw-2">&amp;</span>current_token, index_of_function)
                     } <span class="kw">else </span>{
@@ -914,10 +898,21 @@
     }
 }
 
-<span class="kw">pub fn </span>token_by_first_chars(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String, current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::token_by_first_chars {:?} {:?}&quot;</span>, <span class="kw-2">&amp;</span>current_token, current_token_vec));
+<span class="kw">pub fn </span>token_by_first_chars(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    current_token: <span class="kw-2">&amp;</span>String,
+    current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::token_by_first_chars {:?} {:?}&quot;</span>,
+        <span class="kw-2">&amp;</span>current_token, current_token_vec
+    ));
     <span class="kw">let </span>first_char = current_token_vec[<span class="number">0</span>];
-    <span class="kw">let </span>second_char = <span class="kw">if </span>current_token_vec.len() &gt; <span class="number">1 </span>{ <span class="prelude-val">Some</span>(current_token_vec[<span class="number">1</span>]) } <span class="kw">else </span>{ <span class="prelude-val">None </span>};
+    <span class="kw">let </span>second_char = <span class="kw">if </span>current_token_vec.len() &gt; <span class="number">1 </span>{
+        <span class="prelude-val">Some</span>(current_token_vec[<span class="number">1</span>])
+    } <span class="kw">else </span>{
+        <span class="prelude-val">None
+    </span>};
     <span class="kw">match </span>first_char {
         <span class="string">&#39;[&#39; </span>=&gt; <span class="kw">match </span>second_char {
             <span class="prelude-val">Some</span>(second) =&gt; {
@@ -993,8 +988,14 @@
     }
 }
 
-<span class="kw">pub fn </span>comment_single_line(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::comment_single_line {:?}&quot;</span>, current_token_vec));
+<span class="kw">pub fn </span>comment_single_line(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::comment_single_line {:?}&quot;</span>,
+        current_token_vec
+    ));
     <span class="kw">if </span>current_token_vec.len() &lt; <span class="number">2 </span>|| current_token_vec[<span class="number">1</span>] != <span class="string">&#39;/&#39; </span>{
         <span class="kw">return </span>errors::append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.comment_single_line);
     }
@@ -1028,9 +1029,13 @@
     <span class="kw">let </span>all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
     <span class="kw">let </span>chars: Vec&lt;char&gt; = current_token.chars().collect();
     <span class="kw">let </span>first_char_is_negative_sign = chars[<span class="number">0</span>] == <span class="string">&#39;-&#39;</span>;
-    <span class="kw">let </span>is_negative_all_other_chars_are_not_numeric = first_char_is_negative_sign &amp;&amp; chars.len() &gt; <span class="number">1 </span>&amp;&amp; !chars[<span class="number">1</span>..chars.len()].into_iter().all(|c| c.is_numeric());
+    <span class="kw">let </span>is_negative_all_other_chars_are_not_numeric = first_char_is_negative_sign
+        &amp;&amp; chars.len() &gt; <span class="number">1
+        </span>&amp;&amp; !chars[<span class="number">1</span>..chars.len()].into_iter().all(|c| c.is_numeric());
 
-    <span class="kw">if </span>(!first_char_is_negative_sign &amp;&amp; !all_chars_are_numeric) || is_negative_all_other_chars_are_not_numeric {
+    <span class="kw">if </span>(!first_char_is_negative_sign &amp;&amp; !all_chars_are_numeric)
+        || is_negative_all_other_chars_are_not_numeric
+    {
         errors::append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.int)<span class="question-mark">?</span>;
     }
     <span class="kw">match </span>current_token.parse::&lt;i64&gt;() {
@@ -1064,17 +1069,32 @@
                 </span><span class="prelude-val">Some</span>((ElementInfo::ConstantRef(<span class="kw">_</span>, returntype, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; {
                     <span class="kw">return </span>elements::append::constant_ref(compiler, current_token, <span class="kw-2">&amp;</span>returntype);
                 }
-                <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, returntype), <span class="kw">_</span>)) =&gt; {
+                <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype), <span class="kw">_</span>)) =&gt; {
                     <span class="comment">//dbg!(&quot;Arg&quot;, &amp;returntype);
                     </span><span class="kw">if </span>returntype.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) {
                         <span class="kw">let </span>args = get_args_from_dyn_fn(<span class="kw-2">&amp;</span>returntype);
-                        <span class="kw">return </span>elements::append::function_call(compiler, current_token, args, <span class="kw-2">&amp;</span>returntype, <span class="bool-val">false</span>);
+                        <span class="kw">return </span>elements::append::function_call(
+                            compiler,
+                            current_token,
+                            args,
+                            <span class="kw-2">&amp;</span>returntype,
+                            <span class="bool-val">false</span>,
+                        );
                     } <span class="kw">else </span>{
-                        <span class="kw">return </span>elements::append::constant_ref(compiler, current_token, <span class="kw-2">&amp;</span>returntype);
+                        <span class="kw">return </span>elements::append::constant_ref(
+                            compiler,
+                            current_token,
+                            <span class="kw-2">&amp;</span>returntype,
+                        );
                     }
                 }
                 <span class="prelude-val">Some</span>((ElementInfo::FunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, returntype), <span class="kw">_</span>)) =&gt; {
-                    <span class="kw">return </span>elements::append::function_ref_or_call(compiler, current_token, argnames.len(), <span class="kw-2">&amp;</span>returntype);
+                    <span class="kw">return </span>elements::append::function_ref_or_call(
+                        compiler,
+                        current_token,
+                        argnames.len(),
+                        <span class="kw-2">&amp;</span>returntype,
+                    );
                 }
                 <span class="prelude-val">Some</span>((ElementInfo::If(_returntype), <span class="kw">_</span>)) =&gt; {
                     <span class="kw">return </span>elements::append::if_expression(compiler);
@@ -1088,7 +1108,7 @@
                 <span class="prelude-val">Some</span>((ElementInfo::String(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::Bool(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::Assignment, <span class="kw">_</span>)) =&gt; (),
-                <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
+                <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::FunctionDefWIP, <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
@@ -1115,14 +1135,28 @@
     elements::append::assignment(compiler)
 }
 
-<span class="kw">pub fn </span>inbuilt_function_call(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String, index_of_function: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="kw">pub fn </span>inbuilt_function_call(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    current_token: <span class="kw-2">&amp;</span>String,
+    index_of_function: usize,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     <span class="comment">//TODO error checking
-    </span>compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::inbuilt_function_call {:?} {:?}&quot;</span>, current_token, index_of_function));
+    </span>compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::inbuilt_function_call {:?} {:?}&quot;</span>,
+        current_token, index_of_function
+    ));
     elements::append::inbuilt_function_call(compiler, current_token, index_of_function)
 }
 
-<span class="kw">pub fn </span>function_call(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String, index_of_function: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::function_call {:?} {:?}&quot;</span>, current_token, index_of_function));
+<span class="kw">pub fn </span>function_call(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    current_token: <span class="kw-2">&amp;</span>String,
+    index_of_function: usize,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::function_call {:?} {:?}&quot;</span>,
+        current_token, index_of_function
+    ));
     elements::append::function_call1(compiler, current_token, index_of_function)
 }
 
@@ -1220,12 +1254,20 @@
                 <span class="kw">let </span>const_child = compiler.ast.elements[const_children[<span class="number">0</span>]].clone();
                 <span class="kw">match </span>const_child.<span class="number">0 </span>{
                     ElementInfo::Int(from) =&gt; {
-                        <span class="kw">let </span>new_loopforrange = ElementInfo::LoopForRange(name, from.parse::&lt;usize&gt;().unwrap(), to.parse::&lt;usize&gt;().unwrap());
+                        <span class="kw">let </span>new_loopforrange = ElementInfo::LoopForRange(
+                            name,
+                            from.parse::&lt;usize&gt;().unwrap(),
+                            to.parse::&lt;usize&gt;().unwrap(),
+                        );
                         <span class="kw">let </span><span class="kw-2">mut </span>new_loopforrange_children = loopforrangewip.<span class="number">1</span>;
-                        new_loopforrange_children = parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
-                        new_loopforrange_children = parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
-                        new_loopforrange_children = parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
-                        compiler.ast.elements[loopforrangewip_ref] = (new_loopforrange, new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
+                        new_loopforrange_children =
+                            parents::vec_remove_head(<span class="kw-2">&amp;</span>new_loopforrange_children);
+                        compiler.ast.elements[loopforrangewip_ref] =
+                            (new_loopforrange, new_loopforrange_children);
                         <span class="prelude-val">Ok</span>(())
                     }
                     <span class="kw">_ </span>=&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.loopfor_malformed),
@@ -1263,7 +1305,10 @@
     */
 
     //get parent funcdef
-    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(func_def_ref) = parents::get_current_parent_ref_from_element_children_search(<span class="kw-2">&amp;</span>compiler.ast, compiler.ast.elements.len() - <span class="number">1</span>) {
+    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(func_def_ref) = parents::get_current_parent_ref_from_element_children_search(
+        <span class="kw-2">&amp;</span>compiler.ast,
+        compiler.ast.elements.len() - <span class="number">1</span>,
+    ) {
         <span class="comment">//get child refs
         </span><span class="kw">let </span>func_def: Element = compiler.ast.elements[func_def_ref].clone();
         <span class="kw">let </span>children = func_def.<span class="number">1</span>.clone();
@@ -1288,24 +1333,50 @@
         <span class="kw">match </span>func_def.<span class="number">0 </span>{
             ElementInfo::FunctionDefWIP =&gt; {
                 <span class="comment">//Constant is parent of functionDefWIP
-                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(constant_ref) = parents::get_current_parent_ref_from_element_children_search(<span class="kw-2">&amp;</span>compiler.ast, func_def_ref) {
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(constant_ref) =
+                    parents::get_current_parent_ref_from_element_children_search(
+                        <span class="kw-2">&amp;</span>compiler.ast,
+                        func_def_ref,
+                    )
+                {
                     <span class="kw">let </span>constant = compiler.ast.elements[constant_ref].clone();
 
                     <span class="comment">//assignment is parent of constant
-                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(assignment_ref) = parents::get_current_parent_ref_from_element_children_search(<span class="kw-2">&amp;</span>compiler.ast, constant_ref) {
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(assignment_ref) =
+                        parents::get_current_parent_ref_from_element_children_search(
+                            <span class="kw-2">&amp;</span>compiler.ast,
+                            constant_ref,
+                        )
+                    {
                         <span class="kw">match </span>constant.<span class="number">0 </span>{
                             ElementInfo::Constant(name, <span class="kw">_</span>) =&gt; {
-                                elements::replace_funcdefwip_with_funcdef(compiler, <span class="kw-2">&amp;</span>children, <span class="kw-2">&amp;</span>name, func_def_ref);
+                                elements::replace_funcdefwip_with_funcdef(
+                                    compiler,
+                                    <span class="kw-2">&amp;</span>children,
+                                    <span class="kw-2">&amp;</span>name,
+                                    func_def_ref,
+                                );
 
                                 <span class="comment">// replace assignment with unused
-                                </span>compiler.ast.elements[assignment_ref] = (ElementInfo::Unused, <span class="macro">vec!</span>[]);
+                                </span>compiler.ast.elements[assignment_ref] =
+                                    (ElementInfo::Unused, <span class="macro">vec!</span>[]);
 
                                 <span class="comment">// replace constant with Unused
                                 </span>compiler.ast.elements[constant_ref] = (ElementInfo::Unused, <span class="macro">vec!</span>[]);
 
                                 <span class="comment">// replace parents child reference to the assignment, with the func_def_ref
-                                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(index) = parents::get_current_parent_ref_from_element_children_search(<span class="kw-2">&amp;</span>compiler.ast, assignment_ref) {
-                                    elements::replace_element_child(<span class="kw-2">&amp;mut </span>compiler.ast, index, assignment_ref, func_def_ref);
+                                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(index) =
+                                    parents::get_current_parent_ref_from_element_children_search(
+                                        <span class="kw-2">&amp;</span>compiler.ast,
+                                        assignment_ref,
+                                    )
+                                {
+                                    elements::replace_element_child(
+                                        <span class="kw-2">&amp;mut </span>compiler.ast,
+                                        index,
+                                        assignment_ref,
+                                        func_def_ref,
+                                    );
                                 }
 
                                 <span class="comment">//re-add the new funcdef as latest parent, so we can continue parsing with it&#39;s child statements
@@ -1330,12 +1401,18 @@
 <span class="comment">//TODO remember to error / or at least check if reusing arg names in nested functions
 
 </span><span class="kw">pub fn </span>functiontypesig_or_functionreference_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::functiontypesig_or_functionreference_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::functiontypesig_or_functionreference_start {:?}&quot;</span>,
+        <span class="string">&quot;&quot;
+    </span>));
     elements::append::functiontypesig_or_functionreference_start(compiler)
 }
 
 <span class="kw">pub fn </span>functiontypesig_or_functionreference_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::functiontypesig_or_functionreference_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.log(<span class="macro">format!</span>(
+        <span class="string">&quot;parse::functiontypesig_or_functionreference_end {:?}&quot;</span>,
+        <span class="string">&quot;&quot;
+    </span>));
     elements::append::functiontypesig_or_functionreference_end(compiler)
 }
 
@@ -1345,7 +1422,11 @@
     <span class="kw">let </span>text_chars: Vec&lt;char&gt; = text.chars().collect();
     <span class="kw">let </span>first_char_is_negative_sign = text_chars[<span class="number">0</span>] == <span class="string">&#39;-&#39;</span>;
 
-    <span class="kw">let </span>is_negative_all_other_chars_are_numeric = first_char_is_negative_sign &amp;&amp; text_chars.len() &gt; <span class="number">1 </span>&amp;&amp; text_chars[<span class="number">1</span>..text_chars.len()].into_iter().all(|c| c.is_numeric());
+    <span class="kw">let </span>is_negative_all_other_chars_are_numeric = first_char_is_negative_sign
+        &amp;&amp; text_chars.len() &gt; <span class="number">1
+        </span>&amp;&amp; text_chars[<span class="number">1</span>..text_chars.len()]
+            .into_iter()
+            .all(|c| c.is_numeric());
 
     <span class="kw">if </span>!all_chars_are_numeric &amp;&amp; !is_negative_all_other_chars_are_numeric {
         is_valid = <span class="bool-val">false</span>;
@@ -1378,7 +1459,11 @@
     }
     <span class="kw">let </span>has_one_decimal_point = index_decimal_point != <span class="number">0</span>;
     <span class="kw">let </span>no_power_of_10 = index_e == <span class="number">0 </span>&amp;&amp; index_plus == <span class="number">0</span>;
-    <span class="kw">let </span>has_one_power_of_10 = index_e != <span class="number">0 </span>&amp;&amp; index_plus &gt; <span class="number">0 </span>&amp;&amp; index_plus == index_e + <span class="number">1 </span>&amp;&amp; (char_vec.len() &gt; <span class="number">1 </span>&amp;&amp; index_plus &lt; char_vec.len() - <span class="number">1</span>) &amp;&amp; index_e &gt; <span class="number">0</span>;
+    <span class="kw">let </span>has_one_power_of_10 = index_e != <span class="number">0
+        </span>&amp;&amp; index_plus &gt; <span class="number">0
+        </span>&amp;&amp; index_plus == index_e + <span class="number">1
+        </span>&amp;&amp; (char_vec.len() &gt; <span class="number">1 </span>&amp;&amp; index_plus &lt; char_vec.len() - <span class="number">1</span>)
+        &amp;&amp; index_e &gt; <span class="number">0</span>;
     <span class="comment">//println!(&quot;{} {:?}&quot;, text, text.parse::&lt;f64&gt;());
     </span><span class="kw">match </span>text.parse::&lt;f64&gt;() {
         <span class="prelude-val">Ok</span>(val) =&gt; {
@@ -1475,151 +1560,6 @@
         }
     }
 
-    <span class="doccomment">/// helper function for tests
-    </span><span class="kw">fn </span>test_pass_single_scenario(test: Vec&lt;<span class="kw-2">&amp;</span>str&gt;) {
-        <span class="kw">let </span>input = <span class="kw-2">&amp;</span>test[<span class="number">0</span>];
-        <span class="kw">let </span>output = <span class="kw-2">&amp;</span>test[<span class="number">1</span>];
-        <span class="kw">let </span><span class="kw-2">mut </span>c: Compiler = Default::default();
-        c.file.filecontents = input.to_string();
-        <span class="kw">match </span>c.run_main_tasks() {
-            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; {
-                <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>c.ast.output, output);
-            }
-            <span class="prelude-val">Err</span>(_e) =&gt; <span class="macro">assert!</span>(<span class="bool-val">false</span>, <span class="string">&quot;error should not exist&quot;</span>),
-        }
-    }
-
-    <span class="macro">macro_rules! </span>doc_and_int_test {
-        ( <span class="macro-nonterminal">$test_name</span>:ident, <span class="macro-nonterminal">$x</span>:expr, <span class="macro-nonterminal">$y</span>:expr ) =&gt; {
-            <span class="attr">#[doc = <span class="string">&quot;Toylang code:&quot;</span>]
-            #[doc = <span class="string">&quot;```toylang&quot;</span>]
-            #[doc = <span class="macro-nonterminal">$x</span>]
-            #[doc = <span class="string">&quot;```&quot;</span>]
-            #[doc = <span class="string">&quot;generates rust code:&quot;</span>]
-            #[doc = <span class="string">&quot;```rust&quot;</span>]
-            #[doc = <span class="macro-nonterminal">$y</span>]
-            #[doc = <span class="string">&quot;```&quot;</span>]
-            #[cfg_attr(not(feature = <span class="string">&quot;dox&quot;</span>), test)]
-            </span><span class="kw">fn </span><span class="macro-nonterminal">$test_name</span>() {
-                <span class="comment">//empty file
-                </span>test_pass_single_scenario(<span class="macro">vec!</span>[<span class="macro-nonterminal">$x</span>, <span class="macro-nonterminal">$y</span>]);
-            }
-        };
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_assignment_internal_function_calls_with_references() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[<span class="string">&quot;= a + 1 2\r\n= b - 3 a&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n&quot;</span>]];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_nested_internal_function_calls() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[
-            <span class="macro">vec!</span>[<span class="string">&quot;= a - + 1 2 3&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n&quot;</span>],
-            <span class="macro">vec!</span>[<span class="string">&quot;= a / * - + 1 2 3 4 5&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n&quot;</span>],
-            <span class="macro">vec!</span>[<span class="string">&quot;= a + 1 * 3 2&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n&quot;</span>],
-        ];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_func_def_singleline() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[
-            <span class="macro">vec!</span>[<span class="string">&quot;= a \\ i64 =&gt; 123&quot;</span>, <span class="string">&quot;fn main() {\r\n    fn a() -&gt; i64 {\r\n        123\r\n    }\r\n}\r\n&quot;</span>],
-            <span class="macro">vec!</span>[<span class="string">&quot;= a \\ i64 i64 arg1 =&gt; + 123 arg1&quot;</span>, <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64) -&gt; i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n&quot;</span>],
-        ];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_func_def_multiline() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[
-            <span class="macro">vec!</span>[<span class="string">&quot;= a \\ i64 i64 i64 arg1 arg2 =&gt;\r\n+ arg1 arg2&quot;</span>, <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64, arg2: i64) -&gt; i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n&quot;</span>],
-            <span class="macro">vec!</span>[
-                <span class="string">&quot;= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =&gt;\r\n= x + arg1 arg2\r\n+ x arg3&quot;</span>,
-                <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -&gt; i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n&quot;</span>,
-            ],
-        ];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_func_def_multiline_nested() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
-            <span class="string">&quot;= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =&gt;\r\n + arg1 + arg2 arg3&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -&gt; i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n&quot;</span>,
-        ]];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_func_def_multiline_const_assign_nested() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
-            <span class="string">&quot;= a \\ i64 i64 i64 arg1 arg2 =&gt;\r\n= arg3 + arg2 123\r\n+ arg3 arg1&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64, arg2: i64) -&gt; i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n&quot;</span>,
-        ]];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_func_def_multiline_several_semicolon_and_return() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
-            <span class="string">&quot;= a \\ i64 i64 i64 arg1 arg2 =&gt;\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    fn a(arg1: i64, arg2: i64) -&gt; i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n&quot;</span>,
-        ]];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_passing_func_as_args() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
-            <span class="comment">//arg1 is a function that takes i64 returns i64, arg2 is an i64
-            //the function body calls arg1 with arg2 as its argument, returning which returns i64
-            </span><span class="string">&quot;= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =&gt;\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 =&gt; + 123 arg3\r\n= c a ( b ) 456&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    fn a(arg1: &amp;dyn Fn(i64) -&gt; i64, arg2: i64) -&gt; i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -&gt; i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&amp;b, 456);\r\n}\r\n&quot;</span>,
-        ]];
-        test_pass_scenario(tests);
-    }
-    <span class="comment">/*
-    // working excerpt using 2 outdents  in outdent::functioncall_of_arg
-    33: FunctionCall: arg1 (&amp;dyn Fn(i64) -&gt; i64) [ 34, ]
-    34: ConstantRef: arg2 (i64) for &quot;arg2&quot; [ ]
-    35: Indent [ ]
-    36: Unused [ ]
-    37: Unused [ ]
-    38: FunctionDef: b (arg3: i64) -&gt; (i64) [ 42, 43, ]
-    39: Type: i64 [ ]
-    40: Type: i64 [ ]
-    41: Arg: arg3 scope:38 (i64) [ ]
-    42: Indent [ ]
-    43: InbuiltFunctionCall: + (i64) [ 44, 45, ]
-    44: Int: 123 [ ]
-    45: ConstantRef: arg3 (i64) for &quot;arg3&quot; [ ]
-    46: Indent [ ]
-    47: Assignment [ 48, ]
-    48: Constant: c (i64) [ 49, ]
-    49: FunctionCall: a (i64) [ 50, 51, ]
-    50: ConstantRef: b (i64) for &quot;b&quot; [ ]
-    51: Int: 456 [ ]
-    52: Seol [ ]
-    */
-
-    </span><span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_type_inference_assign_to_constref() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
-            <span class="string">&quot;= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n&quot;</span>,
-        ]];
-        test_pass_scenario(tests);
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_pass_type_inference_assign_to_funccall() {
-        <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[<span class="string">&quot;= a + 1 2&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n&quot;</span>]];
-        test_pass_scenario(tests);
-    }
-
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_pass_type_inference_assign_to_constref_of_funccall() {
         <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
@@ -1642,7 +1582,7 @@
     </span><span class="kw">fn </span>test_pass_funccall_zero_args() {
         <span class="kw">let </span>tests = <span class="macro">vec!</span>[<span class="macro">vec!</span>[
             <span class="string">&quot;//define function\r\n= a \\ i64 =&gt;\r\n123\r\n\r\n//call function\r\na&quot;</span>,
-            <span class="string">&quot;fn main() {\r\n    //define function\r\n    fn a() -&gt; i64 {\r\n        123\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n&quot;</span>,
+            <span class="string">&quot;fn main() {\r\n    //define function\r\n    fn a() -&gt; i64 {\r\n        123 as i64\r\n    }\r\n    //call function\r\n    a();\r\n}\r\n&quot;</span>,
         ]];
         test_pass_scenario(tests);
     }
@@ -1676,7 +1616,7 @@
             <span class="macro">vec!</span>[<span class="string">&quot;@ + 1 2&quot;</span>, <span class="string">&quot;fn main() {\r\n    println!(\&quot;{}\&quot;, 1 + 2);\r\n}\r\n&quot;</span>],
             <span class="macro">vec!</span>[<span class="string">&quot;= a 1\r\n@ a&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1;\r\n    println!(\&quot;{}\&quot;, a);\r\n}\r\n&quot;</span>],
             <span class="macro">vec!</span>[<span class="string">&quot;= a 1\r\n= b a\r\n@ b&quot;</span>, <span class="string">&quot;fn main() {\r\n    let a: i64 = 1;\r\n    let b: i64 = a;\r\n    println!(\&quot;{}\&quot;, b);\r\n}\r\n&quot;</span>],
-            <span class="macro">vec!</span>[<span class="string">&quot;= a \\ i64 =&gt; 1\r\n@ a&quot;</span>, <span class="string">&quot;fn main() {\r\n    fn a() -&gt; i64 {\r\n        1\r\n    }\r\n    println!(\&quot;{}\&quot;, a());\r\n}\r\n&quot;</span>],
+            <span class="macro">vec!</span>[<span class="string">&quot;= a \\ i64 =&gt; 1\r\n@ a&quot;</span>, <span class="string">&quot;fn main() {\r\n    fn a() -&gt; i64 {\r\n        1 as i64\r\n    }\r\n    println!(\&quot;{}\&quot;, a());\r\n}\r\n&quot;</span>],
             <span class="macro">vec!</span>[<span class="string">&quot;@ + 1 2&quot;</span>, <span class="string">&quot;fn main() {\r\n    println!(\&quot;{}\&quot;, 1 + 2);\r\n}\r\n&quot;</span>],
         ];
         test_pass_scenario(tests);

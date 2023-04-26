@@ -893,7 +893,7 @@
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="string">&quot; &quot;</span>);
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_tree, <span class="string">&quot; &quot;</span>);
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="string">&quot; &quot;</span>);
-    <span class="kw">return </span>Compiler::new(input.clone(), debug, output.clone()).unwrap_or_else(|err| {
+    <span class="kw">return </span>Compiler::new(input.clone(), debug, output.clone(), <span class="bool-val">true</span>).unwrap_or_else(|err| {
         <span class="macro">println!</span>(<span class="string">&quot;Problem parsing arguments: {}&quot;</span>, err);
         process::exit(<span class="number">1</span>);
     });

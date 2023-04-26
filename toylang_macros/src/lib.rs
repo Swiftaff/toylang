@@ -15,7 +15,7 @@ lazy_static::lazy_static! {
     /// ALL_TESTS is a central variable stored in toylang_common containing all the tests
     /// which both sets of proc_macros refer to, rather than having to manually duplicate them in two places in the code
     /// of the module, and of the module tests.
-    static ref ALL_TESTS: toylang_common::ExampleTests = toylang_common::ExampleTests::new();
+    static ref ALL_TESTS: toylang_common::IntegrationTests = toylang_common::IntegrationTests::new();
 }
 
 /// DocTestOrTest's first three strings are expected for parsing - they are generated from the tests in ALL_TESTS
@@ -52,7 +52,7 @@ impl Parse for DocTestOrTest {
         // generate the test and doctest function names
         let fn_name_for_test = syn::Ident::new(&fn_name.value(), fn_name.span());
         let fn_name_for_doctest =
-            syn::Ident::new(&format!("doctest_{}", fn_name.value()), fn_name.span());
+            syn::Ident::new(&format!("doc{}", fn_name.value()), fn_name.span());
 
         // return
         Ok(DocTestOrTest {
@@ -103,7 +103,7 @@ pub fn generate_single_doctest(input: TokenStream) -> TokenStream {
         #[doc = "```rust"]
         #[doc = #expected_rust_output]
         #[doc = "```"]
-        fn #fn_name_for_doctest() {
+        pub fn #fn_name_for_doctest() {
             println!("testy");
         }
     };
@@ -133,7 +133,6 @@ pub fn call_to_generate_all_doctests(input: TokenStream) -> TokenStream {
             call_to_generate_single_doctest!(#loopy);
         )*
     };
-    dbg!(&output);
     output.into()
 }
 
@@ -151,6 +150,7 @@ pub fn generate_single_test(input: TokenStream) -> TokenStream {
     } = parse_macro_input!(input as DocTestOrTest);
     //note: "test_pass_single_scenario" is defined in the toylang integration tests, not needed here
     let output = quote! {
+        #[test]
         fn #fn_name_for_test() {
             test_pass_single_scenario(vec![#toylang_input, #expected_rust_output]);
         }

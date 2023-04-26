@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":[["assignment",""],["constant",""],["fncall",""],["functioncall_of_arg",""],["functioncall_of_functiondef",""],["if_expression",""],["inbuiltfncall_from_inbuiltfndef",""],["outdent",""],["println",""],["within_fndef_for_fncall_from_fndef",""],["within_fndef_for_inbuiltfncall_from_inbuiltfndef",""],["within_fndef_from_return_expression",""]]};

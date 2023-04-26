@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":[["get_depths_flattened",""],["get_depths_vec",""],["get_output_for_element_index",""],["replace_any_unknown_types",""],["set_output",""],["set_output_append",""],["set_output_append_no_indent",""],["set_output_for_element_close",""],["set_output_for_element_open",""]]};

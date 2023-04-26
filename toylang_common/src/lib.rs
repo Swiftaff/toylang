@@ -1,15 +1,215 @@
-pub struct ExampleTests {
-    pub tests: Vec<(String, String, String)>,
+type TestName = String;
+type ToylangCodeInput = String;
+type ExpectedRustCodeOutput = String;
+
+pub struct IntegrationTests {
+    pub tests: Vec<(TestName, ToylangCodeInput, ExpectedRustCodeOutput)>,
 }
 
-impl ExampleTests {
-    pub fn new() -> ExampleTests {
+impl IntegrationTests {
+    pub fn new() -> IntegrationTests {
         let test_strs = vec![
             ("test_pass_empty_file", "", "fn main() {\r\n}\r\n"),
+            //
+            // Comments
             ("test_pass_comment_singleline", "//comment", "fn main() {\r\n    //comment\r\n}\r\n"),
             ("test_pass_comment_singleline_with_space", "    //    comment    ", "fn main() {\r\n    //    comment\r\n}\r\n"),
+            ("test_pass_comment_singleline_fn_no_longer_breaks", "//= a \\ i64 => 123", "fn main() {\r\n    //= a \\ i64 => 123\r\n}\r\n"),
+            //
+            // Boolean
+            ("test_pass_boolean_true", "true", "fn main() {\r\n    true;\r\n}\r\n"),
+            ("test_pass_boolean_false", "false", "fn main() {\r\n    false;\r\n}\r\n"),
+            ("test_pass_boolean_eq_equality_true", "== 1 1", "fn main() {\r\n    1 == 1;\r\n}\r\n"),
+            ("test_pass_boolean_eq_equality_false", "== 1 2", "fn main() {\r\n    1 == 2;\r\n}\r\n"),
+            ("test_pass_boolean_neq_non_equality_true", "!= 1 2", "fn main() {\r\n    1 != 2;\r\n}\r\n"),
+            ("test_pass_boolean_neq_non_equality_false", "!= 1 1", "fn main() {\r\n    1 != 1;\r\n}\r\n"),
+            ("test_pass_boolean_gt_greater_than_true", "> 2 1", "fn main() {\r\n    2 > 1;\r\n}\r\n"),
+            ("test_pass_boolean_gt_greater_than_false", "> 1 2", "fn main() {\r\n    1 > 2;\r\n}\r\n"),
+            ("test_pass_boolean_lt_less_than_true", "< 1 2", "fn main() {\r\n    1 < 2;\r\n}\r\n"),
+            ("test_pass_boolean_lt_less_than_false", "< 2 1", "fn main() {\r\n    2 < 1;\r\n}\r\n"),
+            ("test_pass_boolean_gte_greater_than_equal_true", ">= 3 2", "fn main() {\r\n    3 >= 2;\r\n}\r\n"),
+            ("test_pass_boolean_gte_greater_than_equal_true2", ">= 2 2", "fn main() {\r\n    2 >= 2;\r\n}\r\n"),
+            ("test_pass_boolean_gte_greater_than_equal_false", ">= 1 2", "fn main() {\r\n    1 >= 2;\r\n}\r\n"),
+            ("test_pass_boolean_lte_less_than_equal_true", "<= 2 3", "fn main() {\r\n    2 <= 3;\r\n}\r\n"),
+            ("test_pass_boolean_lte_less_than_equal_true2", "<= 2 2", "fn main() {\r\n    2 <= 2;\r\n}\r\n"),
+            ("test_pass_boolean_lte_less_than_equal_false", "<= 3 2", "fn main() {\r\n    3 <= 2;\r\n}\r\n"),
+            //
+            // String
+            ("test_pass_string", "\"string\"", "fn main() {\r\n    \"string\".to_string();\r\n}\r\n"),
+            ("test_pass_string_escaped_quote", "\"\"", "fn main() {\r\n    \"\".to_string();\r\n}\r\n"),
+            //
+            // Int
+            ("test_pass_int", "1", "fn main() {\r\n    1 as i64;\r\n}\r\n"),
+            ("test_pass_int_longer", "123", "fn main() {\r\n    123 as i64;\r\n}\r\n"),
+            ("test_pass_int_space_before", "    123    ", "fn main() {\r\n    123 as i64;\r\n}\r\n"),
+            ("test_pass_int_max", "9223372036854775807", "fn main() {\r\n    9223372036854775807 as i64;\r\n}\r\n"),
+            ("test_pass_int_neg", "-1", "fn main() {\r\n    -1 as i64;\r\n}\r\n"),
+            ("test_pass_int_longer_neg", "-123", "fn main() {\r\n    -123 as i64;\r\n}\r\n"),
+            ("test_pass_int_space_before_neg", "    -123    ", "fn main() {\r\n    -123 as i64;\r\n}\r\n"),
+            ("test_pass_int_max_neg", "-9223372036854775808", "fn main() {\r\n    -9223372036854775808 as i64;\r\n}\r\n"),
+            //
+            // Float
+            ("test_pass_float", "1.1", "fn main() {\r\n    1.1;\r\n}\r\n"),
+            ("test_pass_float_longer", "123.123", "fn main() {\r\n    123.123;\r\n}\r\n"),
+            ("test_pass_float_space_before", "    123.123    ", "fn main() {\r\n    123.123;\r\n}\r\n"),
+            ("test_pass_float_max1", "1234567890.123456789", "fn main() {\r\n    1234567890.123456789;\r\n}\r\n"),
+            ("test_pass_float_max2", "1.7976931348623157E+308", "fn main() {\r\n    1.7976931348623157E+308;\r\n}\r\n"),
+            ("test_pass_float_neg", "-1.1", "fn main() {\r\n    -1.1;\r\n}\r\n"),
+            ("test_pass_float_longer_neg", "-123.123", "fn main() {\r\n    -123.123;\r\n}\r\n"),
+            ("test_pass_float_space_before_neg", "    -123.123    ", "fn main() {\r\n    -123.123;\r\n}\r\n"),
+            ("test_pass_float_max1_neg", "-1234567890.123456789", "fn main() {\r\n    -1234567890.123456789;\r\n}\r\n"),
+            ("test_pass_float_max2_neg", "-1.7976931348623157E+308", "fn main() {\r\n    -1.7976931348623157E+308;\r\n}\r\n"),
+            //
+            // List empty
+            ("test_pass_list_empty_string", "[ String ]", "fn main() {\r\n    Vec::<String>::new();\r\n}\r\n"),
+            ("test_pass_list_empty_int", "[ i64 ]", "fn main() {\r\n    Vec::<i64>::new();\r\n}\r\n"),
+            ("test_pass_list_empty_float", "[ f64 ]", "fn main() {\r\n    Vec::<f64>::new();\r\n}\r\n"),
+            //
+            // List not empty
+            ("test_pass_list_int", "[ 1 ]", "fn main() {\r\n    vec![ 1 ];\r\n}\r\n"),
+            ("test_pass_list_int2", "[ 1 2 3 4 5 ]", "fn main() {\r\n    vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"),
+            ("test_pass_list_float", "[ 1.1 2.2 3.3 4.4 5.5 ]", "fn main() {\r\n    vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n"),
+            (
+                "test_pass_list_string",
+                "[ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]",
+                "fn main() {\r\n    vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n",
+            ),
+            ("test_pass_list_int_assign", "= x [ 1 2 3 4 5 ]", "fn main() {\r\n    let x: Vec<i64> = vec![ 1, 2, 3, 4, 5 ];\r\n}\r\n"),
+            ("test_pass_list_float_assign", "= x [ 1.1 2.2 3.3 4.4 5.5 ]", "fn main() {\r\n    let x: Vec<f64> = vec![ 1.1, 2.2, 3.3, 4.4, 5.5 ];\r\n}\r\n"),
+            (
+                "test_pass_list_string_assign",
+                "= x [ \"1.1\" \"2.2\" \"3.3\" \"4.4\" \"5.5\" ]",
+                "fn main() {\r\n    let x: Vec<String> = vec![ \"1.1\".to_string(), \"2.2\".to_string(), \"3.3\".to_string(), \"4.4\".to_string(), \"5.5\".to_string() ];\r\n}\r\n",
+            ),
+            //
+            // List append
+            (
+                "test_pass_list_append",
+                "= list1 [ 1 ]\r\n= list2 [ 2 3 ]\r\n= appended List.append list1 list2",
+                "fn main() {\r\n    let list1: Vec<i64> = vec![ 1 ];\r\n    let list2: Vec<i64> = vec![ 2, 3 ];\r\n    let appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();\r\n}\r\n",
+            ),
+            //
+            // List len
+            (
+                "test_pass_list_len",
+                "= list [ 1 2 3 ]\r\n= len List.len list",
+                "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n",
+            ),
+            //
+            // Function calls
+            ("test_pass_internal_function_calls_plus", "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"),
+            ("test_pass_internal_function_calls_negative", "- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"),
+            ("test_pass_internal_function_calls_multiply", "* 3 4", "fn main() {\r\n    3 * 4;\r\n}\r\n"),
+            ("test_pass_internal_function_calls_divide", "/ 9 3", "fn main() {\r\n    9 / 3;\r\n}\r\n"),
+            //
+            // Basic arithmetic assignment type inference
+            ("test_pass_assign_type_inf_plus_int", "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_plus_float", "= a + 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 + 2.2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_plus_minus_int", "= a - 1 2", "fn main() {\r\n    let a: i64 = 1 - 2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_minus_float", "= a - 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 - 2.2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_multiply_int", "= a * 1 2", "fn main() {\r\n    let a: i64 = 1 * 2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_multiply_float", "= a * 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 * 2.2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_divide_int", "= a / 1 2", "fn main() {\r\n    let a: i64 = 1 / 2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_divide_float", "= a / 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 / 2.2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_modulo_int", "= a % 1 2", "fn main() {\r\n    let a: i64 = 1 % 2;\r\n}\r\n"),
+            ("test_pass_assign_type_inf_modulo_float", "= a % 1.1 2.2", "fn main() {\r\n    let a: f64 = 1.1 % 2.2;\r\n}\r\n"),
+            //
+            // Constant
+            ("test_pass_constant", "= a 123\r\na", "fn main() {\r\n    let a: i64 = 123;\r\n    a;\r\n}\r\n"),
+            //
+            // Assignment
+            ("test_pass_assignment_string", "= a \"string\"", "fn main() {\r\n    let a: String = \"string\".to_string();\r\n}\r\n"),
+            ("test_pass_assignment_int", "= a 1", "fn main() {\r\n    let a: i64 = 1;\r\n}\r\n"),
+            ("test_pass_assignment_float", "= a 1.1", "fn main() {\r\n    let a: f64 = 1.1;\r\n}\r\n"),
+            ("test_pass_assignment_float_neg", "= a -1.7976931348623157E+308", "fn main() {\r\n    let a: f64 = -1.7976931348623157E+308;\r\n}\r\n"),
+            ("test_pass_assignment_arithmetic", "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"),
+            (
+                "test_pass_assignment_internal_function_calls_with_references",
+                "= a + 1 2\r\n= b - 3 a",
+                "fn main() {\r\n    let a: i64 = 1 + 2;\r\n    let b: i64 = 3 - a;\r\n}\r\n",
+            ),
+            //
+            // Functions
+            ("test_pass_nested_internal_function_call1", "= a - + 1 2 3", "fn main() {\r\n    let a: i64 = 1 + 2 - 3;\r\n}\r\n"),
+            ("test_pass_nested_internal_function_call2", "= a / * - + 1 2 3 4 5", "fn main() {\r\n    let a: i64 = 1 + 2 - 3 * 4 / 5;\r\n}\r\n"),
+            ("test_pass_nested_internal_function_call3", "= a + 1 * 3 2", "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n"),
+            ("test_pass_func_def_singleline1", "= a \\ i64 => 123", "fn main() {\r\n    fn a() -> i64 {\r\n        123 as i64\r\n    }\r\n}\r\n"),
+            (
+                "test_pass_func_def_singleline2",
+                "= a \\ i64 i64 arg1 => + 123 arg1",
+                "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1\r\n    }\r\n}\r\n",
+            ),
+            (
+                "test_pass_func_def_multiline1",
+                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1 + arg2\r\n    }\r\n}\r\n",
+            ),
+            (
+                "test_pass_func_def_multiline2",
+                "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n= x + arg1 arg2\r\n+ x arg3",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        let x: i64 = arg1 + arg2;\r\n        x + arg3\r\n    }\r\n}\r\n",
+            ),
+            (
+                "test_pass_func_def_multiline_nested",
+                "= a \\ i64 i64 i64 i64 arg1 arg2 arg3 =>\r\n + arg1 + arg2 arg3",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64, arg3: i64) -> i64 {\r\n        arg1 + arg2 + arg3\r\n    }\r\n}\r\n",
+            ),
+            (
+                "test_pass_func_def_multiline_const_assign_nested",
+                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= arg3 + arg2 123\r\n+ arg3 arg1",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let arg3: i64 = arg2 + 123;\r\n        arg3 + arg1\r\n    }\r\n}\r\n",
+            ),
+            (
+                "test_pass_func_def_multiline_several_semicolon_and_return",
+                "= a \\ i64 i64 i64 arg1 arg2 =>\r\n= b + arg1 123\r\n= c - b arg2\r\n= z * c 10\r\nz",
+                "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        let b: i64 = arg1 + 123;\r\n        let c: i64 = b - arg2;\r\n        let z: i64 = c * 10;\r\n        z\r\n    }\r\n}\r\n",
+            ),
+            //arg1 is a function that takes i64 returns i64, arg2 is an i64
+            //the function body calls arg1 with arg2 as its argument, returning which returns i64
+            /*
+            // working excerpt using 2 outdents  in outdent::functioncall_of_arg
+            33: FunctionCall: arg1 (&dyn Fn(i64) -> i64) [ 34, ]
+            34: ConstantRef: arg2 (i64) for "arg2" [ ]
+            35: Indent [ ]
+            36: Unused [ ]
+            37: Unused [ ]
+            38: FunctionDef: b (arg3: i64) -> (i64) [ 42, 43, ]
+            39: Type: i64 [ ]
+            40: Type: i64 [ ]
+            41: Arg: arg3 scope:38 (i64) [ ]
+            42: Indent [ ]
+            43: InbuiltFunctionCall: + (i64) [ 44, 45, ]
+            44: Int: 123 [ ]
+            45: ConstantRef: arg3 (i64) for "arg3" [ ]
+            46: Indent [ ]
+            47: Assignment [ 48, ]
+            48: Constant: c (i64) [ 49, ]
+            49: FunctionCall: a (i64) [ 50, 51, ]
+            50: ConstantRef: b (i64) for "b" [ ]
+            51: Int: 456 [ ]
+            52: Seol [ ]
+            */
+            (
+                "test_pass_passing_func_as_args",
+                "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
+                "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2)\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3\r\n    }\r\n    let c: i64 = a(&b, 456);\r\n}\r\n",
+            ),
+            (
+                "test_pass_type_inference_assign_to_constref",
+                "= a 123\r\n= aa a\r\n= aaa aa\r\n= aaaa aaa",
+                "fn main() {\r\n    let a: i64 = 123;\r\n    let aa: i64 = a;\r\n    let aaa: i64 = aa;\r\n    let aaaa: i64 = aaa;\r\n}\r\n",
+            ),
+            ("test_pass_type_inference_assign_to_funccall", "= a + 1 2", "fn main() {\r\n    let a: i64 = 1 + 2;\r\n}\r\n"),
+            /*
+            // List map
+            (
+                "test_pass_list_map",
+                "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
+                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n",
+            ),
+            */
         ];
-        let tests = test_strs.iter().map(|(a, b, c)| (a.to_string(), b.to_string(), c.to_string())).collect::<Vec<(String, String, String)>>();
-        ExampleTests { tests }
+        let tests = test_strs.iter().map(|(a, b, c)| (a.to_string(), b.to_string(), c.to_string())).collect::<Vec<(TestName, ToylangCodeInput, ExpectedRustCodeOutput)>>();
+        IntegrationTests { tests }
     }
 }

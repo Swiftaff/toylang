@@ -939,6 +939,29 @@
 <a href="#939" id="939">939</a>
 <a href="#940" id="940">940</a>
 <a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
 </pre><pre class="rust"><code><span class="kw">pub mod </span>append;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
@@ -950,22 +973,22 @@
 <span class="attr">#[derive(Clone)]
 
 </span><span class="kw">pub enum </span>ElementInfo {
-    List(ReturnType),                       <span class="comment">//children = list items of same type
-    </span>CommentSingleLine(Value),               <span class="comment">//no children
-    </span>Int(Value),                             <span class="comment">//no children
-    </span>Float(Value),                           <span class="comment">//no children
-    </span>String(Value),                          <span class="comment">//no children
-    </span>Bool(Value),                            <span class="comment">//no children
-    </span>Arg(Name, Scope, ReturnType),           <span class="comment">//no children
-    </span>Type(Name),                             <span class="comment">//no children
-    </span>Eol,                                    <span class="comment">//no children
-    </span>Seol,                                   <span class="comment">//no children
-    </span>Indent,                                 <span class="comment">//no children
-    </span>Unused,                                 <span class="comment">//no children
-    </span>ConstantRef(Name, ReturnType, RefName), <span class="comment">//no children
-    </span>Constant(Name, ReturnType),             <span class="comment">//1 child, value
-    </span>Assignment,                             <span class="comment">//1 child, constant
-    </span>InbuiltFunctionDef(Name, ArgNames, ArgTypes, ReturnType, Format), <span class="comment">//children = lines of function contents
+    List(ReturnType),                          <span class="comment">//children = list items of same type
+    </span>CommentSingleLine(Value),                  <span class="comment">//no children
+    </span>Int(Value),                                <span class="comment">//no children
+    </span>Float(Value),                              <span class="comment">//no children
+    </span>String(Value),                             <span class="comment">//no children
+    </span>Bool(Value),                               <span class="comment">//no children
+    </span>Arg(Name, Scope, ArgModifier, ReturnType), <span class="comment">//no children
+    </span>Type(Name),                                <span class="comment">//no children
+    </span>Eol,                                       <span class="comment">//no children
+    </span>Seol,                                      <span class="comment">//no children
+    </span>Indent,                                    <span class="comment">//no children
+    </span>Unused,                                    <span class="comment">//no children
+    </span>ConstantRef(Name, ReturnType, RefName),    <span class="comment">//no children
+    </span>Constant(Name, ReturnType),                <span class="comment">//1 child, value
+    </span>Assignment,                                <span class="comment">//1 child, constant
+    </span>InbuiltFunctionDef(Name, ArgNames, ArgTypes, ArgModifiers, ReturnType, Format), <span class="comment">//children = lines of function contents
     </span>InbuiltFunctionCall(Name, ElIndex, ReturnType), <span class="comment">//fndef argnames.len() children
     </span>FunctionDefWIP,                                 <span class="comment">//children = lines of function contents
     </span>FunctionDef(Name, ArgNames, ArgTypes, ReturnType), <span class="comment">//children = lines of function contents
@@ -990,11 +1013,11 @@
         ElementInfo::Float(<span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::String(<span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; replaceme,
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Assignment =&gt; replaceme,
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::FunctionDefWIP =&gt; replaceme,
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
@@ -1025,11 +1048,11 @@
         <span class="prelude-val">Some</span>((ElementInfo::Float(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::String(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Bool(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
-        <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
+        <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Assignment, <span class="kw">_</span>)) =&gt; replaceme,
-        <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
+        <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::FunctionDefWIP, <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
@@ -1057,6 +1080,8 @@
 <span class="kw">type </span>RefName = String;
 <span class="kw">type </span>ArgNames = Vec&lt;String&gt;;
 <span class="kw">type </span>ArgTypes = Vec&lt;String&gt;;
+<span class="kw">type </span>ArgModifier = String;
+<span class="kw">type </span>ArgModifiers = Vec&lt;ArgModifier&gt;;
 <span class="kw">type </span>Format = String;
 <span class="kw">type </span>Scope = ElIndex;
 <span class="comment">// no need to track parents in Element
@@ -1101,7 +1126,7 @@ impl fmt::Debug for Element {
 
 <span class="kw">pub fn </span>get_arg_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span>elinfo {
-        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
+        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
@@ -1131,15 +1156,15 @@ impl fmt::Debug for Element {
 <span class="kw">pub fn </span>get_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
         ElementInfo::FunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
-        ElementInfo::Arg(n, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
+        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
 
 <span class="kw">pub fn </span>get_inbuilt_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
-        ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
-        ElementInfo::Arg(n, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
+        ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
+        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
@@ -1151,11 +1176,13 @@ impl fmt::Debug for Element {
 ) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     <span class="comment">//dbg!(returntype);
     </span>ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
-        ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, r, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, r, <span class="kw">_</span>) =&gt; {
             <span class="comment">//dbg!(&quot;here&quot;, n, r, name, returntype);
             </span>n == name &amp;&amp; (r.contains(returntype) || returntype.contains(r))
         }
-        ElementInfo::Arg(n, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) &amp;&amp; r.contains(returntype),
+        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; {
+            n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) &amp;&amp; r.contains(returntype)
+        }
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
@@ -1189,8 +1216,8 @@ impl fmt::Debug for Element {
     <span class="kw">if </span>el_type == <span class="string">&quot;Undefined&quot;</span>.to_string() || el_type.contains(<span class="string">&quot;|&quot;</span>) {
         <span class="kw">let </span>infered_type = get_infered_type_of_any_element(ast, el_index);
         <span class="kw">match </span>el.<span class="number">0 </span>{
-            ElementInfo::Arg(name, scope, <span class="kw">_</span>) =&gt; {
-                <span class="kw">return </span>ElementInfo::Arg(name, scope, infered_type);
+            ElementInfo::Arg(name, scope, argmodifier, <span class="kw">_</span>) =&gt; {
+                <span class="kw">return </span>ElementInfo::Arg(name, scope, argmodifier, infered_type);
             }
             ElementInfo::Constant(name, <span class="kw">_</span>) =&gt; {
                 <span class="kw">return </span>ElementInfo::Constant(name, infered_type);
@@ -1233,7 +1260,7 @@ impl fmt::Debug for Element {
             ElementInfo::Float(<span class="kw">_</span>) =&gt; (),
             ElementInfo::String(<span class="kw">_</span>) =&gt; (),
             ElementInfo::Bool(<span class="kw">_</span>) =&gt; (),
-            ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
+            ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
             ElementInfo::FunctionDefWIP =&gt; (),
             ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
             ElementInfo::Parens =&gt; (),
@@ -1255,7 +1282,7 @@ impl fmt::Debug for Element {
     <span class="kw">let </span>el = ast.elements[el_index].clone();
     <span class="kw">let </span>el_info = <span class="kw-2">&amp;</span>el.<span class="number">0</span>;
     <span class="kw">match </span>el_info {
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             <span class="kw">return </span>get_infered_type_of_arg_element(ast, el_info, el_index);
         }
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
@@ -1290,7 +1317,7 @@ impl fmt::Debug for Element {
         ElementInfo::String(<span class="kw">_</span>) =&gt; (),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; (),
         ElementInfo::Assignment =&gt; (),
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
         ElementInfo::FunctionDefWIP =&gt; (),
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
         ElementInfo::Parens =&gt; (),
@@ -1313,7 +1340,7 @@ impl fmt::Debug for Element {
 ) -&gt; String {
     <span class="kw">let </span><span class="kw-2">mut </span>infered_type = <span class="string">&quot;Undefined&quot;</span>.to_string();
     <span class="kw">match </span>el_info {
-        ElementInfo::Arg(name, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::Arg(name, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             <span class="comment">// get type of this arg, from the argtypes of parent funcdef
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(parent_funcdef) =
                 parents::get_current_parent_element_from_element_children_search(ast, el_index)
@@ -1377,7 +1404,7 @@ impl fmt::Debug for Element {
     <span class="kw">let </span>el = <span class="kw-2">&amp;</span>ast.elements[funcdef_el_index];
     <span class="kw">let </span>elinfo = <span class="kw-2">&amp;</span>el.<span class="number">0</span>;
     <span class="kw">match </span>elinfo {
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, _argnames, argtypes, returntype, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, _argnames, argtypes, _argmodifiers, returntype, <span class="kw">_</span>) =&gt; {
             <span class="comment">//dbg!(funcdef_el_index, &amp;returntype);
             </span><span class="kw">if </span>returntype.contains(<span class="string">&quot;|&quot;</span>) {
                 <span class="comment">//dbg!(&quot;2.5&quot;, &amp;el_children, &amp;argtypes, &amp;returntype);
@@ -1419,7 +1446,7 @@ impl fmt::Debug for Element {
         <span class="kw">let </span>funcdef = <span class="kw-2">&amp;</span>ast.elements[index];
         <span class="kw">match </span><span class="kw-2">&amp;</span>funcdef.<span class="number">0 </span>{
             ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; <span class="kw">return </span>returntype.clone(),
-            ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
+            ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
                 <span class="kw">if </span>returntype.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) {
                     <span class="kw">return </span>returntype.clone();
                 } <span class="kw">else </span>{
@@ -1454,14 +1481,14 @@ impl fmt::Debug for Element {
         ElementInfo::Constant(<span class="kw">_</span>, returntype) =&gt; returntype.clone(),
         ElementInfo::ConstantRef(<span class="kw">_</span>, returntype, <span class="kw">_</span>) =&gt; returntype.clone(),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, _fndef_index, returntype) =&gt; returntype.clone(),
-        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; returntype.clone(),
+        ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; returntype.clone(),
         ElementInfo::FunctionCall(name, <span class="kw">_</span>) =&gt; get_infered_type_of_functioncall_element(ast, <span class="kw-2">&amp;</span>name),
         ElementInfo::Type(returntype) =&gt; returntype.clone(),
         ElementInfo::If(returntype) =&gt; returntype.clone(),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future
         </span>ElementInfo::Root =&gt; undefined,
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; undefined,
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; undefined, <span class="comment">// don&#39;t want to &#39;find&#39; definitions
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; undefined, <span class="comment">// don&#39;t want to &#39;find&#39; definitions
         </span>ElementInfo::FunctionDefWIP =&gt; undefined,
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; undefined, <span class="comment">// don&#39;t want to &#39;find&#39; definitions
         </span>ElementInfo::Parens =&gt; undefined,
@@ -1594,11 +1621,15 @@ impl fmt::Debug for Element {
     <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..argname_refs.len() {
         <span class="kw">let </span>a = argname_refs[i];
         <span class="kw">match </span><span class="kw-2">&amp;</span>compiler.ast.elements[a] {
-            (ElementInfo::Arg(argname, scope, <span class="kw">_</span>), <span class="kw">_</span>) =&gt; {
+            (ElementInfo::Arg(argname, scope, argmodifier, <span class="kw">_</span>), <span class="kw">_</span>) =&gt; {
                 argnames.push(argname.clone());
                 <span class="kw">let </span>returntype = argtypes[i].clone();
-                <span class="kw">let </span>updated_arg_token =
-                    ElementInfo::Arg(argname.clone(), scope.clone(), returntype);
+                <span class="kw">let </span>updated_arg_token = ElementInfo::Arg(
+                    argname.clone(),
+                    scope.clone(),
+                    argmodifier.clone(),
+                    returntype,
+                );
                 compiler.ast.elements[a].<span class="number">0 </span>= updated_arg_token;
             }
             <span class="kw">_ </span>=&gt; (),
@@ -1647,8 +1678,11 @@ impl fmt::Debug for Element {
             ElementInfo::Float(float) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Float: {}&quot;</span>, float),
             ElementInfo::String(string) =&gt; <span class="macro">format!</span>(<span class="string">&quot;String: {}&quot;</span>, string),
             ElementInfo::Bool(boolean) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Bool: {}&quot;</span>, boolean),
-            ElementInfo::Arg(name, scope, returntype) =&gt; {
-                <span class="macro">format!</span>(<span class="string">&quot;Arg: {} scope:{} ({})&quot;</span>, name, scope, returntype)
+            ElementInfo::Arg(name, scope, argmodifier, returntype) =&gt; {
+                <span class="macro">format!</span>(
+                    <span class="string">&quot;Arg: {} scope:{} argmodifier:({}) ({})&quot;</span>,
+                    name, scope, argmodifier, returntype
+                )
             }
             ElementInfo::Constant(name, returntype) =&gt; {
                 <span class="macro">format!</span>(<span class="string">&quot;Constant: {} ({})&quot;</span>, name, returntype)
@@ -1659,10 +1693,17 @@ impl fmt::Debug for Element {
             ElementInfo::Assignment =&gt; {
                 <span class="macro">format!</span>(<span class="string">&quot;Assignment&quot;</span>)
             }
-            ElementInfo::InbuiltFunctionDef(name, _argnames, argtypes, returntype, _format) =&gt; {
+            ElementInfo::InbuiltFunctionDef(
+                name,
+                _argnames,
+                argtypes,
+                argmodifiers,
+                returntype,
+                _format,
+            ) =&gt; {
                 <span class="macro">format!</span>(
-                    <span class="string">&quot;InbuiltFunctionDef: \&quot;{}\&quot; ({:?}) -&gt; ({})&quot;</span>,
-                    name, argtypes, returntype
+                    <span class="string">&quot;InbuiltFunctionDef: \&quot;{}\&quot; argtypes({:?}) argmodifiers({:?}) -&gt; ({})&quot;</span>,
+                    name, argtypes, argmodifiers, returntype
                 )
             }
             ElementInfo::InbuiltFunctionCall(name, <span class="kw">_</span>, returntype) =&gt; {
@@ -1670,7 +1711,12 @@ impl fmt::Debug for Element {
             }
             ElementInfo::FunctionDefWIP =&gt; <span class="macro">format!</span>(<span class="string">&quot;FunctionDefWIP&quot;</span>),
             ElementInfo::FunctionDef(name, argnames, argtypes, returntype) =&gt; {
-                <span class="kw">let </span>args = formatting::get_formatted_argname_argtype_pairs(<span class="kw-2">&amp;</span>argnames, <span class="kw-2">&amp;</span>argtypes);
+                <span class="kw">let </span>empty_arg_modifiers = argnames.iter().map(|_s| String::new()).collect();
+                <span class="kw">let </span>args = formatting::get_formatted_argname_argtype_pairs(
+                    <span class="kw-2">&amp;</span>argnames,
+                    <span class="kw-2">&amp;</span>argtypes,
+                    <span class="kw-2">&amp;</span>empty_arg_modifiers,
+                );
                 <span class="macro">format!</span>(<span class="string">&quot;FunctionDef: {} ({}) -&gt; ({})&quot;</span>, name, args, returntype)
             }
             ElementInfo::FunctionCall(name, returntype) =&gt; {

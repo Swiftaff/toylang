@@ -282,6 +282,9 @@
 <a href="#282" id="282">282</a>
 <a href="#283" id="283">283</a>
 <a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
 </pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
@@ -313,7 +316,10 @@
     </span><span class="kw">let </span>this_fn_ref = compiler.ast.parents[compiler.ast.parents.len() - <span class="number">1</span>];
     <span class="kw">let </span>this_fn_children = compiler.ast.elements[this_fn_ref].<span class="number">1</span>.clone();
     <span class="kw">if </span>this_fn_children.len() &lt; <span class="number">2 </span>{
-        <span class="macro">dbg!</span>(<span class="string">&quot;error in within_fndef_from_return_expression&quot;</span>);
+        <span class="macro">dbg!</span>(
+            <span class="string">&quot;error in within_fndef_from_return_expression&quot;</span>,
+            <span class="kw-2">&amp;</span>compiler.ast
+        );
         <span class="kw">return </span>();
     }
     <span class="kw">let </span>last_child_ref = this_fn_children[this_fn_children.len() - <span class="number">1</span>];
@@ -357,7 +363,7 @@
                     </span>outdent(compiler);
                     outdent(compiler);
                 }
-                ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+                ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
                     <span class="comment">//TODO
                 </span>}
                 ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
@@ -389,7 +395,7 @@
                 </span>ElementInfo::Root =&gt; (),
                 ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; (),
                 ElementInfo::Assignment =&gt; (),
-                ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
+                ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
                 ElementInfo::FunctionDefWIP =&gt; (),
                 ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
                 ElementInfo::Type(<span class="kw">_</span>) =&gt; (),
@@ -413,7 +419,7 @@
     ));
     <span class="kw">let </span>fndef = <span class="kw-2">&amp;</span>compiler.ast.elements[fndefref];
     <span class="kw">match </span><span class="kw-2">&amp;</span>fndef.<span class="number">0 </span>{
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             <span class="comment">// current assumption is inbuiltFunctionCalls expect a fixed number
             // of children to match args
             </span><span class="kw">if </span>fndef.<span class="number">1</span>.len() == argnames.len() {
@@ -447,7 +453,7 @@
     <span class="comment">//dbg!(&quot;InbuiltFunctionCall&quot;, &amp;fndefref);
     </span><span class="kw">let </span>fndef = compiler.ast.elements[fndefref].clone();
     <span class="kw">match </span>fndef.<span class="number">0 </span>{
-        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+        ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             <span class="comment">// current assumption is inbuiltfunctionCalls expect a fixed number
             // of children to match args.
             //dbg!(&quot;InbuiltFunctionCall&quot;, &amp;current_parent.1, &amp;argnames);
@@ -494,7 +500,7 @@
                         <span class="kw">let </span>args = argnames.clone().len();
                         functioncall_of_functiondef(compiler, current_parent.<span class="number">1</span>.len(), args);
                     }
-                    ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
+                    ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, returntype) =&gt; {
                         <span class="kw">let </span>r = returntype.clone();
                         functioncall_of_arg(compiler, <span class="kw-2">&amp;</span>r, current_parent.<span class="number">1</span>.len());
                     }

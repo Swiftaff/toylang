@@ -169,6 +169,27 @@
 <a href="#169" id="169">169</a>
 <a href="#170" id="170">170</a>
 <a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
 </pre><pre class="rust"><code><span class="kw">pub mod </span>elements;
 <span class="kw">pub mod </span>output;
 <span class="kw">pub mod </span>parents;
@@ -239,6 +260,7 @@
                 bool_name.to_string(),
                 <span class="macro">vec!</span>[],
                 <span class="macro">vec!</span>[],
+                <span class="macro">vec!</span>[],
                 <span class="string">&quot;bool&quot;</span>.to_string(),
                 bool_name.to_string(),
             ),
@@ -259,6 +281,7 @@
                     <span class="string">&quot;i64|f64|String|bool&quot;</span>.to_string(),
                     <span class="string">&quot;i64|f64|String|bool&quot;</span>.to_string(),
                 ],
+                <span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>.to_string(), <span class="string">&quot;&quot;</span>.to_string()],
                 <span class="string">&quot;bool&quot;</span>.to_string(),
                 <span class="macro">format!</span>(<span class="string">&quot;arg~1 {} arg~2&quot;</span>, bool_fn_name).to_string(),
             ),
@@ -276,6 +299,7 @@
                 fn_name.to_string(),
                 <span class="macro">vec!</span>[<span class="string">&quot;arg~1&quot;</span>.to_string(), <span class="string">&quot;arg~2&quot;</span>.to_string()],
                 <span class="macro">vec!</span>[<span class="string">&quot;i64|f64&quot;</span>.to_string(), <span class="string">&quot;i64|f64&quot;</span>.to_string()],
+                <span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>.to_string(), <span class="string">&quot;&quot;</span>.to_string()],
                 <span class="string">&quot;i64|f64&quot;</span>.to_string(),
                 <span class="macro">format!</span>(<span class="string">&quot;arg~1 {} arg~2&quot;</span>, fn_name).to_string(),
             ),
@@ -288,33 +312,51 @@
 <span class="kw">fn </span>get_list_functions() -&gt; Vec&lt;elements::Element&gt; {
     <span class="kw">let </span>vecs: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Vec&lt;i64&gt;|Vec&lt;f64&gt;|Vec&lt;String&gt;&quot;</span>;
     <span class="kw">let </span>list_fns = <span class="macro">vec!</span>[
-        (<span class="string">&quot;map&quot;</span>, <span class="string">&quot;arg~1.iter().map(arg~2).collect()&quot;</span>, vecs),
+        (
+            <span class="string">&quot;map&quot;</span>,
+            <span class="string">&quot;arg~1.iter().map(|i: &amp;~returntype~| arg~2(*i)).collect::&lt;Vec&lt;~returntype~&gt;&gt;()&quot;</span>,
+            <span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>, <span class="string">&quot;&amp;&quot;</span>],
+            vecs,
+            vecs,
+        ),
         (
             <span class="string">&quot;append&quot;</span>,
             <span class="string">&quot;arg~1.iter().cloned().chain(arg~2.iter().cloned()).collect()&quot;</span>,
+            <span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>],
+            vecs,
             vecs,
         ),
-        (<span class="string">&quot;len&quot;</span>, <span class="string">&quot;arg~1.len() as i64&quot;</span>, <span class="string">&quot;i64|f64|String&quot;</span>),
-    ];
-    <span class="kw">let </span>list_closure = |(fn_name, output, returntype): (<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)| {
-        <span class="kw">let </span>num_args = output.matches(<span class="string">&quot;arg~&quot;</span>).count();
-        <span class="kw">let </span><span class="kw-2">mut </span>arg_names: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
-        <span class="kw">let </span><span class="kw-2">mut </span>arg_types: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
-        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..num_args {
-            arg_names.push(<span class="macro">format!</span>(<span class="string">&quot;arg~{}&quot;</span>, i + <span class="number">1</span>));
-            arg_types.push(vecs.to_string());
-        }
         (
-            ElementInfo::InbuiltFunctionDef(
-                <span class="macro">format!</span>(<span class="string">&quot;List.{}&quot;</span>, fn_name),
-                arg_names,
-                arg_types,
-                returntype.to_string(),
-                output.to_string(),
-            ),
-            <span class="macro">vec!</span>[],
-        )
-    };
+            <span class="string">&quot;len&quot;</span>,
+            <span class="string">&quot;arg~1.len() as i64&quot;</span>,
+            <span class="macro">vec!</span>[<span class="string">&quot;&quot;</span>, <span class="string">&quot;&quot;</span>],
+            vecs,
+            <span class="string">&quot;i64|f64|String&quot;</span>,
+        ),
+    ];
+    <span class="kw">let </span>list_closure =
+        |(fn_name, output, modifier, argtype, returntype): (<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str, Vec&lt;<span class="kw-2">&amp;</span>str&gt;, <span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)| {
+            <span class="kw">let </span>num_args = output.matches(<span class="string">&quot;arg~&quot;</span>).count();
+            <span class="kw">let </span><span class="kw-2">mut </span>arg_names: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
+            <span class="kw">let </span><span class="kw-2">mut </span>arg_types: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
+            <span class="kw">let </span><span class="kw-2">mut </span>arg_modifiers: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
+            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..num_args {
+                arg_names.push(<span class="macro">format!</span>(<span class="string">&quot;arg~{}&quot;</span>, i + <span class="number">1</span>));
+                arg_modifiers.push(modifier[i].to_string());
+                arg_types.push(argtype.to_string());
+            }
+            (
+                ElementInfo::InbuiltFunctionDef(
+                    <span class="macro">format!</span>(<span class="string">&quot;List.{}&quot;</span>, fn_name),
+                    arg_names,
+                    arg_types,
+                    arg_modifiers,
+                    returntype.to_string(),
+                    output.to_string(),
+                ),
+                <span class="macro">vec!</span>[],
+            )
+        };
     list_fns.into_iter().map(list_closure).collect()
 }
 

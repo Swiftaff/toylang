@@ -139,8 +139,8 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::Compiler;
 <span class="kw">use </span>std::process;
 
-<span class="kw">pub fn </span>main(input: String, debug: bool, output: <span class="prelude-ty">Option</span>&lt;String&gt;) {
-    <span class="kw">let </span><span class="kw-2">mut </span>compiler = Compiler::new(input, debug, output).unwrap_or_else(|err| {
+<span class="kw">pub fn </span>main(input: String, debug: bool, output: <span class="prelude-ty">Option</span>&lt;String&gt;, nosave: bool) {
+    <span class="kw">let </span><span class="kw-2">mut </span>compiler = Compiler::new(input, debug, output, nosave).unwrap_or_else(|err| {
         <span class="macro">println!</span>(<span class="string">&quot;Problem parsing arguments: {}&quot;</span>, err);
         process::exit(<span class="number">1</span>);
     });

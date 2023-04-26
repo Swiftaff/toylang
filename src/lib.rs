@@ -5,7 +5,7 @@
     Private functions are provided for information, the main info is here:
     - [Github](https://github.com/Swiftaff/toylang) or the [compiler_runner] for general usage instructions
     - [debug_window_derive] for an extra debug windows app
-    - [integration_tests][crate::integration_tests::main] for examples
+    - [integration_tests][crate::integration_tests] for examples
 */
 
 // TODO make most function arguments refs

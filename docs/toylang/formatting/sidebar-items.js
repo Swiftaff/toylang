@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"fn":[["get_formatted_argname_argtype_pairs",""]]};
