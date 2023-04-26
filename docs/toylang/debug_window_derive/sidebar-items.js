@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["run",""]],"struct":[["MyData",""],["ToylangDebugger",""]]};
+window.SIDEBAR_ITEMS = {"constant":[["APP_NAME",""]],"fn":[["init",""],["run",""]],"mod":[["toylang_debugger_ui",""]],"struct":[["MyData",""],["ToylangDebugger",""]]};

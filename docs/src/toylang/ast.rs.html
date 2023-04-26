@@ -190,14 +190,67 @@
 <a href="#190" id="190">190</a>
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
-</pre><pre class="rust"><code><span class="kw">pub mod </span>elements;
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
+<a href="#218" id="218">218</a>
+<a href="#219" id="219">219</a>
+<a href="#220" id="220">220</a>
+<a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
+<a href="#223" id="223">223</a>
+<a href="#224" id="224">224</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! AST containing adjacenct list of Elements, output string, parents array
+ */
+</span><span class="kw">pub mod </span>elements;
 <span class="kw">pub mod </span>output;
 <span class="kw">pub mod </span>parents;
 
-<span class="kw">use </span><span class="kw">crate</span>::ast::elements::{ElIndex, ElementInfo, Elements};
+<span class="kw">use </span><span class="kw">crate</span>::ast::elements::{ElIndex, Element, ElementInfo, Elements};
 <span class="kw">use </span>std::fmt;
 
-<span class="attr">#[derive(Clone)]
+<span class="doccomment">/// AST containing Elements as an adjacency list of tree nodes.
+/// Each node is represented by a tuple containing its identifier and a list of the indexes of its children.
+/// The Tree can be walked by starting at the Root nodes children
+/// ```text
+/// // typical nested tree                          this flat ast
+/// // 0 (root)                                     |_(0: Root, [1,2,3,8])
+/// // note internal functions are inserted here first
+/// // so indexes of actual elements will increase by # of functions rather than just 1 below
+/// // |_1 int                                      |_(1: Int,  [])
+/// // |_2 int                                      |_(2: Int,  [])
+/// // |_3                                          |_(3,       [4,5])
+/// // | |_4 int                                    |_(4: Int,  [])
+/// // | |_5                                        |_(5,       [6,7])
+/// // |   |_6 int                                  |_(6: Int,  [])
+/// // |   |_7                                      |_(7,       [8,9])
+/// // |     |_8 int                                |_(8: Int,  [])
+/// // |     |_9 int                                |_(9: Int,  [])
+/// // |_10 Int                                     |_(10: Int, [])
+/// ```
+</span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>Ast {
     <span class="comment">//first element is always root. Real elements start at index 1
     </span><span class="kw">pub </span>elements: Elements,
@@ -210,7 +263,7 @@
 <span class="kw">impl </span>Default <span class="kw">for </span>Ast {
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         Ast {
-            elements: get_elements(),
+            elements: init(),
             output: <span class="string">&quot;&quot;</span>.to_string(),
             parents: <span class="macro">vec!</span>[<span class="number">0</span>], <span class="comment">// get current indent from length of parents
         </span>}
@@ -223,36 +276,35 @@
     }
 }
 
-<span class="kw">fn </span>get_elements() -&gt; Vec&lt;(ElementInfo, Vec&lt;usize&gt;)&gt; {
-    <span class="kw">let </span>root = <span class="macro">vec!</span>[(ElementInfo::Root, <span class="macro">vec!</span>[])];
+<span class="doccomment">/// Initialise a list of the internal functions - which are inserted &quot;hidden&quot; at the start of the AST after Root, but note noted as children of Root
+/// They just sit there for later use, and before any real elements are added
+</span><span class="kw">fn </span>init() -&gt; Vec&lt;Element&gt; {
     <span class="macro">vec!</span>[]
         .iter()
-        .chain(<span class="kw-2">&amp;</span>root)
-        .chain(<span class="kw-2">&amp;</span>get_initial_types())
-        .chain(<span class="kw-2">&amp;</span>get_initial_arithmetic_operators())
-        .chain(<span class="kw-2">&amp;</span>get_list_functions())
-        .chain(<span class="kw-2">&amp;</span>get_booleans())
-        .chain(<span class="kw-2">&amp;</span>get_boolean_fns())
+        .chain(<span class="kw-2">&amp;</span>init_root())
+        .chain(<span class="kw-2">&amp;</span>init_initial_types())
+        .chain(<span class="kw-2">&amp;</span>init_initial_arithmetic_operators())
+        .chain(<span class="kw-2">&amp;</span>init_list_functions())
+        .chain(<span class="kw-2">&amp;</span>init_booleans())
+        .chain(<span class="kw-2">&amp;</span>init_boolean_fns())
         .cloned()
         .collect()
 }
 
-<span class="kw">fn </span>debug_flat_usize_array(arr: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; String {
-    <span class="kw">let </span><span class="kw-2">mut </span>arr_debug = <span class="string">&quot;[ &quot;</span>.to_string();
-    <span class="kw">for </span>string <span class="kw">in </span>arr {
-        arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}{}, &quot;</span>, arr_debug, string);
-    }
-    arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}]&quot;</span>, arr_debug);
-    arr_debug
+<span class="doccomment">/// Initialise Root
+</span><span class="kw">fn </span>init_root() -&gt; Elements {
+    <span class="macro">vec!</span>[(ElementInfo::Root, <span class="macro">vec!</span>[])]
 }
 
-<span class="kw">fn </span>get_initial_types() -&gt; Elements {
+<span class="doccomment">/// Initialise Types
+</span><span class="kw">fn </span>init_initial_types() -&gt; Elements {
     <span class="kw">let </span>type_primitives = <span class="macro">vec!</span>[<span class="string">&quot;i64&quot;</span>, <span class="string">&quot;f64&quot;</span>, <span class="string">&quot;String&quot;</span>, <span class="string">&quot;bool&quot;</span>];
     <span class="kw">let </span>type_closure = |prim: <span class="kw-2">&amp;</span>str| (ElementInfo::Type(prim.to_string()), <span class="macro">vec!</span>[]);
     type_primitives.into_iter().map(type_closure).collect()
 }
 
-<span class="kw">fn </span>get_booleans() -&gt; Elements {
+<span class="doccomment">/// Initialise Booleans
+</span><span class="kw">fn </span>init_booleans() -&gt; Elements {
     <span class="kw">let </span>bool_fns = <span class="macro">vec!</span>[<span class="string">&quot;true&quot;</span>, <span class="string">&quot;false&quot;</span>];
     <span class="kw">let </span>bool_closure = |bool_name: <span class="kw-2">&amp;</span>str| {
         (
@@ -270,7 +322,8 @@
     bool_fns.into_iter().map(bool_closure).collect()
 }
 
-<span class="kw">fn </span>get_boolean_fns() -&gt; Elements {
+<span class="doccomment">/// Initialise Boolean Functions
+</span><span class="kw">fn </span>init_boolean_fns() -&gt; Elements {
     <span class="kw">let </span>bool_fns = <span class="macro">vec!</span>[<span class="string">&quot;==&quot;</span>, <span class="string">&quot;!=&quot;</span>, <span class="string">&quot;&lt;&quot;</span>, <span class="string">&quot;&gt;&quot;</span>, <span class="string">&quot;&lt;=&quot;</span>, <span class="string">&quot;&gt;=&quot;</span>];
     <span class="kw">let </span>bool_closure = |bool_fn_name: <span class="kw-2">&amp;</span>str| {
         (
@@ -291,7 +344,8 @@
     bool_fns.into_iter().map(bool_closure).collect()
 }
 
-<span class="kw">fn </span>get_initial_arithmetic_operators() -&gt; Elements {
+<span class="doccomment">/// Initialise Arithmetic Functions
+</span><span class="kw">fn </span>init_initial_arithmetic_operators() -&gt; Elements {
     <span class="kw">let </span>arithmetic_fns = <span class="macro">vec!</span>[<span class="string">&quot;+&quot;</span>, <span class="string">&quot;-&quot;</span>, <span class="string">&quot;*&quot;</span>, <span class="string">&quot;/&quot;</span>, <span class="string">&quot;%&quot;</span>];
     <span class="kw">let </span>arithmetic_closure = |fn_name: <span class="kw-2">&amp;</span>str| {
         (
@@ -309,7 +363,8 @@
     arithmetic_fns.into_iter().map(arithmetic_closure).collect()
 }
 
-<span class="kw">fn </span>get_list_functions() -&gt; Vec&lt;elements::Element&gt; {
+<span class="doccomment">/// Initialise List Functions
+</span><span class="kw">fn </span>init_list_functions() -&gt; Vec&lt;elements::Element&gt; {
     <span class="kw">let </span>vecs: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Vec&lt;i64&gt;|Vec&lt;f64&gt;|Vec&lt;String&gt;&quot;</span>;
     <span class="kw">let </span>list_fns = <span class="macro">vec!</span>[
         (
@@ -381,6 +436,15 @@
             el_debug, parents_debug, <span class="self">self</span>.output
         )
     }
+}
+
+<span class="kw">fn </span>debug_flat_usize_array(arr: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>arr_debug = <span class="string">&quot;[ &quot;</span>.to_string();
+    <span class="kw">for </span>string <span class="kw">in </span>arr {
+        arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}{}, &quot;</span>, arr_debug, string);
+    }
+    arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}]&quot;</span>, arr_debug);
+    arr_debug
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="toylang" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.2 (9eb3afe9e 2023-03-27)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>

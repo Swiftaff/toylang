@@ -15,7 +15,7 @@
 		{
 			"type": "cargo",
 			"command":"doc",
-			"args":["--no-deps","--open","--lib"],
+			"args":["--document-private-items","--no-deps","--open","--lib"],
 			"label": "1.1d doc private",
 		},
 		{

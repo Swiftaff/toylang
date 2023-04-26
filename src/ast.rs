@@ -1,10 +1,31 @@
+/*! AST containing adjacenct list of Elements, output string, parents array
+ */
 pub mod elements;
 pub mod output;
 pub mod parents;
 
-use crate::ast::elements::{ElIndex, ElementInfo, Elements};
+use crate::ast::elements::{ElIndex, Element, ElementInfo, Elements};
 use std::fmt;
 
+/// AST containing Elements as an adjacency list of tree nodes.
+/// Each node is represented by a tuple containing its identifier and a list of the indexes of its children.
+/// The Tree can be walked by starting at the Root nodes children
+/// ```text
+/// // typical nested tree                          this flat ast
+/// // 0 (root)                                     |_(0: Root, [1,2,3,8])
+/// // note internal functions are inserted here first
+/// // so indexes of actual elements will increase by # of functions rather than just 1 below
+/// // |_1 int                                      |_(1: Int,  [])
+/// // |_2 int                                      |_(2: Int,  [])
+/// // |_3                                          |_(3,       [4,5])
+/// // | |_4 int                                    |_(4: Int,  [])
+/// // | |_5                                        |_(5,       [6,7])
+/// // |   |_6 int                                  |_(6: Int,  [])
+/// // |   |_7                                      |_(7,       [8,9])
+/// // |     |_8 int                                |_(8: Int,  [])
+/// // |     |_9 int                                |_(9: Int,  [])
+/// // |_10 Int                                     |_(10: Int, [])
+/// ```
 #[derive(Clone)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1
@@ -18,7 +39,7 @@ pub struct Ast {
 impl Default for Ast {
     fn default() -> Self {
         Ast {
-            elements: get_elements(),
+            elements: init(),
             output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
         }
@@ -31,36 +52,35 @@ impl Ast {
     }
 }
 
-fn get_elements() -> Vec<(ElementInfo, Vec<usize>)> {
-    let root = vec![(ElementInfo::Root, vec![])];
+/// Initialise a list of the internal functions - which are inserted "hidden" at the start of the AST after Root, but note noted as children of Root
+/// They just sit there for later use, and before any real elements are added
+fn init() -> Vec<Element> {
     vec![]
         .iter()
-        .chain(&root)
-        .chain(&get_initial_types())
-        .chain(&get_initial_arithmetic_operators())
-        .chain(&get_list_functions())
-        .chain(&get_booleans())
-        .chain(&get_boolean_fns())
+        .chain(&init_root())
+        .chain(&init_initial_types())
+        .chain(&init_initial_arithmetic_operators())
+        .chain(&init_list_functions())
+        .chain(&init_booleans())
+        .chain(&init_boolean_fns())
         .cloned()
         .collect()
 }
 
-fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
-    let mut arr_debug = "[ ".to_string();
-    for string in arr {
-        arr_debug = format!("{}{}, ", arr_debug, string);
-    }
-    arr_debug = format!("{}]", arr_debug);
-    arr_debug
+/// Initialise Root
+fn init_root() -> Elements {
+    vec![(ElementInfo::Root, vec![])]
 }
 
-fn get_initial_types() -> Elements {
+/// Initialise Types
+fn init_initial_types() -> Elements {
     let type_primitives = vec!["i64", "f64", "String", "bool"];
     let type_closure = |prim: &str| (ElementInfo::Type(prim.to_string()), vec![]);
     type_primitives.into_iter().map(type_closure).collect()
 }
 
-fn get_booleans() -> Elements {
+/// Initialise Booleans
+fn init_booleans() -> Elements {
     let bool_fns = vec!["true", "false"];
     let bool_closure = |bool_name: &str| {
         (
@@ -78,7 +98,8 @@ fn get_booleans() -> Elements {
     bool_fns.into_iter().map(bool_closure).collect()
 }
 
-fn get_boolean_fns() -> Elements {
+/// Initialise Boolean Functions
+fn init_boolean_fns() -> Elements {
     let bool_fns = vec!["==", "!=", "<", ">", "<=", ">="];
     let bool_closure = |bool_fn_name: &str| {
         (
@@ -99,7 +120,8 @@ fn get_boolean_fns() -> Elements {
     bool_fns.into_iter().map(bool_closure).collect()
 }
 
-fn get_initial_arithmetic_operators() -> Elements {
+/// Initialise Arithmetic Functions
+fn init_initial_arithmetic_operators() -> Elements {
     let arithmetic_fns = vec!["+", "-", "*", "/", "%"];
     let arithmetic_closure = |fn_name: &str| {
         (
@@ -117,7 +139,8 @@ fn get_initial_arithmetic_operators() -> Elements {
     arithmetic_fns.into_iter().map(arithmetic_closure).collect()
 }
 
-fn get_list_functions() -> Vec<elements::Element> {
+/// Initialise List Functions
+fn init_list_functions() -> Vec<elements::Element> {
     let vecs: &str = "Vec<i64>|Vec<f64>|Vec<String>";
     let list_fns = vec![
         (
@@ -189,4 +212,13 @@ impl fmt::Debug for Ast {
             el_debug, parents_debug, self.output
         )
     }
+}
+
+fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
+    let mut arr_debug = "[ ".to_string();
+    for string in arr {
+        arr_debug = format!("{}{}, ", arr_debug, string);
+    }
+    arr_debug = format!("{}]", arr_debug);
+    arr_debug
 }
