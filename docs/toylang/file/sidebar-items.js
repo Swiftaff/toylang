@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["DebugFileContents",""],["File",""]],"type":[["FileContents",""]]};
+window.SIDEBAR_ITEMS = {"struct":[["DebugFileContents",""],["File","filepath, filename, filecontents, nosave."]],"type":[["FileContents",""]]};
