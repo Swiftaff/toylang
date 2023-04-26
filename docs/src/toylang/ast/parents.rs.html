@@ -56,22 +56,60 @@
 <a href="#56" id="56">56</a>
 <a href="#57" id="57">57</a>
 <a href="#58" id="58">58</a>
-</pre><pre class="rust"><code><span class="kw">pub mod </span>indent;
+<a href="#59" id="59">59</a>
+<a href="#60" id="60">60</a>
+<a href="#61" id="61">61</a>
+<a href="#62" id="62">62</a>
+<a href="#63" id="63">63</a>
+<a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
+<a href="#69" id="69">69</a>
+<a href="#70" id="70">70</a>
+<a href="#71" id="71">71</a>
+<a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! Parents is a Vec of Element Indexes, used as a stack to push/pop the current parent element,
+ * so the lastmost parent is the Element you are inside whilst parsing.
+ *
+ * i.e. if El3 is first child of El2, and El2 is first child of El1, and you are currently parsing El3
+ * then Parents will look like
+ * ```text
+ * [1, 2, 3] // where an empty parents Vec means you are in Root
+ * ```
+ * So when you finish parsing 3, you will pop 3 off, and be left inside 2
+ * ```text
+ * [1, 2]
+ * ```
+ * etc
+ */
+</span><span class="kw">pub mod </span>indent;
 <span class="kw">pub mod </span>outdent;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::Element;
 <span class="kw">use </span><span class="kw">crate</span>::Ast;
 
-<span class="kw">pub fn </span>get_current_parent_element_from_parents(ast: <span class="kw-2">&amp;</span>Ast) -&gt; Element {
+<span class="doccomment">/// Get the current parent as an Element
+</span><span class="kw">pub fn </span>get_current_parent_element_from_parents(ast: <span class="kw-2">&amp;</span>Ast) -&gt; Element {
     <span class="kw">let </span>parent_ref = get_current_parent_ref_from_parents(ast);
     ast.elements[parent_ref].clone()
 }
 
-<span class="kw">pub fn </span>get_current_parent_ref_from_parents(ast: <span class="kw-2">&amp;</span>Ast) -&gt; usize {
+<span class="doccomment">/// Get the current parent as an ElIndex
+</span><span class="kw">pub fn </span>get_current_parent_ref_from_parents(ast: <span class="kw-2">&amp;</span>Ast) -&gt; usize {
     <span class="kw">let </span>last = ast.parents.len() - <span class="number">1</span>;
     ast.parents[last]
 }
 
-<span class="kw">pub fn </span>get_current_parent_element_from_element_children_search(
+<span class="doccomment">/// Option - Gets the parent Element of a child based on child&#39;s ElIndex
+</span><span class="kw">pub fn </span>get_current_parent_element_from_element_children_search(
     ast: <span class="kw-2">&amp;</span>Ast,
     child_ref: usize,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;Element&gt; {
@@ -81,7 +119,8 @@
     <span class="prelude-val">None
 </span>}
 
-<span class="kw">pub fn </span>get_current_parent_ref_from_element_children_search(
+<span class="doccomment">/// Option - Gets the parent ElIndex of a child based on child&#39;s ElIndex
+</span><span class="kw">pub fn </span>get_current_parent_ref_from_element_children_search(
     ast: <span class="kw-2">&amp;</span>Ast,
     child_ref: usize,
 ) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
@@ -95,11 +134,13 @@
     <span class="prelude-val">None
 </span>}
 
-<span class="kw">pub fn </span>get_indent(ast: <span class="kw-2">&amp;</span>Ast) -&gt; String {
+<span class="doccomment">/// Helper for formatting code - spaces * number of indents for the current parent depth
+</span><span class="kw">pub fn </span>get_indent(ast: <span class="kw-2">&amp;</span>Ast) -&gt; String {
     <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len() - <span class="number">1</span>))
 }
 
-<span class="kw">pub fn </span>vec_remove_head(stack: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; Vec&lt;usize&gt; {
+<span class="doccomment">/// Helper - to remove first item from a vec
+</span><span class="kw">pub fn </span>vec_remove_head(stack: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; Vec&lt;usize&gt; {
     <span class="kw">if </span>stack.len() == <span class="number">1 </span>{
         <span class="macro">vec!</span>[]
     } <span class="kw">else </span>{
@@ -107,7 +148,8 @@
     }
 }
 
-<span class="kw">pub fn </span>vec_remove_tail(stack: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; Vec&lt;usize&gt; {
+<span class="doccomment">/// Helper - to remove last item from a vec
+</span><span class="kw">pub fn </span>vec_remove_tail(stack: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; Vec&lt;usize&gt; {
     <span class="kw">if </span>stack.len() == <span class="number">1 </span>{
         <span class="macro">vec!</span>[]
     } <span class="kw">else </span>{
