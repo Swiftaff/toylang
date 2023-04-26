@@ -2,38 +2,23 @@
  * Examples using the Toylang CLI
  */
 
-//use crate::integration_tests::example_tests;
-//extern crate lazy_static;
+use toylang_macros::{
+    call_to_generate_all_doctests, call_to_generate_single_doctest, generate_single_doctest,
+};
 
-//use syn::LitStr;
-//extern crate toylang_macros; //::{call_to_generate_doctest, call_to_generate_doctest4, call_to_generate_doctest5, generate_doctest};
-use toylang_macros::{call_to_generate_doctest6, generate_doctest};
-
-/*
-macro_rules! generate_multiple_doctests {
-    ($($test:expr),*) => {
-        $(
-            let fn_name = LitStr::new($test[0], proc_macro2::Span::call_site());
-            let toy = LitStr::new($test[1], proc_macro2::Span::call_site());
-            let rust = LitStr::new($test[2], proc_macro2::Span::call_site());
-            generate_doctest!(fn_name, toy, rust);
-        )*
-    };
-}
-*/
-
-call_to_generate_doctest6!(0);
-call_to_generate_doctest6!(1);
-call_to_generate_doctest6!(2);
+call_to_generate_all_doctests!();
 
 #[allow(dead_code)]
 //#[cfg(any(test, feature = "dox2"))]
 #[cfg(test)]
 mod tests {
     use crate::Compiler;
-    use toylang_macros::{call_to_generate_doctest5, call_to_generate_doctest6, generate_doctest};
 
-    call_to_generate_doctest6!(0);
+    use toylang_macros::{
+        call_to_generate_all_tests, call_to_generate_single_test, generate_single_test,
+    };
+
+    call_to_generate_all_tests!();
 
     /// helper function for tests
     fn test_pass_single_scenario(test: Vec<&str>) {

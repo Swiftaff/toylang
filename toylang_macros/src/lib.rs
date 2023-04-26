@@ -1,11 +1,8 @@
 /*!
-The purpose of these are experiments to create 2 proc_macros
+The purpose of these are to create 2 proc_macros
 one to generate standard tests - comparing the input to expected output
 two to generate document tests - to check that the output rust code is actually valid
 by having it in the doctests this is checked automatically at compile time!
-
-I am hoping to have a central variable containing all the tests
-which both sets of proc_macros could refer to, rather than manually duplicate them.
 */
 
 use proc_macro::TokenStream;
@@ -14,9 +11,17 @@ use syn::parse::{Error, Parse, ParseStream};
 use syn::parse_macro_input;
 use toylang_common;
 
-/// DocTest's first three strings are expected for parsing
-/// the last two are generated, one for tests, the other for doctests
-struct DocTest {
+lazy_static::lazy_static! {
+    /// ALL_TESTS is a central variable stored in toylang_common containing all the tests
+    /// which both sets of proc_macros refer to, rather than having to manually duplicate them in two places in the code
+    /// of the module, and of the module tests.
+    static ref ALL_TESTS: toylang_common::ExampleTests = toylang_common::ExampleTests::new();
+}
+
+/// DocTestOrTest's first three strings are expected for parsing - they are generated from the tests in ALL_TESTS
+/// where each test is a tuple containing these three items as strings.
+/// The last two are generated, one for tests, the other for doctests
+struct DocTestOrTest {
     fn_name: syn::LitStr,
     toylang_input: syn::LitStr,
     expected_rust_output: syn::LitStr,
@@ -25,18 +30,32 @@ struct DocTest {
     fn_name_for_doctest: syn::Ident,
 }
 
-impl Parse for DocTest {
+/// Parser for DocTestOrTest expects three strings separated by two commas
+/// string, string, string
+impl Parse for DocTestOrTest {
     fn parse(input: ParseStream) -> Result<Self, Error> {
+        // first string
         let fn_name: syn::LitStr = input.parse()?;
+
+        // first comma
+        input.parse::<syn::Token![,]>()?;
+
+        // second string
+        let toylang_input: syn::LitStr = input.parse()?;
+
+        // second comma
+        input.parse::<syn::Token![,]>()?;
+
+        // third string
+        let expected_rust_output: syn::LitStr = input.parse()?;
+
+        // generate the test and doctest function names
         let fn_name_for_test = syn::Ident::new(&fn_name.value(), fn_name.span());
         let fn_name_for_doctest =
             syn::Ident::new(&format!("doctest_{}", fn_name.value()), fn_name.span());
-        input.parse::<syn::Token![,]>()?;
-        let toylang_input: syn::LitStr = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let expected_rust_output: syn::LitStr = input.parse()?;
 
-        Ok(DocTest {
+        // return
+        Ok(DocTestOrTest {
             fn_name,
             toylang_input,
             expected_rust_output,
@@ -46,74 +65,34 @@ impl Parse for DocTest {
     }
 }
 
-struct Example {
-    toylang_input: syn::LitStr,
-    expected_rust_output: syn::LitStr,
-}
-
-impl Parse for Example {
-    fn parse(input: ParseStream) -> Result<Self, Error> {
-        let toylang_input: syn::LitStr = input.parse()?;
-        input.parse::<syn::Token![,]>()?;
-        let expected_rust_output: syn::LitStr = input.parse()?;
-        Ok(Example {
-            toylang_input,
-            expected_rust_output,
-        })
-    }
-}
-
-struct Example4 {
+/// TestIndex is the index of the test required out of ALL_TESTS
+struct TestIndex {
     index: syn::LitInt,
 }
 
-impl Parse for Example4 {
+/// Parser for TestIndex
+impl Parse for TestIndex {
     fn parse(input: ParseStream) -> Result<Self, Error> {
+        // parse a single int
         let index: syn::LitInt = input.parse()?;
-        Ok(Example4 { index })
+
+        // return
+        Ok(TestIndex { index })
     }
 }
 
-lazy_static::lazy_static! {
-    static ref ALL_TESTS: toylang_common::ExampleTests = toylang_common::ExampleTests::new();
-}
-
+/// ## DocTests
+///
+/// Takes three strings, generates a single doctest
 #[proc_macro]
-pub fn generate_doctest(input: TokenStream) -> TokenStream {
-    let DocTest {
+pub fn generate_single_doctest(input: TokenStream) -> TokenStream {
+    let DocTestOrTest {
         fn_name: _,
         toylang_input,
         expected_rust_output,
         fn_name_for_test: _,
         fn_name_for_doctest,
-    } = parse_macro_input!(input as DocTest);
-    let output = quote! {
-        //#[doc = concat!("Toylang: ",stringify!(#toylang_input))]
-        #[doc = "```toylang"]
-        #[doc = #toylang_input]
-        #[doc = "```"]
-        #[doc = "generates rust code:"]
-        //#[doc = stringify!(#expected_rust_output)]
-        #[doc = "```rust"]
-        #[doc = #expected_rust_output]
-        #[doc = "```"]
-        fn #fn_name_for_doctest() {
-            println!("testy");
-        }
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn generate_test(input: TokenStream) -> TokenStream {
-    let DocTest {
-        fn_name: _,
-        toylang_input,
-        expected_rust_output,
-        fn_name_for_test,
-        fn_name_for_doctest: _,
-    } = parse_macro_input!(input as DocTest);
-    //note: "test_pass_single_scenario" is defined in the toylang integration tests, not needed here
+    } = parse_macro_input!(input as DocTestOrTest);
     let output = quote! {
         #[doc = concat!("Toylang: ",stringify!(#toylang_input))]
         #[doc = "```toylang"]
@@ -124,6 +103,54 @@ pub fn generate_test(input: TokenStream) -> TokenStream {
         #[doc = "```rust"]
         #[doc = #expected_rust_output]
         #[doc = "```"]
+        fn #fn_name_for_doctest() {
+            println!("testy");
+        }
+    };
+    output.into()
+}
+
+/// Takes an integer for the required test from proc macro below, generates three strings to call proc macro above
+#[proc_macro]
+pub fn call_to_generate_single_doctest(input: TokenStream) -> TokenStream {
+    let TestIndex { index } = parse_macro_input!(input as TestIndex);
+    let i = index.to_string().parse::<usize>().unwrap();
+    let fn_name = &ALL_TESTS.tests[i].0;
+    let toy = &ALL_TESTS.tests[i].1;
+    let rust = &ALL_TESTS.tests[i].2;
+    let output = quote! {
+        generate_single_doctest!(#fn_name,#toy,#rust);
+    };
+    output.into()
+}
+
+/// No input needed, just call it once and it loops over ALL_TESTS, calling proc macro above
+#[proc_macro]
+pub fn call_to_generate_all_doctests(input: TokenStream) -> TokenStream {
+    let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
+    let output = quote! {
+        #(
+            call_to_generate_single_doctest!(#loopy);
+        )*
+    };
+    dbg!(&output);
+    output.into()
+}
+
+/// ## Tests
+///
+/// Takes three strings, generates a single test
+#[proc_macro]
+pub fn generate_single_test(input: TokenStream) -> TokenStream {
+    let DocTestOrTest {
+        fn_name: _,
+        toylang_input,
+        expected_rust_output,
+        fn_name_for_test,
+        fn_name_for_doctest: _,
+    } = parse_macro_input!(input as DocTestOrTest);
+    //note: "test_pass_single_scenario" is defined in the toylang integration tests, not needed here
+    let output = quote! {
         fn #fn_name_for_test() {
             test_pass_single_scenario(vec![#toylang_input, #expected_rust_output]);
         }
@@ -131,93 +158,28 @@ pub fn generate_test(input: TokenStream) -> TokenStream {
     output.into()
 }
 
+/// Takes an integer for the required test from proc macro below, generates three strings to call proc macro above
 #[proc_macro]
-pub fn example_proc_macro(input: TokenStream) -> TokenStream {
-    let Example {
-        toylang_input,
-        expected_rust_output,
-    } = parse_macro_input!(input as Example);
-    let output = quote! {
-        pub fn concatenate_toy_and_rust() -> String {
-            format!("{}{}", #toylang_input, #expected_rust_output)
-        }
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn call_to_generate_doctest(input: TokenStream) -> TokenStream {
-    let output = quote! {
-        example_proc_macro!("left", "right");
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn call_to_generate_doctest2(input: TokenStream) -> TokenStream {
-    let x = "left2";
-    let y = "right2";
-    let output = quote! {
-        example_proc_macro!(#x, #y);
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn call_to_generate_doctest3(input: TokenStream) -> TokenStream {
-    let v = vec!["left3", "right3"];
-    let x = v[0];
-    let y = v[1];
-    let output = quote! {
-        example_proc_macro!(#x, #y);
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn call_to_generate_doctest4(input: TokenStream) -> TokenStream {
-    let Example4 { index } = parse_macro_input!(input as Example4);
-    let i = index.to_string().parse::<usize>().unwrap();
-    let v = vec![
-        vec!["test1", "a", "b"],
-        vec!["test2", "a", "b"],
-        vec!["test3", "a", "b"],
-        vec!["test4", "a", "b"],
-    ];
-    let x = v[i][0];
-    let y = v[i][1];
-    let output = quote! {
-        example_proc_macro!(#x, #y);
-    };
-    output.into()
-}
-
-#[proc_macro]
-pub fn call_to_generate_doctest5(input: TokenStream) -> TokenStream {
-    let Example4 { index } = parse_macro_input!(input as Example4);
-    let i = index.to_string().parse::<usize>().unwrap();
-
-    //assumes that you have defined ALL_TESTS as Vec<(String, String, String)> in library
-    /*
-    let output = quote! {
-        generate_doctest!(#(LitStr::new(ALL_TESTS.tests[#i].0, proc_macro2::Span::call_site())), #(LitStr::new(ALL_TESTS.tests[#i].1, proc_macro2::Span::call_site())), #(LitStr::new(ALL_TESTS.tests[#i].2, proc_macro2::Span::call_site())));
-    };
-    */
-    let output = quote! {};
-    dbg!(&output);
-    output.into()
-}
-
-/// This one may be working!
-#[proc_macro]
-pub fn call_to_generate_doctest6(input: TokenStream) -> TokenStream {
-    let Example4 { index } = parse_macro_input!(input as Example4);
+pub fn call_to_generate_single_test(input: TokenStream) -> TokenStream {
+    let TestIndex { index } = parse_macro_input!(input as TestIndex);
     let i = index.to_string().parse::<usize>().unwrap();
     let fn_name = &ALL_TESTS.tests[i].0;
     let toy = &ALL_TESTS.tests[i].1;
     let rust = &ALL_TESTS.tests[i].2;
     let output = quote! {
-        generate_doctest!(#fn_name,#toy,#rust);
+        generate_single_test!(#fn_name,#toy,#rust);
+    };
+    output.into()
+}
+
+/// No input needed, just call it once and it loops over ALL_TESTS, calling proc macro above
+#[proc_macro]
+pub fn call_to_generate_all_tests(input: TokenStream) -> TokenStream {
+    let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
+    let output = quote! {
+        #(
+            call_to_generate_single_test!(#loopy);
+        )*
     };
     output.into()
 }
