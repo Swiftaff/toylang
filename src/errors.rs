@@ -1,3 +1,8 @@
+/*! This is meant to be an exhaustive list of errors possible in the compiler.
+ *
+ * It mainly is a central store of compiler errors, but with some functions to check if an Element is an invalid child of another Element.
+ * Still needs a lot of work
+ */
 use crate::ast::elements;
 use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
@@ -106,6 +111,7 @@ pub const ERRORS: Errors = Errors {
     impossible_error: "Oh no, this error should be impossible... 'Well here's another nice mess you've gotten me into.'",
     };
 
+/// Adds an error to the compiler error_stack
 pub fn append_error(
     compiler: &mut Compiler,
     mut arrow_indent: usize,
@@ -141,6 +147,7 @@ pub fn append_error(
     Err(())
 }
 
+/// Main function to check if parent of Element is invalid - this then calls all the other functions below
 pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("errors::append_error {:?}", ""));
     let el = elements::get_last_element(&compiler.ast);

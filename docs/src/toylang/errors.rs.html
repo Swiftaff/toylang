@@ -1221,7 +1221,19 @@
 <a href="#1221" id="1221">1221</a>
 <a href="#1222" id="1222">1222</a>
 <a href="#1223" id="1223">1223</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
+<a href="#1224" id="1224">1224</a>
+<a href="#1225" id="1225">1225</a>
+<a href="#1226" id="1226">1226</a>
+<a href="#1227" id="1227">1227</a>
+<a href="#1228" id="1228">1228</a>
+<a href="#1229" id="1229">1229</a>
+<a href="#1230" id="1230">1230</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! This is meant to be an exhaustive list of errors possible in the compiler.
+ *
+ * It mainly is a central store of compiler errors, but with some functions to check if an Element is an invalid child of another Element.
+ * Still needs a lot of work
+ */
+</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::Compiler;
@@ -1329,7 +1341,8 @@
     impossible_error: <span class="string">&quot;Oh no, this error should be impossible... &#39;Well here&#39;s another nice mess you&#39;ve gotten me into.&#39;&quot;</span>,
     };
 
-<span class="kw">pub fn </span>append_error(
+<span class="doccomment">/// Adds an error to the compiler error_stack
+</span><span class="kw">pub fn </span>append_error(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     <span class="kw-2">mut </span>arrow_indent: usize,
     arrow_len: usize,
@@ -1364,7 +1377,8 @@
     <span class="prelude-val">Err</span>(())
 }
 
-<span class="kw">pub fn </span>error_if_parent_is_invalid(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Main function to check if parent of Element is invalid - this then calls all the other functions below
+</span><span class="kw">pub fn </span>error_if_parent_is_invalid(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;errors::append_error {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>el = elements::get_last_element(<span class="kw-2">&amp;</span>compiler.ast);
     <span class="kw">let </span>parent = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
