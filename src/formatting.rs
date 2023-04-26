@@ -1,3 +1,19 @@
+/*! Only contains get_formatted_argname_argtype_pairs
+ */
+
+/// Formats three vecs into a single string usually for inserting into the arguments of a function
+///
+/// # Example
+/// ```
+/// let argnames = vec!["arg1".to_string(), "arg2".to_string()];
+/// let argtypes = vec!["i64".to_string(), "String".to_string()];
+/// let argmodifiers = vec!["&".to_string(), "".to_string()];
+/// let output = toylang::formatting::get_formatted_argname_argtype_pairs(&argnames, &argtypes, &argmodifiers);
+/// // output = "arg1: &i64, arg2: String"
+/// // which can be used in formatting the string of a function call, e.g.
+/// println!("test_function({});", output);
+/// // test_function(arg1: &i64, arg2: String);
+/// ```
 pub fn get_formatted_argname_argtype_pairs(
     argnames: &Vec<String>,
     argtypes: &Vec<String>,
@@ -20,7 +36,6 @@ pub fn get_formatted_argname_argtype_pairs(
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]

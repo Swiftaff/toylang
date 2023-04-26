@@ -14,7 +14,7 @@ pub mod compiler_runner;
 pub mod debug_window_derive;
 mod errors;
 mod file;
-mod formatting;
+pub mod formatting;
 pub mod integration_tests;
 mod parse;
 use ast::elements;

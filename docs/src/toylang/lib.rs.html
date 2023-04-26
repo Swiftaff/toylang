@@ -577,7 +577,7 @@
 <span class="kw">pub mod </span>debug_window_derive;
 <span class="kw">mod </span>errors;
 <span class="kw">mod </span>file;
-<span class="kw">mod </span>formatting;
+<span class="kw">pub mod </span>formatting;
 <span class="kw">pub mod </span>integration_tests;
 <span class="kw">mod </span>parse;
 <span class="kw">use </span>ast::elements;
@@ -677,7 +677,7 @@
     }
 }
 
-<span class="doccomment">/// Compiler is the main struct that is used from start to finish of compilation
+<span class="doccomment">/// The main struct that is used from start to finish of compilation
 </span><span class="attr">#[derive(Clone, Debug, Default)]
 </span><span class="kw">pub struct </span>Compiler {
     <span class="kw">pub </span>file: File,
@@ -698,7 +698,7 @@
 }
 
 <span class="kw">impl </span>Compiler {
-    <span class="doccomment">/// new initialises a new compiler with default values. Called from compiler_runner using the values from the CLI command
+    <span class="doccomment">/// Initialises a new compiler with default values. Called from compiler_runner using the values from the CLI command
     </span><span class="kw">pub fn </span>new(
         filepath: String,
         debug: bool,
@@ -751,7 +751,7 @@
         })
     }
 
-    <span class="doccomment">/// begins running the compiler, running main tasks, and writing file or displaying errors
+    <span class="doccomment">/// Begins running the compiler, run_main_tasks, write_file_or_error
     </span><span class="kw">pub fn </span>run(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>Error&gt;&gt; {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="self">self</span>.file.get(<span class="kw-2">&amp;</span><span class="self">self</span>.filepath)<span class="question-mark">?</span>;
@@ -766,13 +766,13 @@
         )
     }
 
-    <span class="doccomment">/// called by all functions - inserts a single log line, and a copy of the AST state
+    <span class="doccomment">/// Called by all functions - inserts a single log line, and a copy of the AST state
     </span><span class="kw">pub fn </span>log(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, string: String) {
         <span class="self">self</span>.logs.push(string);
         <span class="self">self</span>.debug_compiler_history.push(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.ast));
     }
 
-    <span class="doccomment">/// used by the debugger program to request to run one of the steps in the compiler
+    <span class="doccomment">/// Used by the debugger program to request to run one of the steps in the compiler
     /// to allow step by step debugging
     </span><span class="kw">pub fn </span>debug_step(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, step: usize) -&gt; usize {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::debug_step {:?}&quot;</span>, step));
@@ -890,7 +890,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// actually loop over parsing each line of tokens
+    <span class="doccomment">/// Actually loop over parsing each line of tokens
     </span><span class="kw">fn </span>main_loop_over_lines_of_tokens(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::main_loop_over_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="comment">//self.set_ast_output_for_main_fn_start();
@@ -905,7 +905,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// parse a single line of tokens
+    <span class="doccomment">/// Parse a single line of tokens
     </span><span class="kw">fn </span>parse_one_line(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, line: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::parse_one_line {:?}&quot;</span>, line));
         <span class="kw">if </span>line &lt; <span class="self">self</span>.lines_of_tokens.len() &amp;&amp; <span class="self">self</span>.lines_of_tokens[line].len() &gt; <span class="number">0 </span>{
@@ -916,7 +916,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// initially generate lines of characters based on input file
+    <span class="doccomment">/// Initially generate lines of characters based on input file
     </span><span class="kw">fn </span>set_lines_of_chars(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_chars {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="kw">let </span><span class="kw-2">mut </span>index_from = <span class="number">0</span>;
@@ -964,7 +964,7 @@
         }
     }
 
-    <span class="doccomment">/// initially generate lines_of_tokens based on lines_of_chars
+    <span class="doccomment">/// Initially generate lines_of_tokens based on lines_of_chars
     </span><span class="kw">fn </span>set_lines_of_tokens(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) {
         <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.lines_of_chars.len() {
