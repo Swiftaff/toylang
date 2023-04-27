@@ -451,28 +451,164 @@
 <a href="#451" id="451">451</a>
 <a href="#452" id="452">452</a>
 <a href="#453" id="453">453</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
+<a href="#481" id="481">481</a>
+<a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! Handles formatting the AST into the final output code
+ */
+
+</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::ElementInfo;
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::formatting;
 <span class="kw">use </span><span class="kw">crate</span>::Ast;
 <span class="kw">use </span><span class="kw">crate</span>::Compiler;
 
-<span class="kw">pub fn </span>replace_any_unknown_types(ast: <span class="kw-2">&amp;mut </span>Ast) {
-    <span class="kw">let </span>depths = get_depths_vec(ast.clone());
-    <span class="kw">let </span>depths_flattened = get_depths_flattened(<span class="kw-2">&amp;</span>depths);
-    <span class="kw">for </span>el_index <span class="kw">in </span>depths_flattened {
-        ast.elements[el_index].<span class="number">0 </span>=
-            elements::get_updated_elementinfo_with_infered_type(ast, el_index);
+<span class="doccomment">/// The main function to set the output string from the compiler
+///
+/// Dynamically pushes and pops from a stack of root element children
+/// Outputting
+</span><span class="kw">pub fn </span>set_output(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
+    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;output::set_output {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+
+    replace_any_unknown_types(<span class="kw-2">&amp;mut </span>compiler.ast);
+
+    set_output_append(<span class="kw-2">&amp;mut </span>compiler.ast, <span class="string">&quot;fn main() {\r\n&quot;</span>);
+
+    <span class="comment">// initialise stack with root reference (0)
+    </span>compiler.ast.parents = <span class="macro">vec!</span>[<span class="number">0</span>];
+
+    <span class="comment">// the values of indent and outdent did matter earlier, when building the ast
+    // but no longer matter when outputting - we add and remove things from parents
+    // but then are just using parents.len() to display correct indent for each item
+    </span>parents::indent::indent(<span class="kw-2">&amp;mut </span>compiler.ast);
+
+    <span class="comment">// the stack starts off as a list of the children of root, i.e. the top level items to output
+    // we go down them and dynamically add/remove their children to the stack, indenting and outdenting as we go
+    </span><span class="kw">let </span><span class="kw-2">mut </span>stack: Vec&lt;usize&gt; = compiler.ast.elements[<span class="number">0</span>].<span class="number">1</span>.clone();
+    <span class="kw">while </span>stack.len() &gt; <span class="number">0 </span>{
+        <span class="kw">let </span>current_el_index = stack[<span class="number">0</span>];
+        <span class="kw">let </span>current_el = compiler.ast.elements[current_el_index].clone();
+        <span class="kw">let </span>current_el_is_an_outdent_marker = current_el_index == <span class="number">0</span>;
+        <span class="kw">let </span>children = current_el.<span class="number">1</span>;
+
+        <span class="comment">// remove current item from stack
+        </span>stack = parents::vec_remove_head(<span class="kw-2">&amp;</span>stack);
+
+        <span class="kw">if </span>current_el_is_an_outdent_marker {
+            stack = output_end_of_element_and_outdent(compiler, <span class="kw-2">&amp;</span>stack);
+        } <span class="kw">else </span>{
+            <span class="comment">// push current element to output
+            </span>set_output_for_element_open(<span class="kw-2">&amp;mut </span>compiler.ast, current_el_index);
+
+            <span class="comment">// Render children if any, except of certain elements where the children are rendered separately
+            </span><span class="kw">let </span>should_render_children = <span class="kw">match </span>current_el.<span class="number">0 </span>{
+                ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
+                <span class="kw">_ </span>=&gt; children.len() &gt; <span class="number">0</span>,
+            };
+            <span class="kw">if </span>should_render_children {
+                stack = indent_and_add_children(compiler, current_el_index, children, stack);
+            }
+        }
+    }
+    parents::outdent::outdent(compiler);
+    set_output_append(<span class="kw-2">&amp;mut </span>compiler.ast, <span class="string">&quot;}\r\n&quot;</span>);
+}
+
+<span class="doccomment">/// indent from current parent and list children to output next
+</span><span class="kw">fn </span>indent_and_add_children(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    current_el_index: usize,
+    children: Vec&lt;usize&gt;,
+    stack: Vec&lt;usize&gt;,
+) -&gt; Vec&lt;usize&gt; {
+    <span class="comment">// add the following to stack in reverse order so they are then handled immediately,
+    // and in correct order when popped off the stack in the next while loops
+    </span><span class="kw">let </span><span class="kw-2">mut </span>new_stack = stack.clone();
+
+    <span class="comment">// prepend with current item end tag indicator - so we know to close it after the outdent
+    </span>new_stack.splice(<span class="number">0</span>..<span class="number">0</span>, <span class="macro">vec!</span>[current_el_index]);
+    <span class="comment">// prepend with 0 (marker for outdent)
+    </span>new_stack.splice(<span class="number">0</span>..<span class="number">0</span>, <span class="macro">vec!</span>[<span class="number">0</span>]);
+    <span class="comment">// prepend with children
+    </span>new_stack.splice(<span class="number">0</span>..<span class="number">0</span>, children);
+    <span class="comment">// and increase indent
+    </span>parents::indent::indent(<span class="kw-2">&amp;mut </span>compiler.ast);
+    new_stack.clone()
+}
+
+<span class="doccomment">/// outdent from list of children, back to parents next sibling
+</span><span class="kw">fn </span>output_end_of_element_and_outdent(compiler: <span class="kw-2">&amp;mut </span>Compiler, stack: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; Vec&lt;usize&gt; {
+    parents::outdent::outdent(compiler);
+    <span class="comment">// push current end tag to output
+    </span><span class="kw">let </span>end_tag = stack[<span class="number">0</span>];
+
+    set_output_for_element_close(<span class="kw-2">&amp;mut </span>compiler.ast, end_tag);
+    <span class="comment">// removed the outdent marker earlier, now remove the end tag indicator
+    </span>parents::vec_remove_head(<span class="kw-2">&amp;</span>stack)
+    <span class="comment">// if the end_tag was the end of a func_def we don&#39;t want to display the trailing semicolon
+    // since it needs to be treated as the return statement, so remove it if there is one
+</span>}
+
+<span class="doccomment">/// Goes through the Ast several times to fill in all the Undefined types
+</span><span class="kw">pub fn </span>replace_any_unknown_types(ast: <span class="kw-2">&amp;mut </span>Ast) {
+    <span class="kw">for </span>_i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
+        <span class="kw">let </span>depths = get_depths_vec(ast.clone());
+        <span class="kw">let </span>depths_flattened = get_depths_flattened(<span class="kw-2">&amp;</span>depths);
+        <span class="kw">for </span>el_index <span class="kw">in </span>depths_flattened {
+            ast.elements[el_index].<span class="number">0 </span>=
+                elements::get_updated_elementinfo_with_infered_type(ast, el_index);
+        }
     }
 }
 
-<span class="kw">pub fn </span>get_depths_vec(ast: Ast) -&gt; Vec&lt;Vec&lt;usize&gt;&gt; {
-    <span class="comment">// collect a vec of all children
-    // from deepest block in the &#39;tree&#39; to highest
-    // (ordered top to bottom for block at same level)
-    // and reverse order within each block
-    </span><span class="kw">let </span><span class="kw-2">mut </span>tracked_parents: Vec&lt;usize&gt; = <span class="macro">vec!</span>[<span class="number">0</span>];
+<span class="doccomment">/// Collects a vec of all Ast children in order so that the deepest types are inferred first, so these can inform the inference of their parents types
+///
+/// Ordered from deepest block in the &#39;tree&#39; to highest
+/// (ordered top to bottom for blocks at same level)
+/// and reverse order within each block
+</span><span class="kw">pub fn </span>get_depths_vec(ast: Ast) -&gt; Vec&lt;Vec&lt;usize&gt;&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>tracked_parents: Vec&lt;usize&gt; = <span class="macro">vec!</span>[<span class="number">0</span>];
     <span class="kw">let </span><span class="kw-2">mut </span>children: Vec&lt;usize&gt; = ast.elements[<span class="number">0</span>].<span class="number">1</span>.clone();
     <span class="kw">let </span><span class="kw-2">mut </span>depths: Vec&lt;Vec&lt;usize&gt;&gt; = <span class="macro">vec!</span>[children];
     <span class="kw">loop </span>{
@@ -500,16 +636,17 @@
     depths
 }
 
-<span class="kw">pub fn </span>get_depths_flattened(depths: <span class="kw-2">&amp;</span>Vec&lt;Vec&lt;usize&gt;&gt;) -&gt; Vec&lt;usize&gt; {
-    <span class="comment">// flattens depths from bottom (deepest) to top
-    // this is so that it can be used to traverse elements in the correct order
-    // to allow correcting the types from the deepest elements first
-    // since higher levels may rely on type of deeper elements.
-    // e.g. a higher level &quot;+&quot; fn with type &quot;i64|f64&quot; will need to be disambiguated
-    // to either i64 or f64 based on the type of it&#39;s 2 child args
-    // so the two child args are fixed first (if unknown)
-    // then &quot;+&quot; fn can be determined safely
-    </span><span class="kw">let </span><span class="kw-2">mut </span>output = <span class="macro">vec!</span>[];
+<span class="doccomment">/// Flattens the depths Vec, from bottom (deepest) to top
+///
+/// This is so that it can be used to traverse elements in the correct order
+/// to allow correcting the types from the deepest elements first
+/// since higher levels may rely on type of deeper elements.
+/// e.g. a higher level &quot;+&quot; fn with type &quot;i64|f64&quot; will need to be disambiguated
+/// to either i64 or f64 based on the type of it&#39;s 2 child args
+/// so the two child args are fixed first (if unknown)
+/// then &quot;+&quot; fn can be determined safely
+</span><span class="kw">pub fn </span>get_depths_flattened(depths: <span class="kw-2">&amp;</span>Vec&lt;Vec&lt;usize&gt;&gt;) -&gt; Vec&lt;usize&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="macro">vec!</span>[];
     <span class="kw">for </span>i <span class="kw">in </span>(<span class="number">0</span>..depths.len()).rev() {
         <span class="kw">let </span>level = <span class="kw-2">&amp;</span>depths[i];
         output = <span class="macro">vec!</span>[].iter().chain(<span class="kw-2">&amp;</span>output).chain(level).cloned().collect();
@@ -517,193 +654,40 @@
     output
 }
 
-<span class="kw">pub fn </span>get_output_for_element_index(
+<span class="doccomment">/// Gets the output string for an element based on its index
+</span><span class="kw">fn </span>get_output_for_element_index(
     ast: <span class="kw-2">&amp;mut </span>Ast,
     element_index: usize,
     skip_in_case_handled_by_parent: bool,
 ) -&gt; String {
     <span class="kw">let </span>element = ast.elements[element_index].clone();
-    <span class="comment">//dbg!(&amp;element.0);
-    //dbg!(&amp;element, ast.parents); //            ast.get_current_parent_ref_from_parents(),            ast.get_current_parent_element()   );
-    </span><span class="kw">let </span>skip = <span class="string">&quot;&quot;</span>.to_string();
+    <span class="kw">let </span>children = element.<span class="number">1</span>;
+    <span class="kw">let </span>empty_string = <span class="string">&quot;&quot;</span>.to_string();
 
     <span class="comment">//skip children for certain parents who already parsed them
-    </span><span class="kw">if </span>skip_in_case_handled_by_parent {
-        <span class="kw">match </span>parents::get_current_parent_element_from_element_children_search(<span class="kw-2">&amp;</span>ast, element_index)
-        {
-            <span class="prelude-val">Some</span>((ElementInfo::Assignment, <span class="kw">_</span>)) =&gt; <span class="kw">return </span>skip,
-            <span class="prelude-val">Some</span>((ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="kw">return </span>skip,
-            <span class="prelude-val">Some</span>((ElementInfo::Println, <span class="kw">_</span>)) =&gt; <span class="kw">return </span>skip,
-            <span class="prelude-val">Some</span>((ElementInfo::List(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="kw">return </span>skip,
-            <span class="prelude-val">Some</span>((ElementInfo::If(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="kw">return </span>skip,
-            <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-            </span><span class="prelude-val">Some</span>((ElementInfo::Root, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::CommentSingleLine(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Int(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Float(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::String(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Bool(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::FunctionDefWIP, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::LoopForRangeWIP, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Parens, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Type(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Eol, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Seol, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Indent, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">Some</span>((ElementInfo::Unused, <span class="kw">_</span>)) =&gt; (),
-            <span class="prelude-val">None </span>=&gt; (),
-        }
+    </span><span class="kw">if </span>skip_in_case_handled_by_parent &amp;&amp; is_parent_skippable(ast, element_index) {
+        <span class="kw">return </span><span class="string">&quot;&quot;</span>.to_string();
     }
 
     <span class="kw">match </span>element.<span class="number">0 </span>{
-        ElementInfo::Root =&gt; <span class="string">&quot;&quot;</span>.to_string(),
-        ElementInfo::CommentSingleLine(comment_string) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, comment_string),
-        ElementInfo::Int(val) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, val),
-        ElementInfo::Float(val) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, val),
+        ElementInfo::Root =&gt; empty_string,
+        ElementInfo::CommentSingleLine(comment_string) =&gt; comment_string,
+        ElementInfo::Int(val) =&gt; val,
+        ElementInfo::Float(val) =&gt; val,
         ElementInfo::String(val) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}.to_string()&quot;</span>, val),
         ElementInfo::Bool(val) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}.to_string()&quot;</span>, val),
-        ElementInfo::Arg(name, _scope, _argmodifier, _returntype) =&gt; {
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, name).to_string()
-        }
-        ElementInfo::Constant(name, _returntype) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, name).to_string(),
-        ElementInfo::ConstantRef(name, _typename, _reference) =&gt; {
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, name)
-        }
-        ElementInfo::Assignment =&gt; {
-            <span class="kw">let </span><span class="kw-2">mut </span>returntype = <span class="string">&quot;Undefined&quot;</span>.to_string();
-            <span class="kw">let </span>children = element.<span class="number">1</span>;
-            <span class="kw">if </span>children.len() &lt; <span class="number">1 </span>{
-                <span class="macro">format!</span>(<span class="string">&quot;// let ?: ? = ? OUTPUT ERROR: Can&#39;t get constant for this assignment from : {:?}&quot;</span>, children)
-            } <span class="kw">else </span>{
-                <span class="kw">let </span>constant_index = children[<span class="number">0</span>];
-                <span class="kw">let </span>constant_output = get_output_for_element_index(ast, constant_index, <span class="bool-val">false</span>);
-                <span class="kw">let </span>constant = <span class="kw-2">&amp;</span>ast.elements[constant_index];
-                <span class="kw">match </span><span class="kw-2">&amp;</span>constant.<span class="number">0 </span>{
-                    ElementInfo::Constant(<span class="kw">_</span>, r) =&gt; {
-                        returntype = r.clone();
-                    }
-                    <span class="kw">_ </span>=&gt; (),
-                }
-                <span class="macro">format!</span>(<span class="string">&quot;let {}: {} = &quot;</span>, constant_output, returntype)
-            }
-        }
+        ElementInfo::Arg(name, _scope, _argmodifier, _returntype) =&gt; name,
+        ElementInfo::Constant(name, <span class="kw">_</span>) =&gt; name,
+        ElementInfo::ConstantRef(name, <span class="kw">_</span>, _reference) =&gt; name,
+        ElementInfo::Assignment =&gt; get_output_for_assignment(ast, children),
         ElementInfo::InbuiltFunctionDef(name, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             <span class="macro">format!</span>(<span class="string">&quot;fn {}() -&gt;{{ /* stuff */ }}&quot;</span>, name)
         }
-        ElementInfo::List(returntype) =&gt; {
-            <span class="comment">//dbg!(&quot;List&quot;);
-            </span><span class="kw">let </span>children = element.<span class="number">1</span>;
-            <span class="kw">if </span>children.len() &gt; <span class="number">0 </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;vec![ &quot;</span>.to_string();
-                <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
-                    <span class="kw">let </span>child_ref = children[i];
-                    <span class="kw">let </span>child_output = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
-                    <span class="kw">let </span>no_first_comma = <span class="kw">if </span>i == <span class="number">0 </span>{
-                        <span class="string">&quot;&quot;</span>.to_string()
-                    } <span class="kw">else </span>{
-                        <span class="string">&quot;, &quot;</span>.to_string()
-                    };
-                    output = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, <span class="kw-2">&amp;</span>output, <span class="kw-2">&amp;</span>no_first_comma, <span class="kw-2">&amp;</span>child_output);
-                }
-                <span class="kw">return </span><span class="macro">format!</span>(<span class="string">&quot;{} ]&quot;</span>, <span class="kw-2">&amp;</span>output);
-            } <span class="kw">else </span>{
-                <span class="kw">let </span><span class="kw-2">mut </span>vec_type = returntype.clone();
-                <span class="kw">if </span>returntype.len() &gt; <span class="number">5 </span>&amp;&amp; returntype[..<span class="number">3</span>] == <span class="string">&quot;Vec&quot;</span>.to_string() {
-                    vec_type = returntype[<span class="number">4</span>..returntype.len() - <span class="number">1</span>].to_string();
-                }
-                <span class="kw">return </span><span class="macro">format!</span>(<span class="string">&quot;Vec::&lt;{}&gt;::new()&quot;</span>, vec_type);
-            }
+        ElementInfo::List(returntype) =&gt; get_output_for_list(ast, children, returntype),
+        ElementInfo::InbuiltFunctionCall(name, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
+            get_output_for_inbuiltfncall(ast, name, children)
         }
-        ElementInfo::InbuiltFunctionCall(name, _fndef_index, _returntype) =&gt; {
-            <span class="comment">//dbg!(&quot;InbuiltFunctionCall&quot;);
-            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(def) = elements::get_inbuilt_function_by_name(ast, <span class="kw-2">&amp;</span>name) {
-                <span class="kw">match </span>def.clone() {
-                    ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, argmodifiers, <span class="kw">_</span>, format) =&gt; {
-                        <span class="kw">let </span>children = element.<span class="number">1</span>;
-                        <span class="comment">//dbg!(&amp;argnames, &amp;children);
-                        </span><span class="kw">let </span><span class="kw-2">mut </span>output = format;
-                        <span class="comment">//dbg!(&amp;output);
-                        </span><span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..argnames.len() {
-                            <span class="kw">let </span>arg_var_num = <span class="macro">format!</span>(<span class="string">&quot;arg~{}&quot;</span>, i + <span class="number">1</span>);
-                            <span class="kw">if </span>i &gt;= children.len() {
-                                <span class="macro">dbg!</span>(<span class="string">&quot;output error&quot;</span>, <span class="kw-2">&amp;</span>name, <span class="kw-2">&amp;</span>children, i);
-                            } <span class="kw">else </span>{
-                                <span class="kw">let </span>arg_value_el_ref = children[i];
-                                <span class="kw">let </span><span class="kw-2">mut </span>arg_output =
-                                    get_output_for_element_index(ast, arg_value_el_ref, <span class="bool-val">true</span>);
-
-                                <span class="comment">// partially implemented inserting argmodifiers into each function arg
-
-                                /*
-                                // TODO look at again, may not be the best solution...
-                                // Assuming that an InbuiltFunctionCall&#39;s children are only
-                                // Args as ConstantRefs i.e. refs to previously defined constants (or functions)
-                                // we will do the following so that the user does not need to be concerned with annotating modifiers in toylang functions.
-                                // Probably a niaive approach, but hey ho for now...
-                                // 1. if there is a modifier for this arg
-                                let this_arg_has_a_modifier = argmodifiers[i].len() &gt; 0;
-                                if this_arg_has_a_modifier {
-                                    dbg!(&quot;###&quot;, &amp;children);
-                                    // 2. find the constant from the children index
-                                    let c_index = children[i];
-
-                                    dbg!(&quot;#&quot;, c_index);
-                                    // 3. if it is a constantref to a functiondef
-                                    let el = ast.elements[c_index].0.clone();
-                                    match el {
-                                        ElementInfo::ConstantRef(c_name, _, c_refname) =&gt; {
-                                            if let Some(fn_index_being_referenced) = elements::get_function_index_by_name(ast, &amp;c_refname) {
-                                                // 3. create a new name for the duplicate fn e.g. constant_name &amp; &quot;_for_&quot; &amp; name_of_this_function
-                                                let new_fn_name = format!(&quot;{}_for_{}&quot;, c_name, name);
-                                                dbg!(&quot;# #&quot;, &amp;new_fn_name, &amp;c_refname, &amp;fn_index_being_referenced);
-
-                                                // 4. check a previous arg hasn&#39;t already duplicated it first
-                                                if let None = get_constant_index_by_name(ast, &amp;new_fn_name) {
-                                                    // 5. if not, insert the function in the ast
-                                                    dbg!(&quot;# # # TODO insert fn&quot;, fn_index_being_referenced);
-                                                    let mut duplicate_fn = ast.elements[fn_index_being_referenced].clone();
-                                                    //append::append(ast, );
-                                                }
-                                                if let Some(index_of_duplicate_fn) = get_constant_index_by_name(ast, &amp;new_fn_name) {
-                                                    // 6. update this type with the argmodifier
-                                                    // 7. switch out the reference from the original fn to the duplicate fn instead
-                                                }
-                                            }
-                                        }
-                                        _ =&gt; (),
-                                    }
-                                }
-                                */
-
-                                </span>output = output.replace(<span class="kw-2">&amp;</span>arg_var_num, <span class="kw-2">&amp;</span>arg_output);
-                            }
-                            <span class="comment">//dbg!(&quot;---&quot;,&amp;arg_var_num,arg_value_el_ref,&amp;arg_output,&amp;output);
-                        </span>}
-                        <span class="kw">if </span>children.len() &gt; <span class="number">0 </span>&amp;&amp; children.len() == (argnames.len() + <span class="number">1</span>) {
-                            <span class="kw">let </span>last_child = elements::get_last_element(ast);
-                            <span class="kw">match </span><span class="kw-2">&amp;</span>last_child.<span class="number">0 </span>{
-                                ElementInfo::Seol =&gt; {
-                                    output = <span class="macro">format!</span>(<span class="string">&quot;{};\r\n&quot;</span>, output);
-                                    ()
-                                }
-                                <span class="kw">_ </span>=&gt; (),
-                            }
-                        }
-                        <span class="kw">return </span>output;
-                    }
-                    <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="string">&quot;&quot;</span>.to_string(),
-                }
-            }
-            <span class="string">&quot;&quot;</span>.to_string()
-        }
-        ElementInfo::FunctionDefWIP =&gt; <span class="string">&quot;&quot;</span>.to_string(),
+        ElementInfo::FunctionDefWIP =&gt; empty_string,
         ElementInfo::FunctionDef(name, argnames, argtypes, returntype) =&gt; {
             <span class="kw">let </span>empty_arg_modifiers = argnames.iter().map(|_s| String::new()).collect();
             <span class="kw">let </span>args = formatting::get_formatted_argname_argtype_pairs(
@@ -713,49 +697,9 @@
             );
             <span class="macro">format!</span>(<span class="string">&quot;fn {}({}) -&gt; {} {{\r\n&quot;</span>, name, args, returntype)
         }
-        ElementInfo::FunctionCall(name, <span class="kw">_</span>) =&gt; {
-            <span class="kw">let </span>arguments = element.<span class="number">1</span>;
-            <span class="kw">let </span><span class="kw-2">mut </span>args = <span class="string">&quot;&quot;</span>.to_string();
-            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..arguments.len() {
-                <span class="kw">let </span>arg_el_ref = arguments[i];
-                <span class="comment">//let arg_el = ast.elements[arg_el_ref];
-                </span><span class="kw">let </span>arg = get_output_for_element_index(ast, arg_el_ref, <span class="bool-val">false</span>);
-                <span class="kw">let </span><span class="kw-2">mut </span>borrow = <span class="string">&quot;&quot;</span>.to_string();
-                <span class="comment">//dbg!(&quot;here&quot;, &amp;name, &amp;returntype, &amp;arg_el);
-                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(fndef_ref) = elements::get_function_index_by_name(ast, <span class="kw-2">&amp;</span>name) {
-                    <span class="kw">let </span>fndef = <span class="kw-2">&amp;</span>ast.elements[fndef_ref];
-                    <span class="kw">match </span><span class="kw-2">&amp;</span>fndef.<span class="number">0 </span>{
-                        ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, argtypes, <span class="kw">_</span>) =&gt; {
-                            <span class="kw">if </span>argtypes.len() == arguments.len() {
-                                <span class="kw">if </span>argtypes[i].contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) {
-                                    borrow = <span class="string">&quot;&amp;&quot;</span>.to_string();
-                                }
-                            }
-                        }
-                        <span class="kw">_ </span>=&gt; (),
-                    }
-                }
-
-                <span class="kw">let </span>comma = <span class="kw">if </span>i == arguments.len() - <span class="number">1 </span>{
-                    <span class="string">&quot;&quot;</span>.to_string()
-                } <span class="kw">else </span>{
-                    <span class="string">&quot;, &quot;</span>.to_string()
-                };
-                args = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}{}&quot;</span>, args, borrow, arg, comma);
-            }
-            <span class="macro">format!</span>(<span class="string">&quot;{}({})&quot;</span>, name, args)
-        }
-        ElementInfo::Parens =&gt; {
-            <span class="kw">let </span>children = <span class="kw-2">&amp;</span>element.<span class="number">1</span>;
-            <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
-            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
-                <span class="kw">let </span>child_ref = children[i];
-                <span class="kw">let </span>child = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
-                output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, output, child);
-            }
-            <span class="macro">format!</span>(<span class="string">&quot;({})&quot;</span>, output)
-        }
-        ElementInfo::LoopForRangeWIP =&gt; <span class="string">&quot;&quot;</span>.to_string(),
+        ElementInfo::FunctionCall(name, <span class="kw">_</span>) =&gt; get_output_for_functioncall(ast, name, children),
+        ElementInfo::Parens =&gt; get_output_for_parens(ast, children),
+        ElementInfo::LoopForRangeWIP =&gt; empty_string,
         ElementInfo::LoopForRange(name, from, to) =&gt; {
             <span class="macro">format!</span>(<span class="string">&quot;For {} in {}..{} {{\r\n&quot;</span>, name, from, to)
         }
@@ -763,125 +707,270 @@
         ElementInfo::Seol =&gt; <span class="macro">format!</span>(<span class="string">&quot;;\r\n&quot;</span>),
         ElementInfo::Indent =&gt; parents::get_indent(ast),
         ElementInfo::Type(name) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, name),
-        ElementInfo::Unused =&gt; <span class="string">&quot;&quot;</span>.to_string(),
-        ElementInfo::Println =&gt; {
-            <span class="kw">let </span>children = <span class="kw-2">&amp;</span>element.<span class="number">1</span>;
-            <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
-            <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
-                <span class="kw">let </span>child_ref = children[i];
-                <span class="kw">let </span>child = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
-                output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, output, child);
-            }
-            <span class="macro">format!</span>(<span class="string">&quot;println!(\&quot;{{}}\&quot;, {})&quot;</span>, output)
-        }
-        ElementInfo::If(returntype) =&gt; {
-            <span class="kw">let </span>children = element.<span class="number">1</span>;
-            <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
-            <span class="kw">if </span>children.len() &lt; <span class="number">3 </span>{
-                <span class="macro">dbg!</span>(<span class="string">&quot;output error&quot;</span>, <span class="kw-2">&amp;</span>returntype, <span class="kw-2">&amp;</span>children);
-            } <span class="kw">else </span>{
-                <span class="kw">let </span>child1_output = get_output_for_element_index(ast, children[<span class="number">0</span>], <span class="bool-val">false</span>);
-                output = <span class="macro">format!</span>(<span class="string">&quot;{}if {} {{&quot;</span>, output, child1_output);
-                <span class="kw">let </span>child2_output = get_output_for_element_index(ast, children[<span class="number">1</span>], <span class="bool-val">false</span>);
-                output = <span class="macro">format!</span>(
-                    <span class="string">&quot;{}\r\n{}{}\r\n{}}} else {{&quot;</span>,
-                    output,
-                    <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len())),
-                    child2_output,
-                    <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len() - <span class="number">1</span>)),
-                );
-                <span class="kw">let </span>child3_output = get_output_for_element_index(ast, children[<span class="number">2</span>], <span class="bool-val">false</span>);
-                output = <span class="macro">format!</span>(
-                    <span class="string">&quot;{}\r\n{}{}\r\n{}}}&quot;</span>,
-                    output,
-                    <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len())),
-                    child3_output,
-                    <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len() - <span class="number">1</span>)),
-                );
-            }
-            <span class="comment">//parents::outdent::outdent(&amp;mut ast);
-
-            </span><span class="kw">return </span>output;
-        }
+        ElementInfo::Unused =&gt; empty_string,
+        ElementInfo::Println =&gt; get_output_for_println(ast, children),
+        ElementInfo::If(returntype) =&gt; get_output_for_if(ast, children, returntype),
     }
 }
 
-<span class="kw">pub fn </span>set_output(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;output::set_output {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
-    <span class="comment">//dbg!(&amp;ast);
-    //let ast = &amp;mut compiler.ast;
-
-    </span><span class="kw">for </span>_i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
-        replace_any_unknown_types(<span class="kw-2">&amp;mut </span>compiler.ast);
+<span class="doccomment">/// Defines which Elements&#39; children should be skipped from being output directly,
+/// as the children are handled by the parent Element&#39;s output
+</span><span class="kw">fn </span>is_parent_skippable(ast: <span class="kw-2">&amp;mut </span>Ast, element_index: usize) -&gt; bool {
+    <span class="kw">match </span>parents::get_current_parent_element_from_element_children_search(<span class="kw-2">&amp;</span>ast, element_index) {
+        <span class="prelude-val">Some</span>((ElementInfo::Assignment, <span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Println, <span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::List(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::If(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">true</span>,
+        <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
+        </span><span class="prelude-val">Some</span>((ElementInfo::Root, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::CommentSingleLine(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Int(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Float(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::String(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Bool(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::FunctionDefWIP, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::LoopForRangeWIP, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Parens, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Type(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Eol, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Seol, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Indent, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">Some</span>((ElementInfo::Unused, <span class="kw">_</span>)) =&gt; <span class="bool-val">false</span>,
+        <span class="prelude-val">None </span>=&gt; <span class="bool-val">false</span>,
     }
+}
 
-    set_output_append(<span class="kw-2">&amp;mut </span>compiler.ast, <span class="string">&quot;fn main() {\r\n&quot;</span>);
-    compiler.ast.parents = <span class="macro">vec!</span>[<span class="number">0</span>];
-    <span class="comment">// the values of indent and outdent don&#39;t matter when outputting - only using parents.len()
-    // values do matter when building the ast
-    </span>parents::indent::indent(<span class="kw-2">&amp;mut </span>compiler.ast);
+<span class="doccomment">/// Output for Assignment
+</span><span class="kw">fn </span>get_output_for_assignment(ast: <span class="kw-2">&amp;mut </span>Ast, children: Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>returntype = <span class="string">&quot;Undefined&quot;</span>.to_string();
+    <span class="kw">if </span>children.len() &lt; <span class="number">1 </span>{
+        <span class="macro">format!</span>(
+            <span class="string">&quot;// let ?: ? = ? OUTPUT ERROR: Can&#39;t get constant for this assignment from : {:?}&quot;</span>,
+            children
+        )
+    } <span class="kw">else </span>{
+        <span class="kw">let </span>constant_index = children[<span class="number">0</span>];
+        <span class="kw">let </span>constant_output = get_output_for_element_index(ast, constant_index, <span class="bool-val">false</span>);
+        <span class="kw">let </span>constant = <span class="kw-2">&amp;</span>ast.elements[constant_index];
+        <span class="kw">match </span><span class="kw-2">&amp;</span>constant.<span class="number">0 </span>{
+            ElementInfo::Constant(<span class="kw">_</span>, r) =&gt; {
+                returntype = r.clone();
+            }
+            <span class="kw">_ </span>=&gt; (),
+        }
+        <span class="macro">format!</span>(<span class="string">&quot;let {}: {} = &quot;</span>, constant_output, returntype)
+    }
+}
 
-    <span class="comment">// the stack starts off as a list of the children of root, i.e. the top level items to output
-    // we go down them and dynamically add/remove their children to the stack, indenting and outdenting as we go
-    </span><span class="kw">let </span><span class="kw-2">mut </span>stack: Vec&lt;usize&gt; = compiler.ast.elements[<span class="number">0</span>].<span class="number">1</span>.clone();
-    <span class="kw">while </span>stack.len() &gt; <span class="number">0 </span>{
-        <span class="kw">let </span>current_item = stack[<span class="number">0</span>];
-        <span class="comment">// remove current item from stack
-        </span>stack = parents::vec_remove_head(<span class="kw-2">&amp;</span>stack);
-        <span class="comment">// if it is an outdent marker (0), outdent level!
-        </span><span class="kw">if </span>current_item == <span class="number">0 </span>{
-            parents::outdent::outdent(compiler);
-            <span class="comment">// push current end tag to output
-            </span><span class="kw">let </span>end_tag = stack[<span class="number">0</span>];
+<span class="doccomment">/// Output for List
+</span><span class="kw">fn </span>get_output_for_list(ast: <span class="kw-2">&amp;mut </span>Ast, children: Vec&lt;usize&gt;, returntype: String) -&gt; String {
+    <span class="comment">//dbg!(&quot;List&quot;);
+    </span><span class="kw">if </span>children.len() &gt; <span class="number">0 </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;vec![ &quot;</span>.to_string();
+        <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
+            <span class="kw">let </span>child_ref = children[i];
+            <span class="kw">let </span>child_output = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
+            <span class="kw">let </span>no_first_comma = <span class="kw">if </span>i == <span class="number">0 </span>{
+                <span class="string">&quot;&quot;</span>.to_string()
+            } <span class="kw">else </span>{
+                <span class="string">&quot;, &quot;</span>.to_string()
+            };
+            output = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}&quot;</span>, <span class="kw-2">&amp;</span>output, <span class="kw-2">&amp;</span>no_first_comma, <span class="kw-2">&amp;</span>child_output);
+        }
+        <span class="macro">format!</span>(<span class="string">&quot;{} ]&quot;</span>, <span class="kw-2">&amp;</span>output)
+    } <span class="kw">else </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>vec_type = returntype.clone();
+        <span class="kw">if </span>returntype.len() &gt; <span class="number">5 </span>&amp;&amp; returntype[..<span class="number">3</span>] == <span class="string">&quot;Vec&quot;</span>.to_string() {
+            vec_type = returntype[<span class="number">4</span>..returntype.len() - <span class="number">1</span>].to_string();
+        }
+        <span class="macro">format!</span>(<span class="string">&quot;Vec::&lt;{}&gt;::new()&quot;</span>, vec_type)
+    }
+}
 
-            set_output_for_element_close(<span class="kw-2">&amp;mut </span>compiler.ast, end_tag);
-            <span class="comment">// removed the outdent marker earlier, now remove the end tag indicator
-            </span>stack = parents::vec_remove_head(<span class="kw-2">&amp;</span>stack);
-            <span class="comment">// if the end_tag was the end of a func_def we don&#39;t want to display the trailing semicolon
-            // since it needs to be treated as the return statement, so remove it if there is one
-        </span>} <span class="kw">else </span>{
-            <span class="comment">// push current to output
-            </span>set_output_for_element_open(<span class="kw-2">&amp;mut </span>compiler.ast, current_item);
-            <span class="comment">// if current item has children...
-            </span><span class="kw">let </span><span class="kw-2">mut </span>current_item_children = compiler.ast.elements[current_item].<span class="number">1</span>.clone();
+<span class="doccomment">/// Output for InbuiltFnCall
+</span><span class="kw">fn </span>get_output_for_inbuiltfncall(ast: <span class="kw-2">&amp;mut </span>Ast, name: String, children: Vec&lt;usize&gt;) -&gt; String {
+    <span class="comment">//dbg!(&quot;InbuiltFunctionCall&quot;);
+    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(def) = elements::get_inbuilt_function_by_name(ast, <span class="kw-2">&amp;</span>name) {
+        <span class="kw">match </span>def.clone() {
+            ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, argnames, <span class="kw">_</span>, argmodifiers, <span class="kw">_</span>, format) =&gt; {
+                <span class="comment">//dbg!(&amp;argnames, &amp;children);
+                </span><span class="kw">let </span><span class="kw-2">mut </span>output = format;
+                <span class="comment">//dbg!(&amp;output);
+                </span><span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..argnames.len() {
+                    <span class="kw">let </span>arg_var_num = <span class="macro">format!</span>(<span class="string">&quot;arg~{}&quot;</span>, i + <span class="number">1</span>);
+                    <span class="kw">if </span>i &gt;= children.len() {
+                        <span class="macro">dbg!</span>(<span class="string">&quot;output error&quot;</span>, <span class="kw-2">&amp;</span>name, <span class="kw-2">&amp;</span>children, i);
+                    } <span class="kw">else </span>{
+                        <span class="kw">let </span>arg_value_el_ref = children[i];
+                        <span class="kw">let </span>arg_output = get_output_for_element_index(ast, arg_value_el_ref, <span class="bool-val">true</span>);
 
-            <span class="comment">// don&#39;t render children of certain elements - they are rendered separately
-            </span><span class="kw">let </span>el = <span class="kw-2">&amp;</span>compiler.ast.elements[current_item];
-            <span class="kw">match </span>el.<span class="number">0 </span>{
-                ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; current_item_children = <span class="macro">vec!</span>[],
+                        <span class="comment">// partially implemented inserting argmodifiers into each function arg
+
+                        /*
+                        // TODO look at again, may not be the best solution...
+                        // Assuming that an InbuiltFunctionCall&#39;s children are only
+                        // Args as ConstantRefs i.e. refs to previously defined constants (or functions)
+                        // we will do the following so that the user does not need to be concerned with annotating modifiers in toylang functions.
+                        // Probably a niaive approach, but hey ho for now...
+                        // 1. if there is a modifier for this arg
+                        let this_arg_has_a_modifier = argmodifiers[i].len() &gt; 0;
+                        if this_arg_has_a_modifier {
+                            dbg!(&quot;###&quot;, &amp;children);
+                            // 2. find the constant from the children index
+                            let c_index = children[i];
+
+                            dbg!(&quot;#&quot;, c_index);
+                            // 3. if it is a constantref to a functiondef
+                            let el = ast.elements[c_index].0.clone();
+                            match el {
+                                ElementInfo::ConstantRef(c_name, _, c_refname) =&gt; {
+                                    if let Some(fn_index_being_referenced) = elements::get_function_index_by_name(ast, &amp;c_refname) {
+                                        // 3. create a new name for the duplicate fn e.g. constant_name &amp; &quot;_for_&quot; &amp; name_of_this_function
+                                        let new_fn_name = format!(&quot;{}_for_{}&quot;, c_name, name);
+                                        dbg!(&quot;# #&quot;, &amp;new_fn_name, &amp;c_refname, &amp;fn_index_being_referenced);
+
+                                        // 4. check a previous arg hasn&#39;t already duplicated it first
+                                        if let None = get_constant_index_by_name(ast, &amp;new_fn_name) {
+                                            // 5. if not, insert the function in the ast
+                                            dbg!(&quot;# # # TODO insert fn&quot;, fn_index_being_referenced);
+                                            let mut duplicate_fn = ast.elements[fn_index_being_referenced].clone();
+                                            //append::append(ast, );
+                                        }
+                                        if let Some(index_of_duplicate_fn) = get_constant_index_by_name(ast, &amp;new_fn_name) {
+                                            // 6. update this type with the argmodifier
+                                            // 7. switch out the reference from the original fn to the duplicate fn instead
+                                        }
+                                    }
+                                }
+                                _ =&gt; (),
+                            }
+                        }
+                        */
+
+                        </span>output = output.replace(<span class="kw-2">&amp;</span>arg_var_num, <span class="kw-2">&amp;</span>arg_output);
+                    }
+                    <span class="comment">//dbg!(&quot;---&quot;,&amp;arg_var_num,arg_value_el_ref,&amp;arg_output,&amp;output);
+                </span>}
+                <span class="kw">if </span>children.len() &gt; <span class="number">0 </span>&amp;&amp; children.len() == (argnames.len() + <span class="number">1</span>) {
+                    <span class="kw">let </span>last_child = elements::get_last_element(ast);
+                    <span class="kw">match </span><span class="kw-2">&amp;</span>last_child.<span class="number">0 </span>{
+                        ElementInfo::Seol =&gt; {
+                            output = <span class="macro">format!</span>(<span class="string">&quot;{};\r\n&quot;</span>, output);
+                            ()
+                        }
+                        <span class="kw">_ </span>=&gt; (),
+                    }
+                }
+                <span class="kw">return </span>output;
+            }
+            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="string">&quot;&quot;</span>.to_string(),
+        }
+    }
+    <span class="string">&quot;&quot;</span>.to_string()
+}
+
+<span class="doccomment">/// Output for FunctionCall
+</span><span class="kw">fn </span>get_output_for_functioncall(ast: <span class="kw-2">&amp;mut </span>Ast, name: String, arguments: Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span>empty_string = <span class="string">&quot;&quot;</span>.to_string();
+    <span class="kw">let </span><span class="kw-2">mut </span>args = empty_string.clone();
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..arguments.len() {
+        <span class="kw">let </span>arg_el_ref = arguments[i];
+        <span class="comment">//let arg_el = ast.elements[arg_el_ref];
+        </span><span class="kw">let </span>arg = get_output_for_element_index(ast, arg_el_ref, <span class="bool-val">false</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>borrow = empty_string.clone();
+        <span class="comment">//dbg!(&quot;here&quot;, &amp;name, &amp;returntype, &amp;arg_el);
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(fndef_ref) = elements::get_function_index_by_name(ast, <span class="kw-2">&amp;</span>name) {
+            <span class="kw">let </span>fndef = <span class="kw-2">&amp;</span>ast.elements[fndef_ref];
+            <span class="kw">match </span><span class="kw-2">&amp;</span>fndef.<span class="number">0 </span>{
+                ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, argtypes, <span class="kw">_</span>) =&gt; {
+                    <span class="kw">if </span>argtypes.len() == arguments.len() {
+                        <span class="kw">if </span>argtypes[i].contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) {
+                            borrow = <span class="string">&quot;&amp;&quot;</span>.to_string();
+                        }
+                    }
+                }
                 <span class="kw">_ </span>=&gt; (),
             }
-
-            <span class="kw">if </span>current_item &lt; compiler.ast.elements.len() &amp;&amp; current_item_children.len() &gt; <span class="number">0 </span>{
-                <span class="comment">// prepend with current item end tag indicator - so we know to close it at after the outdent
-                </span>stack.splice(<span class="number">0</span>..<span class="number">0</span>, <span class="macro">vec!</span>[current_item]);
-                <span class="comment">// prepend with 0 (marker for outdent)
-                </span>stack.splice(<span class="number">0</span>..<span class="number">0</span>, <span class="macro">vec!</span>[<span class="number">0</span>]);
-                <span class="comment">// prepend with children
-                </span>stack.splice(<span class="number">0</span>..<span class="number">0</span>, compiler.ast.elements[current_item].<span class="number">1</span>.clone());
-                <span class="comment">// and increase indent
-                </span>parents::indent::indent(<span class="kw-2">&amp;mut </span>compiler.ast);
-            }
         }
-    }
-    parents::outdent::outdent(compiler);
-    set_output_append(<span class="kw-2">&amp;mut </span>compiler.ast, <span class="string">&quot;}\r\n&quot;</span>);
-    <span class="comment">//println!(&quot;AST_OUTPUT\r\n{:?}\r\n{:?}&quot;, ast.elements, ast.output);
-</span>}
 
-<span class="kw">pub fn </span>set_output_for_element_open(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) {
-    <span class="kw">if </span>el_index &lt; ast.elements.len() {
-        <span class="kw">let </span>element = ast.elements[el_index].clone();
-        <span class="kw">let </span>element_string = get_output_for_element_index(ast, el_index, <span class="bool-val">true</span>);
-        <span class="kw">match </span>element.<span class="number">0 </span>{
-            ElementInfo::Eol =&gt; set_output_append_no_indent(ast, <span class="kw-2">&amp;</span>element_string),
-            ElementInfo::Seol =&gt; set_output_append_no_indent(ast, <span class="kw-2">&amp;</span>element_string),
-            <span class="kw">_ </span>=&gt; set_output_append(ast, <span class="kw-2">&amp;</span>element_string),
-        }
+        <span class="kw">let </span>comma = <span class="kw">if </span>i == arguments.len() - <span class="number">1 </span>{
+            empty_string.clone()
+        } <span class="kw">else </span>{
+            <span class="string">&quot;, &quot;</span>.to_string()
+        };
+        args = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}{}&quot;</span>, args, borrow, arg, comma);
     }
+    <span class="macro">format!</span>(<span class="string">&quot;{}({})&quot;</span>, name, args)
 }
 
-<span class="kw">pub fn </span>set_output_for_element_close(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) {
+<span class="doccomment">/// Output for Parens
+</span><span class="kw">fn </span>get_output_for_parens(ast: <span class="kw-2">&amp;mut </span>Ast, children: Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
+        <span class="kw">let </span>child_ref = children[i];
+        <span class="kw">let </span>child = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
+        output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, output, child);
+    }
+    <span class="macro">format!</span>(<span class="string">&quot;({})&quot;</span>, output)
+}
+
+<span class="doccomment">/// Output for Println
+</span><span class="kw">fn </span>get_output_for_println(ast: <span class="kw-2">&amp;mut </span>Ast, children: Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..children.len() {
+        <span class="kw">let </span>child_ref = children[i];
+        <span class="kw">let </span>child = get_output_for_element_index(ast, child_ref, <span class="bool-val">false</span>);
+        output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, output, child);
+    }
+    <span class="macro">format!</span>(<span class="string">&quot;println!(\&quot;{{}}\&quot;, {})&quot;</span>, output)
+}
+
+<span class="doccomment">/// Output for If statement
+</span><span class="kw">fn </span>get_output_for_if(ast: <span class="kw-2">&amp;mut </span>Ast, children: Vec&lt;usize&gt;, returntype: String) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>output = <span class="string">&quot;&quot;</span>.to_string();
+    <span class="kw">if </span>children.len() &lt; <span class="number">3 </span>{
+        <span class="macro">dbg!</span>(<span class="string">&quot;output error&quot;</span>, <span class="kw-2">&amp;</span>returntype, <span class="kw-2">&amp;</span>children);
+    } <span class="kw">else </span>{
+        <span class="kw">let </span>child1_output = get_output_for_element_index(ast, children[<span class="number">0</span>], <span class="bool-val">false</span>);
+        output = <span class="macro">format!</span>(<span class="string">&quot;{}if {} {{&quot;</span>, output, child1_output);
+        <span class="kw">let </span>child2_output = get_output_for_element_index(ast, children[<span class="number">1</span>], <span class="bool-val">false</span>);
+        output = <span class="macro">format!</span>(
+            <span class="string">&quot;{}\r\n{}{}\r\n{}}} else {{&quot;</span>,
+            output,
+            <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len())),
+            child2_output,
+            <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len() - <span class="number">1</span>)),
+        );
+        <span class="kw">let </span>child3_output = get_output_for_element_index(ast, children[<span class="number">2</span>], <span class="bool-val">false</span>);
+        output = <span class="macro">format!</span>(
+            <span class="string">&quot;{}\r\n{}{}\r\n{}}}&quot;</span>,
+            output,
+            <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len())),
+            child3_output,
+            <span class="string">&quot; &quot;</span>.repeat(<span class="number">4 </span>* (ast.parents.len() - <span class="number">1</span>)),
+        );
+    }
+    <span class="comment">//parents::outdent::outdent(&amp;mut ast);
+
+    </span><span class="kw">return </span>output;
+}
+
+<span class="doccomment">/// Append the current element&#39;s formatted string to the output string
+</span><span class="kw">fn </span>set_output_for_element_open(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) {
+    <span class="kw">let </span>element_string = get_output_for_element_index(ast, el_index, <span class="bool-val">true</span>);
+    set_output_append(ast, <span class="kw-2">&amp;</span>element_string);
+}
+
+<span class="doccomment">/// Append an indented closing bracket for FunctionDef to the output string, or nothing
+</span><span class="kw">fn </span>set_output_for_element_close(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) {
     <span class="kw">if </span>el_index &lt; ast.elements.len() {
         <span class="kw">let </span>element = <span class="kw-2">&amp;</span>ast.elements[el_index];
         <span class="kw">let </span>element_string = <span class="kw">match </span>element.<span class="number">0 </span>{
@@ -897,11 +986,8 @@
     }
 }
 
-<span class="kw">pub fn </span>set_output_append(ast: <span class="kw-2">&amp;mut </span>Ast, append_string: <span class="kw-2">&amp;</span>str) {
-    ast.output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, ast.output, append_string);
-}
-
-<span class="kw">pub fn </span>set_output_append_no_indent(ast: <span class="kw-2">&amp;mut </span>Ast, append_string: <span class="kw-2">&amp;</span>str) {
+<span class="doccomment">/// Append a string to the output string
+</span><span class="kw">fn </span>set_output_append(ast: <span class="kw-2">&amp;mut </span>Ast, append_string: <span class="kw-2">&amp;</span>str) {
     ast.output = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, ast.output, append_string);
 }
 </code></pre></div>
