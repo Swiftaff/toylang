@@ -1,4 +1,4 @@
-/*! AST containing adjacenct list of Elements, output string, parents array
+/*! AST containing adjacency list of Elements, output string, parents array
  */
 pub mod elements;
 pub mod output;
