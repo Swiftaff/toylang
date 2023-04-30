@@ -599,7 +599,7 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
     elements::append::functiontypesig_or_functionreference_start(compiler)
 }
 
-/// Parses a Fn type signnature, or end of a FnRef
+/// Parses a Fn type signature, or end of a FnRef
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!(
         "parse::functiontypesig_or_functionreference_end {:?}",
@@ -736,4 +736,169 @@ pub fn strip_trailing_whitespace(input: &String) -> String {
         return "".to_string();
     }
     input[..first_non_whitespace_index].to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_integer() {
+        let test_case_passes = [
+            "1",
+            "123",
+            "1234567890",
+            "9223372036854775807",
+            "-1",
+            "-123",
+            "-1234567890",
+            "-9223372036854775808",
+        ];
+        for test in test_case_passes {
+            let input = &test.to_string();
+            assert!(is_integer(input));
+        }
+        let test_case_fails = ["1a", "9223372036854775808", "-1a", "-9223372036854775809"];
+        for test in test_case_fails {
+            let input = &test.to_string();
+            assert!(!is_integer(input));
+        }
+    }
+
+    #[test]
+    fn test_is_float() {
+        let test_case_passes = [
+            "1.1",
+            "123.123",
+            "1234567890.123456789",
+            "1.7976931348623157E+308",
+            "-1.1",
+            "-123.123",
+            "-1234567890.123456789",
+            "-1.7976931348623157E+308",
+        ];
+        for test in test_case_passes {
+            let input = &test.to_string();
+            assert!(is_float(input));
+        }
+        let test_case_fails = [
+            "123",
+            "-123",
+            "1.1.1",
+            "1.7976931348623157E+309",
+            "-1.7976931348623157E+309",
+            "1.797693134E+8623157E+309",
+            "-1.79769313E+48623157E+309",
+        ];
+        for test in test_case_fails {
+            let input = &test.to_string();
+            assert!(!is_float(input));
+        }
+    }
+
+    #[test]
+    fn test_is_string() {
+        let test_case_passes = [
+            "\"1\"",
+            "\"123\"",
+            "\"1234567890\"",
+            "\"9223372036854775807\"",
+            "\"-1\"",
+            "\"-123\"",
+            "\"-1234567890\"",
+            "\"-9223372036854775808\"",
+        ];
+        for test in test_case_passes {
+            let input = &test.to_string();
+            assert!(is_string(input));
+        }
+        let test_case_fails = ["\"1a", "9223372036854775808\"", "'-1a'", ""];
+        for test in test_case_fails {
+            let input = &test.to_string();
+            assert!(!is_string(input));
+        }
+    }
+
+    #[test]
+    fn test_get_args_from_dyn_fn() {
+        let test_cases = ["()", "(i64", "(i64, i64)"];
+        let test_case_passes = [0, 1, 2];
+        for t in 0..test_case_passes.len() as usize {
+            let input = &test_cases[t].to_string();
+            let output = test_case_passes[t] as usize;
+            assert_eq!(get_args_from_dyn_fn(input), output);
+        }
+    }
+
+    #[test]
+    fn test_concatenate_vec_strings() {
+        let test_cases = [
+            vec!["1".to_string()],
+            vec!["1 2 3".to_string()],
+            vec!["1".to_string(), "1".to_string()],
+            vec!["1 2 3".to_string(), "1 2 3".to_string()],
+            vec![
+                "1 2 3".to_string(),
+                " 1 2 3".to_string(),
+                " 1 2 3".to_string(),
+                " 1 2 3".to_string(),
+            ],
+            vec![
+                "               \r\n1".to_string(),
+                "               \r\n1".to_string(),
+            ],
+            vec![
+                "               \r\n1 2 3".to_string(),
+                "               \r\n1 2 3".to_string(),
+            ],
+        ];
+        let test_case_passes = [
+            "1",
+            "1 2 3",
+            "11",
+            "1 2 31 2 3",
+            "1 2 3 1 2 3 1 2 3 1 2 3",
+            "               \r\n1               \r\n1",
+            "               \r\n1 2 3               \r\n1 2 3",
+        ];
+        for t in 0..test_case_passes.len() as usize {
+            let input = &test_cases[t];
+            let output = (&test_case_passes[t]).to_string();
+            assert_eq!(concatenate_vec_strings(input), output);
+        }
+    }
+
+    #[test]
+    fn test_strip_leading_whitespace() {
+        let test_case_passes = [
+            ["1", "1"],
+            ["1 2 3", "1 2 3"],
+            [" 1", "1"],
+            [" 1 2 3", "1 2 3"],
+            ["               \r\n1", "1"],
+            ["               \r\n1 2 3", "1 2 3"],
+        ];
+        for test in test_case_passes {
+            let input = &test[0].to_string();
+            let output = (&test[1]).to_string();
+            assert_eq!(strip_leading_whitespace(input), output);
+        }
+    }
+
+    #[test]
+    fn test_strip_trailing_whitespace() {
+        let test_case_passes = [
+            ["1", "1"],
+            ["1 2 3", "1 2 3"],
+            ["1 ", "1"],
+            ["1 2 3 ", "1 2 3"],
+            ["1               \r\n", "1"],
+            ["1 2 3               \r\n", "1 2 3"],
+        ];
+        for test in test_case_passes {
+            let input = &test[0].to_string();
+            let output = (&test[1]).to_string();
+            assert_eq!(strip_trailing_whitespace(input), output);
+        }
+    }
 }

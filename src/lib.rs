@@ -461,60 +461,6 @@ mod tests {
     use ast::parents;
 
     #[test]
-    fn test_is_integer() {
-        let test_case_passes = [
-            "1",
-            "123",
-            "1234567890",
-            "9223372036854775807",
-            "-1",
-            "-123",
-            "-1234567890",
-            "-9223372036854775808",
-        ];
-        for test in test_case_passes {
-            let input = &test.to_string();
-            assert!(parse::is_integer(input));
-        }
-        let test_case_fails = ["1a", "9223372036854775808", "-1a", "-9223372036854775809"];
-        for test in test_case_fails {
-            let input = &test.to_string();
-            assert!(!parse::is_integer(input));
-        }
-    }
-
-    #[test]
-    fn test_is_float() {
-        let test_case_passes = [
-            "1.1",
-            "123.123",
-            "1234567890.123456789",
-            "1.7976931348623157E+308",
-            "-1.1",
-            "-123.123",
-            "-1234567890.123456789",
-            "-1.7976931348623157E+308",
-        ];
-        for test in test_case_passes {
-            let input = &test.to_string();
-            assert!(parse::is_float(input));
-        }
-        let test_case_fails = [
-            "123",
-            "-123",
-            "1.1.1",
-            "1.7976931348623157E+309",
-            "-1.7976931348623157E+309",
-            "1.797693134E+8623157E+309",
-            "-1.79769313E+48623157E+309",
-        ];
-        for test in test_case_fails {
-            let input = &test.to_string();
-            assert!(!parse::is_float(input));
-        }
-    }
-
-    #[test]
     fn test_ast_walk() {
         /*
 
