@@ -1,3 +1,5 @@
+/*! Main Parser functions
+ */
 use crate::ast::parents;
 use crate::elements;
 use crate::elements::{Element, ElementInfo};
@@ -16,11 +18,7 @@ fn testy() {
 }
 */
 
-pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
-    // TODO error checking
-    elements::append::types(compiler, index_of_type)
-}
-
+/// While loop over the tokens in the current line
 pub fn current_line(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::current_line {:?}", ""));
     let tokens = compiler.lines_of_tokens[compiler.current_line].clone();
@@ -33,6 +31,7 @@ pub fn current_line(compiler: &mut Compiler) -> Result<(), ()> {
     Ok(())
 }
 
+/// Parse token, it's either an inbuiltFn, Arg, Type or something else
 pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()> {
     compiler.log(format!("parse::current_token {:?}", &tokens));
     let current_token = &tokens[compiler.current_line_token];
@@ -63,12 +62,15 @@ pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()>
             }
         }
         _ => match elements::get_inbuilt_type_index_by_name(&mut compiler.ast, &current_token) {
-            Some(index_of_type) => types(compiler, index_of_type),
+            Some(index_of_type) => elements::append::types(compiler, index_of_type),
             _ => token_by_first_chars(compiler, &current_token, &current_token_vec),
         },
     }
 }
 
+/// Parses something based on it's first character, if it's not been added as an inbuiltFn yet
+///
+/// The idea being to reduce this over time to make as many tokens as inbuiltFns, except new constant refs or values like ints, strings etc
 pub fn token_by_first_chars(
     compiler: &mut Compiler,
     current_token: &String,
@@ -159,6 +161,7 @@ pub fn token_by_first_chars(
     }
 }
 
+/// Parses a Comment single line
 pub fn comment_single_line(
     compiler: &mut Compiler,
     current_token_vec: &Vec<char>,
@@ -174,16 +177,19 @@ pub fn comment_single_line(
     elements::append::comment_single_line(compiler, val)
 }
 
+/// Parses a Println
 pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::println {:?}", ""));
     elements::append::println(compiler)
 }
 
+/// Parses a If
 pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::if_expression {:?}", ""));
     elements::append::if_expression(compiler)
 }
 
+/// Parses a String
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("parse::string {:?}", current_token));
     if is_string(&current_token) {
@@ -194,6 +200,7 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
     }
 }
 
+/// Parses an Int
 pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     //dbg!("parse_int - positive only for now");
     compiler.log(format!("parse::int {:?}", current_token));
@@ -217,6 +224,7 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     //errors::error_if_parent_is_invalid(compiler)
 }
 
+/// Parses a Float
 pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("parse::float {:?}", current_token));
     if current_token.len() > 0 && is_float(current_token) {
@@ -226,6 +234,7 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
     }
 }
 
+/// Parses a Constant - as a Constant, ConstantRef, Arg, FunctionDef, If - or an error
 pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("parse::constant {:?}", current_token));
     let el_option = elements::get_element_by_name(&compiler.ast, current_token);
@@ -300,12 +309,14 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
     return elements::append::new_constant_or_arg(compiler, current_token);
 }
 
+/// Parses as assignment
 pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     // TODO error checking
     compiler.log(format!("parse::assignment {:?}", ""));
     elements::append::assignment(compiler)
 }
 
+/// Parses an inbuiltFnCall
 pub fn inbuilt_function_call(
     compiler: &mut Compiler,
     current_token: &String,
@@ -319,6 +330,7 @@ pub fn inbuilt_function_call(
     elements::append::inbuilt_function_call(compiler, current_token, index_of_function)
 }
 
+/// Parses a FnCall
 pub fn function_call(
     compiler: &mut Compiler,
     current_token: &String,
@@ -331,17 +343,20 @@ pub fn function_call(
     elements::append::function_call1(compiler, current_token, index_of_function)
 }
 
+/// Parses an empty List
 pub fn list_empty(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::list_empty {:?}", ""));
     list_start(compiler)?;
     list_end(compiler)
 }
 
+/// Parses start of a List
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::list_start {:?}", ""));
     elements::append::list_start(compiler)
 }
 
+/// Parses end of a List
 pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::list_end {:?}", ""));
     let list = parents::get_current_parent_element_from_parents(&compiler.ast);
@@ -359,16 +374,19 @@ pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
     elements::append::seol_if_last_in_line(compiler)
 }
 
+/// Parses start of a FnDef
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::function_definition_start {:?}", ""));
     elements::append::function_definition_start(compiler)
 }
 
+/// Parses start of a Loop for range
 pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::loop_for_range_start {:?}", ""));
     elements::append::loop_for_range_start(compiler)
 }
 
+/// Parses end of a Loop for range
 pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::loop_end {:?}", ""));
     /* At the point you parse a loop end,
@@ -451,6 +469,7 @@ pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
     }
 }
 
+/// Parses end of a FnDef
 pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::function_definition_end {:?}", ""));
     /*
@@ -571,6 +590,7 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
 
 //TODO remember to error / or at least check if reusing arg names in nested functions
 
+/// Parses a Fn type signature or start of a fnRef
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!(
         "parse::functiontypesig_or_functionreference_start {:?}",
@@ -579,6 +599,7 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
     elements::append::functiontypesig_or_functionreference_start(compiler)
 }
 
+/// Parses a Fn type signnature, or end of a FnRef
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!(
         "parse::functiontypesig_or_functionreference_end {:?}",
@@ -587,6 +608,7 @@ pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Resu
     elements::append::functiontypesig_or_functionreference_end(compiler)
 }
 
+/// Checks if an Int
 pub fn is_integer(text: &String) -> bool {
     let mut is_valid = true;
     let all_chars_are_numeric = text.chars().into_iter().all(|c| c.is_numeric());
@@ -610,6 +632,7 @@ pub fn is_integer(text: &String) -> bool {
     is_valid
 }
 
+/// Checks if a Float
 pub fn is_float(text: &String) -> bool {
     let mut is_valid = true;
     let mut index_decimal_point = 0;
@@ -647,6 +670,7 @@ pub fn is_float(text: &String) -> bool {
     is_valid && has_one_decimal_point && (no_power_of_10 || has_one_power_of_10)
 }
 
+/// Checks if a string
 pub fn is_string(text: &String) -> bool {
     let mut is_valid = true;
     let char_vec: Vec<char> = text.chars().collect();
@@ -656,13 +680,16 @@ pub fn is_string(text: &String) -> bool {
     is_valid
 }
 
+/// Gets args from a Dyn Fn, e.g.
+///
+/// 0 args, e.g. "&dyn Fn() -> i64"         = 0 commas + 0 does match ()
+/// 1 args, e.g. "&dyn Fn(i64) -> i64"      = 0 commas + 1 does not match ()
+/// 2 args, e.g. "&dyn Fn(i64, i64) -> i64" = 1 comma  + 1 does not match ()
 pub fn get_args_from_dyn_fn(string: &String) -> usize {
     string.matches(",").count() + (!string.contains("()") as usize)
-    //0 args, e.g. "&dyn Fn() -> i64"         = 0 commas + 0 does match ()
-    //1 args, e.g. "&dyn Fn(i64) -> i64"      = 0 commas + 1 does not match ()
-    //2 args, e.g. "&dyn Fn(i64, i64) -> i64" = 1 comma  + 1 does not match ()
 }
 
+/// Concatenates a vec of tokens, used in a comment
 pub fn concatenate_vec_strings(tokens: &Tokens) -> String {
     let mut output = "".to_string();
     for i in 0..tokens.len() {
@@ -671,6 +698,7 @@ pub fn concatenate_vec_strings(tokens: &Tokens) -> String {
     output
 }
 
+/// Strips leading whitespace from a String
 pub fn strip_leading_whitespace(input: &String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
@@ -690,6 +718,7 @@ pub fn strip_leading_whitespace(input: &String) -> String {
     input[first_non_whitespace_index..].to_string()
 }
 
+/// Strips trailing whitespace from a String
 pub fn strip_trailing_whitespace(input: &String) -> String {
     let char_vec: Vec<char> = input.chars().collect();
     let mut checking_for_whitespace = true;
