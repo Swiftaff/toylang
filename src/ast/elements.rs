@@ -1,3 +1,8 @@
+/*! Elements are the individual nodes in the AST.
+ *
+ * Each is made of an ElementInfo like Int(Value), and a Vec of indexes, which are references to child Elements elsewhere in the AST.
+ */
+
 pub mod append;
 use crate::ast::elements;
 use crate::ast::parents;
@@ -37,7 +42,7 @@ pub enum ElementInfo {
     Root,            //children = lines of function contents
 }
 
-// this is fake function #1, only useful for copy/pasting all the elementinfo types!
+/// Fake function #1, only useful for copy/pasting all the elementinfo types!
 fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
     let replaceme = true;
     match el {
@@ -72,7 +77,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
     }
 }
 
-// this is a fake function #2, only useful for copy/pasting all the option_element types!
+/// Fake function #2, only useful for copy/pasting all the option_element types!
 fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
     let replaceme = true;
     match el_option {
@@ -107,8 +112,12 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
     }
 }
 
-type Value = String;
 pub type ElIndex = usize;
+pub type Elements = Vec<Element>;
+pub type Element = (ElementInfo, ElementChildren);
+pub type ElementChildren = Vec<ElIndex>;
+
+type Value = String;
 type From = usize;
 type To = usize;
 type ReturnType = String;
@@ -120,27 +129,8 @@ type ArgModifier = String;
 type ArgModifiers = Vec<ArgModifier>;
 type Format = String;
 type Scope = ElIndex;
-// no need to track parents in Element
-// should only ever be one per Element so can search for it each time
-// to save double handling parent/child refs in two places
 
-/*
-//this is not defined in the current crate because tuples are always foreign
-impl fmt::Debug for Element {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let children_debug = debug_flat_usize_array(&self.1);
-        let elinfo_debug = format!("{:?} {}", self.0, children_debug);
-        let el_debug = format!("{}\r\n", elinfo_debug);
-
-        write!(f, "{}", el_debug)
-    }
-}
-*/
-
-pub type Elements = Vec<Element>;
-pub type Element = (ElementInfo, ElementChildren);
-pub type ElementChildren = Vec<ElIndex>;
-
+/// Finds the original element referred to, e.g. when using a variable name
 pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
     if let Some(index) = get_constant_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
@@ -160,6 +150,7 @@ pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
     None
 }
 
+/// Get the index of the Arg based on its name
 pub fn get_arg_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Arg(n, _, _, _) => n == name,
@@ -167,6 +158,7 @@ pub fn get_arg_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     })
 }
 
+/// Get the index of the Type based on its name
 pub fn get_inbuilt_type_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Type(n) => n == name,
@@ -174,6 +166,7 @@ pub fn get_inbuilt_type_index_by_name(ast: &Ast, name: &String) -> Option<usize>
     })
 }
 
+/// Get the index of the Constant based on its name
 pub fn get_constant_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match elinfo {
         ElementInfo::Constant(n, _t) => n == name,
@@ -182,6 +175,7 @@ pub fn get_constant_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     })
 }
 
+/// Get the Constant based on its name
 pub fn get_constant_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
     if let Some(index) = get_constant_index_by_name(ast, name) {
         return Some(ast.elements[index].0.clone());
@@ -189,6 +183,7 @@ pub fn get_constant_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
     None
 }
 
+/// Get the index of the Function based on its name
 pub fn get_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
         ElementInfo::FunctionDef(n, _, _, _) => n == name,
@@ -196,7 +191,7 @@ pub fn get_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
         _ => false,
     })
 }
-
+/// Get the index of the InbuiltFn based on its name
 pub fn get_inbuilt_function_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
     ast.elements.iter().position(|(elinfo, _)| match &elinfo {
         ElementInfo::InbuiltFunctionDef(n, _, _, _, _, _) => n == name,
@@ -205,6 +200,7 @@ pub fn get_inbuilt_function_index_by_name(ast: &Ast, name: &String) -> Option<us
     })
 }
 
+/*
 pub fn _get_inbuilt_function_index_by_name_and_returntype(
     ast: &Ast,
     name: &String,
@@ -222,7 +218,9 @@ pub fn _get_inbuilt_function_index_by_name_and_returntype(
         _ => false,
     })
 }
+*/
 
+/// Get the inbuiltFn by its name
 pub fn get_inbuilt_function_by_name(ast: &Ast, name: &String) -> Option<ElementInfo> {
     if let Some(index) = get_inbuilt_function_index_by_name(ast, name) {
         return Some(ast.elements[index].0.clone());
@@ -230,6 +228,7 @@ pub fn get_inbuilt_function_by_name(ast: &Ast, name: &String) -> Option<ElementI
     None
 }
 
+/*
 pub fn _get_inbuilt_function_by_name_and_returntype(
     ast: &Ast,
     name: &String,
@@ -241,11 +240,14 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
     }
     None
 }
+*/
 
+/// Get last element in ast
 pub fn get_last_element(ast: &Ast) -> Element {
     ast.elements.last().unwrap().clone()
 }
 
+/// Get ElementInfo but with inferred type added
 pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize) -> ElementInfo {
     let el = ast.elements[el_index].clone();
     let el_type = get_elementinfo_type(ast, &el.0);
@@ -314,6 +316,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
     el.0
 }
 
+///Get the inferred type of an element where possible or ignore if not
 pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
     let el = ast.elements[el_index].clone();
     let el_info = &el.0;
@@ -369,6 +372,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
     get_elementinfo_type(ast, el_info)
 }
 
+/// Get inferred type of Arg
 pub fn get_infered_type_of_arg_element(
     ast: &Ast,
     el_info: &ElementInfo,
@@ -399,6 +403,7 @@ pub fn get_infered_type_of_arg_element(
     infered_type
 }
 
+/// Get inferred type of Constant
 pub fn get_infered_type_of_constant_element(ast: &Ast, el: &Element) -> String {
     let mut infered_type = "Undefined".to_string();
     match el.0 {
@@ -422,6 +427,7 @@ pub fn get_infered_type_of_constant_element(ast: &Ast, el: &Element) -> String {
     infered_type
 }
 
+/// Get inferred type of Constantref
 pub fn get_infered_type_of_constantref_element(ast: &Ast, refname: &String) -> String {
     let mut infered_type = "Undefined".to_string();
     if let Some(ElementInfo::Constant(_, returntype)) = get_constant_by_name(ast, &refname) {
@@ -430,6 +436,7 @@ pub fn get_infered_type_of_constantref_element(ast: &Ast, refname: &String) -> S
     infered_type
 }
 
+/// Get inferred type of InbuiltFnCall
 pub fn get_infered_type_of_inbuiltfunctioncall_element(
     ast: &Ast,
     func_call_el: &Element,
@@ -476,6 +483,7 @@ pub fn get_infered_type_of_inbuiltfunctioncall_element(
     infered_type
 }
 
+/// Get inferred type of FnCall
 pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> String {
     let undefined = "Undefined".to_string();
     if let Some(index) = get_function_index_by_name(ast, &name) {
@@ -495,6 +503,7 @@ pub fn get_infered_type_of_functioncall_element(ast: &Ast, name: &String) -> Str
     undefined
 }
 
+/// Get inferred type of If
 pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String {
     if children.len() > 1 {
         let second_child = &ast.elements[children[1]];
@@ -505,6 +514,7 @@ pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String
     }
 }
 
+/// Get type of an ElementInfo
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
     match elementinfo {
@@ -538,6 +548,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     }
 }
 
+/*
 pub fn _is_existing_constant(compiler: &mut Compiler) -> bool {
     compiler.log(format!("elements::is_existing_constant {:?}", ""));
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
@@ -545,26 +556,28 @@ pub fn _is_existing_constant(compiler: &mut Compiler) -> bool {
     if compiler.logs.len() == 150 {
         dbg!(compiler.logs.len(), &parent, &compiler.ast.parents);
     }
+*/
+/*
+//The below may be nonsense - it is not checking if there is a pre-existing constant of the same name!
+Instead replacing it with a function which will check all parents for containing "Arg"s like "Arg: n scope:24 (i64) [ ]"
 
-    /*
-    //The below may be nonsense - it is not checking if there is a pre-existing constant of the same name!
-    Instead replacing it with a function which will check all parents for containing "Arg"s like "Arg: n scope:24 (i64) [ ]"
-
-    match parent.0 {
-        ElementInfo::Assignment => {
-            parent_assignment_has_no_children = parent.1.len() == 0;
-            // then this constant is the first child of the assignment
-            // so it is the name of the constant (and not the value if it were the second child),
-            // and since constants are immutable it can't have the same name as a pre-existing constant
-            // so it is invalid!
-        }
-        _ => (),
+match parent.0 {
+    ElementInfo::Assignment => {
+        parent_assignment_has_no_children = parent.1.len() == 0;
+        // then this constant is the first child of the assignment
+        // so it is the name of the constant (and not the value if it were the second child),
+        // and since constants are immutable it can't have the same name as a pre-existing constant
+        // so it is invalid!
     }
-    */
-
+    _ => (),
+}
+*/
+/*
     parent_assignment_has_no_children
 }
+*/
 
+/// Replace a child ref of an element with a ref to another child
 pub fn replace_element_child(ast: &mut Ast, element_ref: usize, from: usize, to: usize) {
     let closure = |el_ref: usize| {
         if el_ref == from {
@@ -582,6 +595,7 @@ pub fn replace_element_child(ast: &mut Ast, element_ref: usize, from: usize, to:
     ast.elements[element_ref].1 = children;
 }
 
+/// Replace the WIP FuncDef placeholder, with the final FuncDef
 pub fn replace_funcdefwip_with_funcdef(
     compiler: &mut Compiler,
     children: &[usize],
@@ -602,6 +616,7 @@ pub fn replace_funcdefwip_with_funcdef(
     compiler.ast.elements[func_def_ref] = (new_funcdef, vec![]);
 }
 
+/// Get a vec of types based on child refs, assuming they are Types or Parens (containing a Dyn Fn with types)
 pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> Vec<String> {
     compiler.log(format!(
         "elements::get_argtypes_from_argtokens {:?}",
@@ -626,6 +641,7 @@ pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) 
     argtypes
 }
 
+/// Get returntype from children assuming one is a Type
 pub fn get_returntype_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> String {
     compiler.log(format!(
         "elements::get_returntype_from_argtokens {:?}",
@@ -639,6 +655,7 @@ pub fn get_returntype_from_argtokens(compiler: &mut Compiler, children: &[usize]
     };
 }
 
+/// Get argnames from Arg tokens, but also update Arg tokens returntypes at same time
 pub fn get_argnames_from_argtokens(
     compiler: &mut Compiler,
     children: &[usize],
@@ -648,8 +665,7 @@ pub fn get_argnames_from_argtokens(
         "elements::get_argnames_from_argtokens {:?} {:?}",
         children, argtypes
     ));
-    //get argnames from Arg tokens
-    //but also update Arg tokens returntypes at same time
+
     //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
     let mut argnames: Vec<String> = vec![];
     let num_args = children.len() / 2;
@@ -674,6 +690,7 @@ pub fn get_argnames_from_argtokens(
     argnames
 }
 
+/// Get Type sig of Dyn Fn
 pub fn get_formatted_dyn_fn_type_sig(
     compiler: &mut Compiler,
     paren_children: &Vec<usize>,

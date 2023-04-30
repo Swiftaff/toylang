@@ -962,7 +962,29 @@
 <a href="#962" id="962">962</a>
 <a href="#963" id="963">963</a>
 <a href="#964" id="964">964</a>
-</pre><pre class="rust"><code><span class="kw">pub mod </span>append;
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
+<a href="#975" id="975">975</a>
+<a href="#976" id="976">976</a>
+<a href="#977" id="977">977</a>
+<a href="#978" id="978">978</a>
+<a href="#979" id="979">979</a>
+<a href="#980" id="980">980</a>
+<a href="#981" id="981">981</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! Elements are the individual nodes in the AST.
+ *
+ * Each is made of an ElementInfo like Int(Value), and a Vec of indexes, which are references to child Elements elsewhere in the AST.
+ */
+
+</span><span class="kw">pub mod </span>append;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::formatting;
@@ -1001,7 +1023,7 @@
     </span>Root,            <span class="comment">//children = lines of function contents
 </span>}
 
-<span class="comment">// this is fake function #1, only useful for copy/pasting all the elementinfo types!
+<span class="doccomment">/// Fake function #1, only useful for copy/pasting all the elementinfo types!
 </span><span class="kw">fn </span>_cut_and_paste_element_infos(el: ElementInfo) -&gt; bool {
     <span class="kw">let </span>replaceme = <span class="bool-val">true</span>;
     <span class="kw">match </span>el {
@@ -1036,7 +1058,7 @@
     }
 }
 
-<span class="comment">// this is a fake function #2, only useful for copy/pasting all the option_element types!
+<span class="doccomment">/// Fake function #2, only useful for copy/pasting all the option_element types!
 </span><span class="kw">fn </span>_cut_and_paste_elements(el_option: <span class="prelude-ty">Option</span>&lt;Element&gt;) -&gt; bool {
     <span class="kw">let </span>replaceme = <span class="bool-val">true</span>;
     <span class="kw">match </span>el_option {
@@ -1071,8 +1093,12 @@
     }
 }
 
-<span class="kw">type </span>Value = String;
 <span class="kw">pub type </span>ElIndex = usize;
+<span class="kw">pub type </span>Elements = Vec&lt;Element&gt;;
+<span class="kw">pub type </span>Element = (ElementInfo, ElementChildren);
+<span class="kw">pub type </span>ElementChildren = Vec&lt;ElIndex&gt;;
+
+<span class="kw">type </span>Value = String;
 <span class="kw">type </span>From = usize;
 <span class="kw">type </span>To = usize;
 <span class="kw">type </span>ReturnType = String;
@@ -1084,28 +1110,9 @@
 <span class="kw">type </span>ArgModifiers = Vec&lt;ArgModifier&gt;;
 <span class="kw">type </span>Format = String;
 <span class="kw">type </span>Scope = ElIndex;
-<span class="comment">// no need to track parents in Element
-// should only ever be one per Element so can search for it each time
-// to save double handling parent/child refs in two places
 
-/*
-//this is not defined in the current crate because tuples are always foreign
-impl fmt::Debug for Element {
-    fn fmt(&amp;self, f: &amp;mut fmt::Formatter&lt;&#39;_&gt;) -&gt; fmt::Result {
-        let children_debug = debug_flat_usize_array(&amp;self.1);
-        let elinfo_debug = format!(&quot;{:?} {}&quot;, self.0, children_debug);
-        let el_debug = format!(&quot;{}\r\n&quot;, elinfo_debug);
-
-        write!(f, &quot;{}&quot;, el_debug)
-    }
-}
-*/
-
-</span><span class="kw">pub type </span>Elements = Vec&lt;Element&gt;;
-<span class="kw">pub type </span>Element = (ElementInfo, ElementChildren);
-<span class="kw">pub type </span>ElementChildren = Vec&lt;ElIndex&gt;;
-
-<span class="kw">pub fn </span>get_element_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;Element&gt; {
+<span class="doccomment">/// Finds the original element referred to, e.g. when using a variable name
+</span><span class="kw">pub fn </span>get_element_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;Element&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(index) = get_constant_index_by_name(ast, name) {
         <span class="kw">return </span><span class="prelude-val">Some</span>(ast.elements[index].clone());
     }
@@ -1124,21 +1131,24 @@ impl fmt::Debug for Element {
     <span class="prelude-val">None
 </span>}
 
-<span class="kw">pub fn </span>get_arg_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<span class="doccomment">/// Get the index of the Arg based on its name
+</span><span class="kw">pub fn </span>get_arg_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span>elinfo {
         ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
 
-<span class="kw">pub fn </span>get_inbuilt_type_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<span class="doccomment">/// Get the index of the Type based on its name
+</span><span class="kw">pub fn </span>get_inbuilt_type_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span>elinfo {
         ElementInfo::Type(n) =&gt; n == name,
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
 
-<span class="kw">pub fn </span>get_constant_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<span class="doccomment">/// Get the index of the Constant based on its name
+</span><span class="kw">pub fn </span>get_constant_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span>elinfo {
         ElementInfo::Constant(n, _t) =&gt; n == name,
         ElementInfo::ConstantRef(n, _t, _refname) =&gt; n == name,
@@ -1146,22 +1156,24 @@ impl fmt::Debug for Element {
     })
 }
 
-<span class="kw">pub fn </span>get_constant_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;ElementInfo&gt; {
+<span class="doccomment">/// Get the Constant based on its name
+</span><span class="kw">pub fn </span>get_constant_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;ElementInfo&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(index) = get_constant_index_by_name(ast, name) {
         <span class="kw">return </span><span class="prelude-val">Some</span>(ast.elements[index].<span class="number">0</span>.clone());
     }
     <span class="prelude-val">None
 </span>}
 
-<span class="kw">pub fn </span>get_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<span class="doccomment">/// Get the index of the Function based on its name
+</span><span class="kw">pub fn </span>get_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
         ElementInfo::FunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
         ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
         <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
     })
 }
-
-<span class="kw">pub fn </span>get_inbuilt_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+<span class="doccomment">/// Get the index of the InbuiltFn based on its name
+</span><span class="kw">pub fn </span>get_inbuilt_function_index_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
     ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
         ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; n == name,
         ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>),
@@ -1169,48 +1181,55 @@ impl fmt::Debug for Element {
     })
 }
 
-<span class="kw">pub fn </span>_get_inbuilt_function_index_by_name_and_returntype(
-    ast: <span class="kw-2">&amp;</span>Ast,
-    name: <span class="kw-2">&amp;</span>String,
-    returntype: <span class="kw-2">&amp;</span>String,
-) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
-    <span class="comment">//dbg!(returntype);
-    </span>ast.elements.iter().position(|(elinfo, <span class="kw">_</span>)| <span class="kw">match </span><span class="kw-2">&amp;</span>elinfo {
-        ElementInfo::InbuiltFunctionDef(n, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, r, <span class="kw">_</span>) =&gt; {
-            <span class="comment">//dbg!(&quot;here&quot;, n, r, name, returntype);
-            </span>n == name &amp;&amp; (r.contains(returntype) || returntype.contains(r))
+<span class="comment">/*
+pub fn _get_inbuilt_function_index_by_name_and_returntype(
+    ast: &amp;Ast,
+    name: &amp;String,
+    returntype: &amp;String,
+) -&gt; Option&lt;usize&gt; {
+    //dbg!(returntype);
+    ast.elements.iter().position(|(elinfo, _)| match &amp;elinfo {
+        ElementInfo::InbuiltFunctionDef(n, _, _, _, r, _) =&gt; {
+            //dbg!(&quot;here&quot;, n, r, name, returntype);
+            n == name &amp;&amp; (r.contains(returntype) || returntype.contains(r))
         }
-        ElementInfo::Arg(n, <span class="kw">_</span>, <span class="kw">_</span>, r) =&gt; {
-            n == name &amp;&amp; r.contains(<span class="string">&quot;&amp;dyn Fn&quot;</span>) &amp;&amp; r.contains(returntype)
+        ElementInfo::Arg(n, _, _, r) =&gt; {
+            n == name &amp;&amp; r.contains(&quot;&amp;dyn Fn&quot;) &amp;&amp; r.contains(returntype)
         }
-        <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
+        _ =&gt; false,
     })
 }
+*/
 
-<span class="kw">pub fn </span>get_inbuilt_function_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;ElementInfo&gt; {
+</span><span class="doccomment">/// Get the inbuiltFn by its name
+</span><span class="kw">pub fn </span>get_inbuilt_function_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;ElementInfo&gt; {
     <span class="kw">if let </span><span class="prelude-val">Some</span>(index) = get_inbuilt_function_index_by_name(ast, name) {
         <span class="kw">return </span><span class="prelude-val">Some</span>(ast.elements[index].<span class="number">0</span>.clone());
     }
     <span class="prelude-val">None
 </span>}
 
-<span class="kw">pub fn </span>_get_inbuilt_function_by_name_and_returntype(
-    ast: <span class="kw-2">&amp;</span>Ast,
-    name: <span class="kw-2">&amp;</span>String,
-    returntype: <span class="kw-2">&amp;</span>String,
-) -&gt; <span class="prelude-ty">Option</span>&lt;ElementInfo&gt; {
-    <span class="comment">//dbg!(returntype);
-    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(index) = _get_inbuilt_function_index_by_name_and_returntype(ast, name, returntype) {
-        <span class="kw">return </span><span class="prelude-val">Some</span>(ast.elements[index].<span class="number">0</span>.clone());
+<span class="comment">/*
+pub fn _get_inbuilt_function_by_name_and_returntype(
+    ast: &amp;Ast,
+    name: &amp;String,
+    returntype: &amp;String,
+) -&gt; Option&lt;ElementInfo&gt; {
+    //dbg!(returntype);
+    if let Some(index) = _get_inbuilt_function_index_by_name_and_returntype(ast, name, returntype) {
+        return Some(ast.elements[index].0.clone());
     }
-    <span class="prelude-val">None
-</span>}
+    None
+}
+*/
 
-<span class="kw">pub fn </span>get_last_element(ast: <span class="kw-2">&amp;</span>Ast) -&gt; Element {
+</span><span class="doccomment">/// Get last element in ast
+</span><span class="kw">pub fn </span>get_last_element(ast: <span class="kw-2">&amp;</span>Ast) -&gt; Element {
     ast.elements.last().unwrap().clone()
 }
 
-<span class="kw">pub fn </span>get_updated_elementinfo_with_infered_type(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) -&gt; ElementInfo {
+<span class="doccomment">/// Get ElementInfo but with inferred type added
+</span><span class="kw">pub fn </span>get_updated_elementinfo_with_infered_type(ast: <span class="kw-2">&amp;mut </span>Ast, el_index: usize) -&gt; ElementInfo {
     <span class="kw">let </span>el = ast.elements[el_index].clone();
     <span class="kw">let </span>el_type = get_elementinfo_type(ast, <span class="kw-2">&amp;</span>el.<span class="number">0</span>);
     <span class="kw">if </span>el_type == <span class="string">&quot;Undefined&quot;</span>.to_string() || el_type.contains(<span class="string">&quot;|&quot;</span>) {
@@ -1278,7 +1297,8 @@ impl fmt::Debug for Element {
     el.<span class="number">0
 </span>}
 
-<span class="kw">pub fn </span>get_infered_type_of_any_element(ast: <span class="kw-2">&amp;</span>Ast, el_index: usize) -&gt; String {
+<span class="doccomment">///Get the inferred type of an element where possible or ignore if not
+</span><span class="kw">pub fn </span>get_infered_type_of_any_element(ast: <span class="kw-2">&amp;</span>Ast, el_index: usize) -&gt; String {
     <span class="kw">let </span>el = ast.elements[el_index].clone();
     <span class="kw">let </span>el_info = <span class="kw-2">&amp;</span>el.<span class="number">0</span>;
     <span class="kw">match </span>el_info {
@@ -1333,7 +1353,8 @@ impl fmt::Debug for Element {
     get_elementinfo_type(ast, el_info)
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_arg_element(
+<span class="doccomment">/// Get inferred type of Arg
+</span><span class="kw">pub fn </span>get_infered_type_of_arg_element(
     ast: <span class="kw-2">&amp;</span>Ast,
     el_info: <span class="kw-2">&amp;</span>ElementInfo,
     el_index: usize,
@@ -1363,7 +1384,8 @@ impl fmt::Debug for Element {
     infered_type
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_constant_element(ast: <span class="kw-2">&amp;</span>Ast, el: <span class="kw-2">&amp;</span>Element) -&gt; String {
+<span class="doccomment">/// Get inferred type of Constant
+</span><span class="kw">pub fn </span>get_infered_type_of_constant_element(ast: <span class="kw-2">&amp;</span>Ast, el: <span class="kw-2">&amp;</span>Element) -&gt; String {
     <span class="kw">let </span><span class="kw-2">mut </span>infered_type = <span class="string">&quot;Undefined&quot;</span>.to_string();
     <span class="kw">match </span>el.<span class="number">0 </span>{
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
@@ -1386,7 +1408,8 @@ impl fmt::Debug for Element {
     infered_type
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_constantref_element(ast: <span class="kw-2">&amp;</span>Ast, refname: <span class="kw-2">&amp;</span>String) -&gt; String {
+<span class="doccomment">/// Get inferred type of Constantref
+</span><span class="kw">pub fn </span>get_infered_type_of_constantref_element(ast: <span class="kw-2">&amp;</span>Ast, refname: <span class="kw-2">&amp;</span>String) -&gt; String {
     <span class="kw">let </span><span class="kw-2">mut </span>infered_type = <span class="string">&quot;Undefined&quot;</span>.to_string();
     <span class="kw">if let </span><span class="prelude-val">Some</span>(ElementInfo::Constant(<span class="kw">_</span>, returntype)) = get_constant_by_name(ast, <span class="kw-2">&amp;</span>refname) {
         infered_type = returntype
@@ -1394,7 +1417,8 @@ impl fmt::Debug for Element {
     infered_type
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_inbuiltfunctioncall_element(
+<span class="doccomment">/// Get inferred type of InbuiltFnCall
+</span><span class="kw">pub fn </span>get_infered_type_of_inbuiltfunctioncall_element(
     ast: <span class="kw-2">&amp;</span>Ast,
     func_call_el: <span class="kw-2">&amp;</span>Element,
     funcdef_el_index: usize,
@@ -1440,7 +1464,8 @@ impl fmt::Debug for Element {
     infered_type
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_functioncall_element(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; String {
+<span class="doccomment">/// Get inferred type of FnCall
+</span><span class="kw">pub fn </span>get_infered_type_of_functioncall_element(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; String {
     <span class="kw">let </span>undefined = <span class="string">&quot;Undefined&quot;</span>.to_string();
     <span class="kw">if let </span><span class="prelude-val">Some</span>(index) = get_function_index_by_name(ast, <span class="kw-2">&amp;</span>name) {
         <span class="kw">let </span>funcdef = <span class="kw-2">&amp;</span>ast.elements[index];
@@ -1459,7 +1484,8 @@ impl fmt::Debug for Element {
     undefined
 }
 
-<span class="kw">pub fn </span>get_infered_type_of_if_element(ast: <span class="kw-2">&amp;</span>Ast, children: Vec&lt;usize&gt;) -&gt; String {
+<span class="doccomment">/// Get inferred type of If
+</span><span class="kw">pub fn </span>get_infered_type_of_if_element(ast: <span class="kw-2">&amp;</span>Ast, children: Vec&lt;usize&gt;) -&gt; String {
     <span class="kw">if </span>children.len() &gt; <span class="number">1 </span>{
         <span class="kw">let </span>second_child = <span class="kw-2">&amp;</span>ast.elements[children[<span class="number">1</span>]];
         get_elementinfo_type(ast, <span class="kw-2">&amp;</span>second_child.<span class="number">0</span>)
@@ -1469,7 +1495,8 @@ impl fmt::Debug for Element {
     }
 }
 
-<span class="kw">pub fn </span>get_elementinfo_type(ast: <span class="kw-2">&amp;</span>Ast, elementinfo: <span class="kw-2">&amp;</span>ElementInfo) -&gt; String {
+<span class="doccomment">/// Get type of an ElementInfo
+</span><span class="kw">pub fn </span>get_elementinfo_type(ast: <span class="kw-2">&amp;</span>Ast, elementinfo: <span class="kw-2">&amp;</span>ElementInfo) -&gt; String {
     <span class="kw">let </span>undefined = <span class="string">&quot;Undefined&quot;</span>.to_string();
     <span class="kw">match </span>elementinfo {
         ElementInfo::List(returntype) =&gt; returntype.clone(),
@@ -1502,34 +1529,37 @@ impl fmt::Debug for Element {
     }
 }
 
-<span class="kw">pub fn </span>_is_existing_constant(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; bool {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;elements::is_existing_constant {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
-    <span class="kw">let </span>parent = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
-    <span class="kw">let </span>parent_assignment_has_no_children = <span class="bool-val">false</span>;
-    <span class="kw">if </span>compiler.logs.len() == <span class="number">150 </span>{
-        <span class="macro">dbg!</span>(compiler.logs.len(), <span class="kw-2">&amp;</span>parent, <span class="kw-2">&amp;</span>compiler.ast.parents);
+<span class="comment">/*
+pub fn _is_existing_constant(compiler: &amp;mut Compiler) -&gt; bool {
+    compiler.log(format!(&quot;elements::is_existing_constant {:?}&quot;, &quot;&quot;));
+    let parent = parents::get_current_parent_element_from_parents(&amp;compiler.ast);
+    let parent_assignment_has_no_children = false;
+    if compiler.logs.len() == 150 {
+        dbg!(compiler.logs.len(), &amp;parent, &amp;compiler.ast.parents);
     }
+*/
+/*
+//The below may be nonsense - it is not checking if there is a pre-existing constant of the same name!
+Instead replacing it with a function which will check all parents for containing &quot;Arg&quot;s like &quot;Arg: n scope:24 (i64) [ ]&quot;
 
-    <span class="comment">/*
-    //The below may be nonsense - it is not checking if there is a pre-existing constant of the same name!
-    Instead replacing it with a function which will check all parents for containing &quot;Arg&quot;s like &quot;Arg: n scope:24 (i64) [ ]&quot;
-
-    match parent.0 {
-        ElementInfo::Assignment =&gt; {
-            parent_assignment_has_no_children = parent.1.len() == 0;
-            // then this constant is the first child of the assignment
-            // so it is the name of the constant (and not the value if it were the second child),
-            // and since constants are immutable it can&#39;t have the same name as a pre-existing constant
-            // so it is invalid!
-        }
-        _ =&gt; (),
+match parent.0 {
+    ElementInfo::Assignment =&gt; {
+        parent_assignment_has_no_children = parent.1.len() == 0;
+        // then this constant is the first child of the assignment
+        // so it is the name of the constant (and not the value if it were the second child),
+        // and since constants are immutable it can&#39;t have the same name as a pre-existing constant
+        // so it is invalid!
     }
-    */
-
-    </span>parent_assignment_has_no_children
+    _ =&gt; (),
 }
+*/
+/*
+    parent_assignment_has_no_children
+}
+*/
 
-<span class="kw">pub fn </span>replace_element_child(ast: <span class="kw-2">&amp;mut </span>Ast, element_ref: usize, from: usize, to: usize) {
+</span><span class="doccomment">/// Replace a child ref of an element with a ref to another child
+</span><span class="kw">pub fn </span>replace_element_child(ast: <span class="kw-2">&amp;mut </span>Ast, element_ref: usize, from: usize, to: usize) {
     <span class="kw">let </span>closure = |el_ref: usize| {
         <span class="kw">if </span>el_ref == from {
             to
@@ -1546,7 +1576,8 @@ impl fmt::Debug for Element {
     ast.elements[element_ref].<span class="number">1 </span>= children;
 }
 
-<span class="kw">pub fn </span>replace_funcdefwip_with_funcdef(
+<span class="doccomment">/// Replace the WIP FuncDef placeholder, with the final FuncDef
+</span><span class="kw">pub fn </span>replace_funcdefwip_with_funcdef(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     children: <span class="kw-2">&amp;</span>[usize],
     name: <span class="kw-2">&amp;</span>String,
@@ -1566,7 +1597,8 @@ impl fmt::Debug for Element {
     </span>compiler.ast.elements[func_def_ref] = (new_funcdef, <span class="macro">vec!</span>[]);
 }
 
-<span class="kw">pub fn </span>get_argtypes_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; Vec&lt;String&gt; {
+<span class="doccomment">/// Get a vec of types based on child refs, assuming they are Types or Parens (containing a Dyn Fn with types)
+</span><span class="kw">pub fn </span>get_argtypes_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; Vec&lt;String&gt; {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_argtypes_from_argtokens {:?}&quot;</span>,
         children
@@ -1590,7 +1622,8 @@ impl fmt::Debug for Element {
     argtypes
 }
 
-<span class="kw">pub fn </span>get_returntype_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; String {
+<span class="doccomment">/// Get returntype from children assuming one is a Type
+</span><span class="kw">pub fn </span>get_returntype_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; String {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_returntype_from_argtokens {:?}&quot;</span>,
         children
@@ -1603,7 +1636,8 @@ impl fmt::Debug for Element {
     };
 }
 
-<span class="kw">pub fn </span>get_argnames_from_argtokens(
+<span class="doccomment">/// Get argnames from Arg tokens, but also update Arg tokens returntypes at same time
+</span><span class="kw">pub fn </span>get_argnames_from_argtokens(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     children: <span class="kw-2">&amp;</span>[usize],
     argtypes: <span class="kw-2">&amp;</span>Vec&lt;String&gt;,
@@ -1612,9 +1646,8 @@ impl fmt::Debug for Element {
         <span class="string">&quot;elements::get_argnames_from_argtokens {:?} {:?}&quot;</span>,
         children, argtypes
     ));
-    <span class="comment">//get argnames from Arg tokens
-    //but also update Arg tokens returntypes at same time
-    //TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
+
+    <span class="comment">//TODO make up mind about just using the Arg tokens as the definition of argnames/argtypes
     </span><span class="kw">let </span><span class="kw-2">mut </span>argnames: Vec&lt;String&gt; = <span class="macro">vec!</span>[];
     <span class="kw">let </span>num_args = children.len() / <span class="number">2</span>;
     <span class="kw">let </span>argname_refs = <span class="kw-2">&amp;</span>children[num_args + <span class="number">1</span>..];
@@ -1638,7 +1671,8 @@ impl fmt::Debug for Element {
     argnames
 }
 
-<span class="kw">pub fn </span>get_formatted_dyn_fn_type_sig(
+<span class="doccomment">/// Get Type sig of Dyn Fn
+</span><span class="kw">pub fn </span>get_formatted_dyn_fn_type_sig(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     paren_children: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;,
 ) -&gt; String {
