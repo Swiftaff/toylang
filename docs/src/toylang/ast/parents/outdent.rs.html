@@ -285,13 +285,34 @@
 <a href="#285" id="285">285</a>
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! Functions related to outdenting from inside a code block while parsing
+ */
+</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::parse;
 <span class="kw">use </span><span class="kw">crate</span>::Compiler;
 
-<span class="kw">pub fn </span>outdent(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
+<span class="doccomment">/// Main Outdent function
+///
+/// Removes last item from parents stack, to indicate that parser is moving out of current code block, and up a level to next sibling. Defaults to containing only root
+</span><span class="kw">pub fn </span>outdent(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::outdent {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     compiler.ast.parents = <span class="kw">if </span>compiler.ast.parents.len() &lt; <span class="number">2 </span>{
         <span class="macro">vec!</span>[<span class="number">0</span>]
@@ -300,7 +321,8 @@
     };
 }
 
-<span class="kw">pub fn </span>within_fndef_from_return_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
+<span class="doccomment">/// Outdents from within a FnDef, outdenting based on the return Element
+</span><span class="kw">pub fn </span>within_fndef_from_return_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;outdent::within_fndef_from_return_expression {:?}&quot;</span>,
         <span class="string">&quot;&quot;
@@ -412,7 +434,8 @@
     }
 }
 
-<span class="kw">pub fn </span>within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: <span class="kw-2">&amp;mut </span>Compiler, fndefref: usize) {
+<span class="doccomment">/// Outdents from within an InbuiltFnCall, inside inbuiltFnDef
+</span><span class="kw">pub fn </span>within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: <span class="kw-2">&amp;mut </span>Compiler, fndefref: usize) {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;outdent::within_fndef_for_inbuiltfncall_from_inbuiltfndef {:?}&quot;</span>,
         fndefref
@@ -441,6 +464,7 @@
 //    }
 //}
 
+</span><span class="doccomment">/// Outdents from within an InbuiltFnCall from inbuiltFnDef?
 </span><span class="kw">pub fn </span>inbuiltfncall_from_inbuiltfndef(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_parent: Element,
@@ -465,7 +489,8 @@
     }
 }
 
-<span class="kw">pub fn </span>within_fndef_for_fncall_from_fndef(compiler: <span class="kw-2">&amp;mut </span>Compiler, name: <span class="kw-2">&amp;</span>String) {
+<span class="doccomment">/// Outdents from within a FnDef for FnCall inside FnDef?
+</span><span class="kw">pub fn </span>within_fndef_for_fncall_from_fndef(compiler: <span class="kw-2">&amp;mut </span>Compiler, name: <span class="kw-2">&amp;</span>String) {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;outdent::within_fndef_for_fncall_from_fndef {:?}&quot;</span>,
         name
@@ -488,7 +513,8 @@
     }
 }
 
-<span class="kw">pub fn </span>fncall(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element, name: String) {
+<span class="doccomment">/// Outdents from FnCall
+</span><span class="kw">pub fn </span>fncall(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element, name: String) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::fncall {:?} {:?}&quot;</span>, current_parent, name));
     <span class="kw">match </span>current_parent.<span class="number">0 </span>{
         ElementInfo::Println =&gt; println(compiler, current_parent),
@@ -518,6 +544,7 @@
 //    }
 //}
 
+</span><span class="doccomment">/// Outdents from Println
 </span><span class="kw">pub fn </span>println(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::println {:?}&quot;</span>, current_parent));
     <span class="comment">//dbg!(&quot;outdent.println&quot;);
@@ -526,7 +553,8 @@
     }
 }
 
-<span class="kw">pub fn </span>constant(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
+<span class="doccomment">/// Outdents from Constant
+</span><span class="kw">pub fn </span>constant(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::constant {:?}&quot;</span>, current_parent));
     <span class="comment">//dbg!(&quot;Constant&quot;);
     </span><span class="kw">if </span>current_parent.<span class="number">1</span>.len() &gt; <span class="number">0 </span>{
@@ -534,7 +562,8 @@
     }
 }
 
-<span class="kw">pub fn </span>assignment(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
+<span class="doccomment">/// Outdents from Assignment
+</span><span class="kw">pub fn </span>assignment(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::assignment {:?}&quot;</span>, current_parent));
     <span class="comment">//dbg!(&quot;Assignment&quot;);
     </span><span class="kw">if </span>current_parent.<span class="number">1</span>.len() &gt; <span class="number">0 </span>{
@@ -542,7 +571,8 @@
     }
 }
 
-<span class="kw">pub fn </span>if_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
+<span class="doccomment">/// Outdents from If
+</span><span class="kw">pub fn </span>if_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_parent: Element) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;outdent::if_expression {:?}&quot;</span>, current_parent));
     <span class="comment">//dbg!(&quot;If&quot;);
     </span><span class="kw">if </span>current_parent.<span class="number">1</span>.len() &gt; <span class="number">2 </span>{
@@ -550,7 +580,8 @@
     }
 }
 
-<span class="kw">pub fn </span>functioncall_of_arg(compiler: <span class="kw-2">&amp;mut </span>Compiler, returntype: <span class="kw-2">&amp;</span>String, num_children: usize) {
+<span class="doccomment">/// Outdents from FnCall of Arg?
+</span><span class="kw">pub fn </span>functioncall_of_arg(compiler: <span class="kw-2">&amp;mut </span>Compiler, returntype: <span class="kw-2">&amp;</span>String, num_children: usize) {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;outdent::functioncall_of_arg {:?} {:?}&quot;</span>,
         returntype, num_children
@@ -563,7 +594,8 @@
     }
 }
 
-<span class="kw">pub fn </span>functioncall_of_functiondef(compiler: <span class="kw-2">&amp;mut </span>Compiler, num_children: usize, args: usize) {
+<span class="doccomment">/// Outdents from FnCall of FnDef?
+</span><span class="kw">pub fn </span>functioncall_of_functiondef(compiler: <span class="kw-2">&amp;mut </span>Compiler, num_children: usize, args: usize) {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;outdent::functioncall_of_functiondef {:?} {:?}&quot;</span>,
         num_children, args
