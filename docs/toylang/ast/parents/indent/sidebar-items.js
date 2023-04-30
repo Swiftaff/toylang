@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["indent",""],["indent_this",""]]};
+window.SIDEBAR_ITEMS = {"fn":[["indent","Indent by adding current parent to parent stack"],["indent_this","Indent by adding current index to parent stack"]]};
