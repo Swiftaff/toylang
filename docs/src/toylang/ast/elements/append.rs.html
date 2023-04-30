@@ -549,7 +549,44 @@
 <a href="#549" id="549">549</a>
 <a href="#550" id="550">550</a>
 <a href="#551" id="551">551</a>
-</pre><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
+<a href="#554" id="554">554</a>
+<a href="#555" id="555">555</a>
+<a href="#556" id="556">556</a>
+<a href="#557" id="557">557</a>
+<a href="#558" id="558">558</a>
+<a href="#559" id="559">559</a>
+<a href="#560" id="560">560</a>
+<a href="#561" id="561">561</a>
+<a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+</pre><pre class="rust"><code><span class="doccomment">/*! Functions to append each Element to the AST
+ */
+
+</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents::outdent;
@@ -557,7 +594,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::Ast;
 <span class="kw">use </span><span class="kw">crate</span>::Compiler;
 
-<span class="kw">pub fn </span>append(ast: <span class="kw-2">&amp;mut </span>Ast, element: Element) -&gt; usize {
+<span class="doccomment">/// Append Element
+</span><span class="kw">pub fn </span>append(ast: <span class="kw-2">&amp;mut </span>Ast, element: Element) -&gt; usize {
     <span class="comment">// add element to list, and add to list of children of current parent where 0 = root
     </span>ast.elements.push(element.clone());
     <span class="kw">let </span>new_items_index = ast.elements.len() - <span class="number">1</span>;
@@ -567,24 +605,26 @@
     </span>new_items_index
 }
 
-<span class="kw">pub fn </span>_append_as_ref(ast: <span class="kw-2">&amp;mut </span>Ast, element: Element) -&gt; usize {
-    <span class="comment">// add element to list only, don&#39;t add as child
-    </span>ast.elements.push(element);
-    <span class="kw">let </span>new_items_index = ast.elements.len() - <span class="number">1</span>;
+<span class="comment">/*
+pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
+    // add element to list only, don&#39;t add as child
+    ast.elements.push(element);
+    let new_items_index = ast.elements.len() - 1;
     new_items_index
 }
+*/
 
-<span class="kw">pub fn </span>types(compiler: <span class="kw-2">&amp;mut </span>Compiler, index_of_type: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+</span><span class="doccomment">/// Append the ref as a type as a child of current parent, except if parent is a list you can only have child elements as types
+/// to help define the list type in an empty list, e.g. List \[ f64 \]
+/// so just apply the type to the list now, and DON&#39;T add the type into the AST
+</span><span class="kw">pub fn </span>types(compiler: <span class="kw-2">&amp;mut </span>Compiler, index_of_type: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::types {:?}&quot;</span>, index_of_type));
     indent_if_first_in_line(compiler);
     <span class="kw">let </span>el = compiler.ast.elements[index_of_type].clone();
     <span class="kw">let </span>parent = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
     <span class="kw">match </span>parent.<span class="number">0 </span>{
         ElementInfo::List(<span class="kw">_</span>) =&gt; {
-            <span class="comment">// if parent is a list, you can&#39;t have child elements as types, except to help define the list type in an empty list, e.g.
-            // List [ f64 ]
-            // so just apply the type to the list, and DON&#39;T add the type into the AST
-            </span><span class="kw">let </span>list_ref = parents::get_current_parent_ref_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
+            <span class="kw">let </span>list_ref = parents::get_current_parent_ref_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
             <span class="kw">let </span>list_type = elements::get_elementinfo_type(<span class="kw-2">&amp;</span>compiler.ast, <span class="kw-2">&amp;</span>el.<span class="number">0</span>);
             <span class="comment">//dbg!(&amp;list_type);
             </span><span class="kw">let </span>vec_type = <span class="macro">format!</span>(<span class="string">&quot;Vec&lt;{}&gt;&quot;</span>, list_type);
@@ -597,16 +637,22 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub fn </span>indent_if_first_in_line(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
+<span class="doccomment">/// Append an indent if this is the first element in the line
+/// or if first part of the expression in a single line function (after the colon)
+/// e.g. the &quot;+ 123 arg1&quot;  in
+/// ```text
+///  &quot;= a \\ i64 i64 arg1 : + 123 arg1&quot;
+/// ```
+</span><span class="kw">pub fn </span>indent_if_first_in_line(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::indent_if_first_in_line {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
-    <span class="comment">//or if first part of the expression in a single line function (after the colon)
-    //e.g. the &quot;+ 123 arg1&quot;  in &quot;= a \\ i64 i64 arg1 : + 123 arg1&quot;
-    </span><span class="kw">if </span>compiler.current_line_token == <span class="number">0 </span>{
+
+    <span class="kw">if </span>compiler.current_line_token == <span class="number">0 </span>{
         append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Indent, <span class="macro">vec!</span>[]));
     }
 }
 
-<span class="kw">pub fn </span>comment_single_line(compiler: <span class="kw-2">&amp;mut </span>Compiler, val: String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Comment single line
+</span><span class="kw">pub fn </span>comment_single_line(compiler: <span class="kw-2">&amp;mut </span>Compiler, val: String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::comment_single_line {:?}&quot;</span>, val));
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Indent, <span class="macro">vec!</span>[]));
     append(
@@ -618,7 +664,8 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub fn </span>println(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Println
+</span><span class="kw">pub fn </span>println(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::println {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Indent, <span class="macro">vec!</span>[]));
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Println, <span class="macro">vec!</span>[]));
@@ -627,7 +674,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>if_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append If
+</span><span class="kw">pub fn </span>if_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::if_expression {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>undefined = <span class="string">&quot;Undefined&quot;</span>.to_string();
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Indent, <span class="macro">vec!</span>[]));
@@ -637,7 +685,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>string(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append String
+</span><span class="kw">pub fn </span>string(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::string {:?}&quot;</span>, current_token));
     indent_if_first_in_line(compiler);
     append(
@@ -649,14 +698,17 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>outdent_if_last_expected_child(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
+<span class="doccomment">/// Append outdent, if it is the last expected child of current parent
+///
+/// Loop upwards through parents until reaching root or some scenario causes no further progress.
+///
+/// For all parents check if we should outdent, since you may need to outdent multiple times
+/// depending on each parent
+</span><span class="kw">pub fn </span>outdent_if_last_expected_child(compiler: <span class="kw-2">&amp;mut </span>Compiler) {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::outdent_if_last_expected_child {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span><span class="kw-2">mut </span>prev_parents_len = <span class="number">999999999</span>;
 
-    <span class="comment">// loop upwards through parents until reaching root or some scenario causes no further progress.
-    // For all parents check if we should outdent, since you may need to outdent multiple times
-    // depending on each parent
-    </span><span class="kw">loop </span>{
+    <span class="kw">loop </span>{
         <span class="kw">let </span>parent_is_root = compiler.ast.parents.len() &lt; <span class="number">2</span>;
         <span class="kw">let </span>parent_is_same_as_last_time = compiler.ast.parents.len() == prev_parents_len;
         <span class="kw">if </span>parent_is_root || parent_is_same_as_last_time {
@@ -715,7 +767,8 @@
     }
 }
 
-<span class="kw">pub fn </span>seol_if_last_in_line(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append an SEOL (Semicolon and End of line) if the current element is last in this line
+</span><span class="kw">pub fn </span>seol_if_last_in_line(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::seol_if_last_in_line {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - <span class="number">1</span>;
@@ -779,7 +832,8 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub fn </span>is_return_expression(elinfo: <span class="kw-2">&amp;</span>ElementInfo) -&gt; bool {
+<span class="doccomment">/// Check if the ElementInfo is a return expression
+</span><span class="kw">pub fn </span>is_return_expression(elinfo: <span class="kw-2">&amp;</span>ElementInfo) -&gt; bool {
     <span class="kw">match </span>elinfo {
         ElementInfo::List(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
         ElementInfo::Int(<span class="kw">_</span>) =&gt; <span class="bool-val">true</span>,
@@ -811,7 +865,8 @@
     }
 }
 
-<span class="kw">pub fn </span>int(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Int
+</span><span class="kw">pub fn </span>int(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::int {:?}&quot;</span>, current_token));
     indent_if_first_in_line(compiler);
     append(
@@ -823,7 +878,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>float(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">///Append Float
+</span><span class="kw">pub fn </span>float(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::float {:?}&quot;</span>, current_token));
     indent_if_first_in_line(compiler);
     append(
@@ -835,7 +891,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>assignment(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Assignment
+</span><span class="kw">pub fn </span>assignment(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::assignment {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     indent_if_first_in_line(compiler);
     append(<span class="kw-2">&amp;mut </span>compiler.ast, ((ElementInfo::Assignment), <span class="macro">vec!</span>[]));
@@ -845,7 +902,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>inbuilt_function_call(
+<span class="doccomment">///Append InbuiltFnCall
+</span><span class="kw">pub fn </span>inbuilt_function_call(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token: <span class="kw-2">&amp;</span>String,
     index_of_function: usize,
@@ -882,7 +940,8 @@
     }
 }
 
-<span class="kw">pub fn </span>function_call1(
+<span class="doccomment">/// Append FnCall
+</span><span class="kw">pub fn </span>function_call1(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token: <span class="kw-2">&amp;</span>String,
     index_of_function: usize,
@@ -908,7 +967,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>list_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append start of a list
+</span><span class="kw">pub fn </span>list_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::list_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     indent_if_first_in_line(compiler);
     append(
@@ -920,7 +980,8 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub fn </span>function_definition_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append start of a FnDef
+</span><span class="kw">pub fn </span>function_definition_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::function_definition_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     indent_if_first_in_line(compiler);
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::FunctionDefWIP, <span class="macro">vec!</span>[]));
@@ -929,7 +990,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>loop_for_range_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append start of a loop for range
+</span><span class="kw">pub fn </span>loop_for_range_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::loop_for_range_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     indent_if_first_in_line(compiler);
     append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::LoopForRangeWIP, <span class="macro">vec!</span>[]));
@@ -938,7 +1000,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>functiontypesig_or_functionreference_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Fn type signature, or start of a FnRef
+</span><span class="kw">pub fn </span>functiontypesig_or_functionreference_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;append::functiontypesig_or_functionreference_start {:?}&quot;</span>,
         <span class="string">&quot;&quot;
@@ -950,7 +1013,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>functiontypesig_or_functionreference_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append Fn type signature, or end of a FnRef
+</span><span class="kw">pub fn </span>functiontypesig_or_functionreference_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(
         <span class="string">&quot;append::functiontypesig_or_functionreference_end {:?}&quot;</span>,
         <span class="string">&quot;&quot;
@@ -960,7 +1024,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>constant_ref(
+<span class="doccomment">/// Append ConstantRef
+</span><span class="kw">pub fn </span>constant_ref(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token: <span class="kw-2">&amp;</span>String,
     returntype: <span class="kw-2">&amp;</span>String,
@@ -986,7 +1051,8 @@
     seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>new_constant_or_arg(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+<span class="doccomment">/// Append a new constant, or an Argument if within a WIP FnDef
+</span><span class="kw">pub fn </span>new_constant_or_arg(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::new_constant_or_arg {:?}&quot;</span>, current_token));
     <span class="kw">let </span>typename = <span class="string">&quot;Undefined&quot;</span>.to_string();
     indent_if_first_in_line(compiler);
@@ -1029,7 +1095,8 @@
     </span>seol_if_last_in_line(compiler)
 }
 
-<span class="kw">pub fn </span>function_ref_or_call(
+<span class="doccomment">/// Append FnRef or FnCall
+</span><span class="kw">pub fn </span>function_ref_or_call(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token: <span class="kw-2">&amp;</span>String,
     args: usize,
@@ -1071,7 +1138,8 @@
     }
 }
 
-<span class="kw">pub fn </span>function_call(
+<span class="doccomment">/// Append FnCall
+</span><span class="kw">pub fn </span>function_call(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token: <span class="kw-2">&amp;</span>String,
     args: usize,

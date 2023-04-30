@@ -1,3 +1,6 @@
+/*! Functions to append each Element to the AST
+ */
+
 use crate::ast::elements;
 use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
@@ -6,6 +9,7 @@ use crate::errors;
 use crate::Ast;
 use crate::Compiler;
 
+/// Append Element
 pub fn append(ast: &mut Ast, element: Element) -> usize {
     // add element to list, and add to list of children of current parent where 0 = root
     ast.elements.push(element.clone());
@@ -16,13 +20,18 @@ pub fn append(ast: &mut Ast, element: Element) -> usize {
     new_items_index
 }
 
+/*
 pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
     // add element to list only, don't add as child
     ast.elements.push(element);
     let new_items_index = ast.elements.len() - 1;
     new_items_index
 }
+*/
 
+/// Append the ref as a type as a child of current parent, except if parent is a list you can only have child elements as types
+/// to help define the list type in an empty list, e.g. List \[ f64 \]
+/// so just apply the type to the list now, and DON'T add the type into the AST
 pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     compiler.log(format!("append::types {:?}", index_of_type));
     indent_if_first_in_line(compiler);
@@ -30,9 +39,6 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
     match parent.0 {
         ElementInfo::List(_) => {
-            // if parent is a list, you can't have child elements as types, except to help define the list type in an empty list, e.g.
-            // List [ f64 ]
-            // so just apply the type to the list, and DON'T add the type into the AST
             let list_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             let list_type = elements::get_elementinfo_type(&compiler.ast, &el.0);
             //dbg!(&list_type);
@@ -46,15 +52,21 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
     Ok(())
 }
 
+/// Append an indent if this is the first element in the line
+/// or if first part of the expression in a single line function (after the colon)
+/// e.g. the "+ 123 arg1"  in
+/// ```text
+///  "= a \\ i64 i64 arg1 : + 123 arg1"
+/// ```
 pub fn indent_if_first_in_line(compiler: &mut Compiler) {
     compiler.log(format!("append::indent_if_first_in_line {:?}", ""));
-    //or if first part of the expression in a single line function (after the colon)
-    //e.g. the "+ 123 arg1"  in "= a \\ i64 i64 arg1 : + 123 arg1"
+
     if compiler.current_line_token == 0 {
         append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
     }
 }
 
+/// Append Comment single line
 pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), ()> {
     compiler.log(format!("append::comment_single_line {:?}", val));
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
@@ -67,6 +79,7 @@ pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), (
     Ok(())
 }
 
+/// Append Println
 pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::println {:?}", ""));
     append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
@@ -76,6 +89,7 @@ pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+/// Append If
 pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::if_expression {:?}", ""));
     let undefined = "Undefined".to_string();
@@ -86,6 +100,7 @@ pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+/// Append String
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("append::string {:?}", current_token));
     indent_if_first_in_line(compiler);
@@ -98,13 +113,16 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
     seol_if_last_in_line(compiler)
 }
 
+/// Append outdent, if it is the last expected child of current parent
+///
+/// Loop upwards through parents until reaching root or some scenario causes no further progress.
+///
+/// For all parents check if we should outdent, since you may need to outdent multiple times
+/// depending on each parent
 pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
     compiler.log(format!("append::outdent_if_last_expected_child {:?}", ""));
     let mut prev_parents_len = 999999999;
 
-    // loop upwards through parents until reaching root or some scenario causes no further progress.
-    // For all parents check if we should outdent, since you may need to outdent multiple times
-    // depending on each parent
     loop {
         let parent_is_root = compiler.ast.parents.len() < 2;
         let parent_is_same_as_last_time = compiler.ast.parents.len() == prev_parents_len;
@@ -164,6 +182,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
     }
 }
 
+/// Append an SEOL (Semicolon and End of line) if the current element is last in this line
 pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::seol_if_last_in_line {:?}", ""));
     let is_last_token_in_this_line =
@@ -228,6 +247,7 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     Ok(())
 }
 
+/// Check if the ElementInfo is a return expression
 pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
     match elinfo {
         ElementInfo::List(_) => true,
@@ -260,6 +280,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
     }
 }
 
+/// Append Int
 pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("append::int {:?}", current_token));
     indent_if_first_in_line(compiler);
@@ -272,6 +293,7 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+///Append Float
 pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("append::float {:?}", current_token));
     indent_if_first_in_line(compiler);
@@ -284,6 +306,7 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
     seol_if_last_in_line(compiler)
 }
 
+/// Append Assignment
 pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::assignment {:?}", ""));
     indent_if_first_in_line(compiler);
@@ -294,6 +317,7 @@ pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+///Append InbuiltFnCall
 pub fn inbuilt_function_call(
     compiler: &mut Compiler,
     current_token: &String,
@@ -331,6 +355,7 @@ pub fn inbuilt_function_call(
     }
 }
 
+/// Append FnCall
 pub fn function_call1(
     compiler: &mut Compiler,
     current_token: &String,
@@ -357,6 +382,7 @@ pub fn function_call1(
     seol_if_last_in_line(compiler)
 }
 
+/// Append start of a list
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::list_start {:?}", ""));
     indent_if_first_in_line(compiler);
@@ -369,6 +395,7 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
     Ok(())
 }
 
+/// Append start of a FnDef
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::function_definition_start {:?}", ""));
     indent_if_first_in_line(compiler);
@@ -378,6 +405,7 @@ pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+/// Append start of a loop for range
 pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::loop_for_range_start {:?}", ""));
     indent_if_first_in_line(compiler);
@@ -387,6 +415,7 @@ pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
     seol_if_last_in_line(compiler)
 }
 
+/// Append Fn type signature, or start of a FnRef
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!(
         "append::functiontypesig_or_functionreference_start {:?}",
@@ -399,6 +428,7 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
     seol_if_last_in_line(compiler)
 }
 
+/// Append Fn type signature, or end of a FnRef
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!(
         "append::functiontypesig_or_functionreference_end {:?}",
@@ -409,6 +439,7 @@ pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Resu
     seol_if_last_in_line(compiler)
 }
 
+/// Append ConstantRef
 pub fn constant_ref(
     compiler: &mut Compiler,
     current_token: &String,
@@ -435,6 +466,7 @@ pub fn constant_ref(
     seol_if_last_in_line(compiler)
 }
 
+/// Append a new constant, or an Argument if within a WIP FnDef
 pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     compiler.log(format!("append::new_constant_or_arg {:?}", current_token));
     let typename = "Undefined".to_string();
@@ -478,6 +510,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
     seol_if_last_in_line(compiler)
 }
 
+/// Append FnRef or FnCall
 pub fn function_ref_or_call(
     compiler: &mut Compiler,
     current_token: &String,
@@ -520,6 +553,7 @@ pub fn function_ref_or_call(
     }
 }
 
+/// Append FnCall
 pub fn function_call(
     compiler: &mut Compiler,
     current_token: &String,
