@@ -217,17 +217,17 @@ impl Compiler {
         self.debug_step = step;
 
         if self.debug_step == 1 as usize {
-            dbg!("1");
+            //dbg!("1");
             let _result = self.file.get(&self.filepath);
         }
 
         if self.debug_step == 2 as usize {
-            println!("2");
+            //dbg!("2");
             self.set_lines_of_chars();
         }
 
         if self.debug_step == 3 as usize {
-            println!("3");
+            //dbg!("3");
             self.set_lines_of_tokens();
         }
 
@@ -235,13 +235,13 @@ impl Compiler {
             if self.debug_line < self.lines_of_tokens.len() {
                 let _result = self.main_loop_over_lines_of_tokens();
                 self.debug_line = self.debug_line + 1;
-                println!("4");
+                //dbg!("4");
             }
         }
 
         if self.debug_step == 5 as usize {
             self.ast.output = "".to_string();
-            println!("5");
+            //dbg!("5");
             output::set_output(self);
         }
 

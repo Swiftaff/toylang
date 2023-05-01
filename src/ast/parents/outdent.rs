@@ -35,10 +35,10 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
     let this_fn_ref = compiler.ast.parents[compiler.ast.parents.len() - 1];
     let this_fn_children = compiler.ast.elements[this_fn_ref].1.clone();
     if this_fn_children.len() < 2 {
-        dbg!(
-            "error in within_fndef_from_return_expression",
-            &compiler.ast
-        );
+        //dbg!(
+        //    "error in within_fndef_from_return_expression",
+        //    &compiler.ast
+        //);
         return ();
     }
     let last_child_ref = this_fn_children[this_fn_children.len() - 1];

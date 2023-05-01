@@ -1,13 +1,15 @@
 /*! Functions to append each Element to the AST
  */
 
-use crate::ast::elements;
+use crate::ast::elements::{self, ReturnType};
 use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
 use crate::ast::parents::outdent;
 use crate::errors;
 use crate::Ast;
 use crate::Compiler;
+
+use super::ArgModifier;
 
 /// Append Element
 pub fn append(ast: &mut Ast, element: Element) -> usize {
@@ -21,13 +23,45 @@ pub fn append(ast: &mut Ast, element: Element) -> usize {
 }
 
 /*
+/// Append element to end of AST (for reference purposes) but don't add as child to any element
 pub fn _append_as_ref(ast: &mut Ast, element: Element) -> usize {
-    // add element to list only, don't add as child
     ast.elements.push(element);
     let new_items_index = ast.elements.len() - 1;
     new_items_index
 }
 */
+
+/// Append to the end of the AST, but add as nth child of an existing element.
+/// If n is greater then the number of children, just add to the end.
+pub fn append_as_nth_child_of_elindex(
+    ast: &mut Ast,
+    element: Element,
+    parent_index: usize,
+    position: usize,
+) -> usize {
+    ast.elements.push(element);
+    let new_items_index = ast.elements.len() - 1;
+
+    let parent = ast.elements[parent_index].clone();
+    let parent_children = parent.1;
+    let mut new_children = vec![];
+
+    if position > parent_children.len() {
+        new_children = parent_children;
+        new_children.push(new_items_index);
+    } else {
+        for i in 0..parent_children.len() as usize {
+            new_children.push(parent_children[i]);
+            if i == position {
+                new_children.push(new_items_index);
+            }
+        }
+    }
+    // replace previous parent
+    ast.elements[parent_index].1 = new_children;
+
+    new_items_index
+}
 
 /// Append the ref as a type as a child of current parent, except if parent is a list you can only have child elements as types
 /// to help define the list type in an empty list, e.g. List \[ f64 \]
@@ -483,7 +517,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
                     ElementInfo::Arg(
                         current_token.clone(),
                         parent_ref,
-                        "Undefined".to_string(),
+                        ArgModifier::None,
                         "Undefined".to_string(),
                     ),
                     vec![],
@@ -525,31 +559,89 @@ pub fn function_ref_or_call(
     indent_if_first_in_line(compiler);
 
     let parent = parents::get_current_parent_element_from_parents(&mut compiler.ast);
-    //dbg!("penguin",&parent);
+    dbg!("!@!@!@", &parent);
     match parent.0 {
-        ElementInfo::Parens => {
-            // if parent is parens, then this is just a function reference
-            // don't treat it like a functionCall,
-            // just change the parent to be a ConstantRef
-            let new_constant_ref: Element = (
-                ElementInfo::ConstantRef(
-                    current_token.clone(),
-                    returntype.clone(),
-                    current_token.clone(),
-                ),
-                [].to_vec(),
-            );
-            //don't do this - already checked if parent is valid - it will throw a fn in parens error
-            //errors::error_if_parent_is_invalid(compiler)?;
+        ElementInfo::Parens => return handle_parens(compiler, current_token, returntype),
+        _ => return function_call(compiler, current_token, args, returntype, true),
+    }
 
-            let parent_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
-            compiler.ast.elements[parent_ref] = new_constant_ref;
-            return seol_if_last_in_line(compiler);
+    /// if parent is parens, then this is just a function reference, so swap out the parent parens to be a ConstantRef instead
+    fn handle_parens(
+        compiler: &mut Compiler,
+        current_token: &String,
+        returntype: &String,
+    ) -> Result<(), ()> {
+        let new_constant_ref: Element = (
+            ElementInfo::ConstantRef(
+                current_token.clone(),
+                returntype.clone(),
+                current_token.clone(),
+            ),
+            [].to_vec(),
+        );
+        let parens_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+        compiler.ast.elements[parens_ref] = new_constant_ref;
+
+        check_parens_parent(compiler, current_token, parens_ref);
+        return seol_if_last_in_line(compiler);
+    }
+
+    /// TODO look at again, may not be the best solution...
+    /// if parens parent is an InbuiltFunctionCall it is possible it is List.map with an argmodifier on this functioncall, if so, apply argmodifier.
+    /// start by getting the parens_parent
+    fn check_parens_parent(compiler: &mut Compiler, current_token: &String, parens_ref: usize) {
+        if let Some(parens_parent_ref) =
+            parents::get_current_parent_ref_from_element_children_search(&compiler.ast, parens_ref)
+        {
+            check_for_inbuiltfncall(compiler, parens_ref, parens_parent_ref);
         }
-        _ => {
-            //else it is a function call...
-            return function_call(compiler, current_token, args, returntype, true);
+    }
+
+    /// if the parens_parent is an inbuiltfncall, check the argmodifier
+    fn check_for_inbuiltfncall(
+        compiler: &mut Compiler,
+        parens_ref: usize,
+        parens_parent_ref: usize,
+    ) {
+        if let ElementInfo::InbuiltFunctionCall(name, index, returntype) =
+            compiler.ast.elements[parens_parent_ref].0.clone()
+        {
+            get_parens_index(compiler, parens_ref, parens_parent_ref, name);
         }
+    }
+
+    /// Assuming that an InbuiltFunctionCall's children are only Args (as ConstantRefs)
+    /// we can find out the index of the arg of this overall function
+    fn get_parens_index(
+        compiler: &mut Compiler,
+        parens_ref: usize,
+        parens_parent_ref: usize,
+        name: String,
+    ) {
+        let children = compiler.ast.elements[parens_parent_ref].1.clone();
+        if let Some(index) = children.into_iter().position(|v| v == parens_ref) {
+            get_fn_def(compiler, name, index);
+        }
+    }
+
+    /// Then get the matching fn_def of the inbuiltfncall, to get all it's argmodifiers
+    fn get_fn_def(compiler: &mut Compiler, name: String, index: usize) {
+        if let Some(ElementInfo::InbuiltFunctionDef(_, _, _, argmodifiers, _, _)) =
+            elements::get_inbuilt_function_by_name(&compiler.ast, &name)
+        {
+            get_fn_argmodifier(argmodifiers, index);
+        }
+    }
+
+    /// Get the single fn argmodifier for the fncall's Arg index
+    fn get_fn_argmodifier(argmodifiers: Vec<ArgModifier>, index: usize) {
+        if let ArgModifier::FnArg(fn_arg_modifier) = argmodifiers[index].clone() {
+            create_name_for_duplicate_function();
+        }
+    }
+
+    fn create_name_for_duplicate_function() {
+        dbg!("!@!@!@"); //, parens_ref, parens_parent_ref);
     }
 }
 

@@ -125,10 +125,17 @@ type Name = String;
 type RefName = String;
 type ArgNames = Vec<String>;
 type ArgTypes = Vec<String>;
-type ArgModifier = String;
+//type ArgModifier = String;
 type ArgModifiers = Vec<ArgModifier>;
 type Format = String;
 type Scope = ElIndex;
+
+#[derive(Clone, Debug)]
+pub enum ArgModifier {
+    Arg(String),
+    FnArg(Vec<String>),
+    None,
+}
 
 /// Finds the original element referred to, e.g. when using a variable name
 pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
@@ -286,7 +293,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
                 if el.1.len() > 1 {
                     second_child_type = get_infered_type_of_any_element(&ast, el.1[1]);
                 } else {
-                    dbg!(&el.1);
+                    //dbg!(&el.1);
                 }
                 return ElementInfo::If(second_child_type);
             }
@@ -509,7 +516,7 @@ pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String
         let second_child = &ast.elements[children[1]];
         get_elementinfo_type(ast, &second_child.0)
     } else {
-        dbg!("error in get_infered_type_of_if_element");
+        //dbg!("error in get_infered_type_of_if_element");
         "error".to_string()
     }
 }
@@ -554,7 +561,7 @@ pub fn _is_existing_constant(compiler: &mut Compiler) -> bool {
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
     let parent_assignment_has_no_children = false;
     if compiler.logs.len() == 150 {
-        dbg!(compiler.logs.len(), &parent, &compiler.ast.parents);
+        //dbg!(compiler.logs.len(), &parent, &compiler.ast.parents);
     }
 */
 /*
@@ -733,7 +740,7 @@ impl fmt::Debug for ElementInfo {
             ElementInfo::Bool(boolean) => format!("Bool: {}", boolean),
             ElementInfo::Arg(name, scope, argmodifier, returntype) => {
                 format!(
-                    "Arg: {} scope:{} argmodifier:({}) ({})",
+                    "Arg: {} scope:{} argmodifier:({:?}) ({})",
                     name, scope, argmodifier, returntype
                 )
             }

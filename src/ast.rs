@@ -4,7 +4,7 @@ pub mod elements;
 pub mod output;
 pub mod parents;
 
-use crate::ast::elements::{ElIndex, Element, ElementInfo, Elements};
+use crate::ast::elements::{ArgModifier, ElIndex, Element, ElementInfo, Elements};
 use std::fmt;
 
 /// AST containing Elements as an adjacency list of tree nodes.
@@ -52,7 +52,7 @@ impl Ast {
     }
 }
 
-/// Initialise a list of the internal functions - which are inserted "hidden" at the start of the AST after Root, but note noted as children of Root
+/// Initialise a list of the internal functions - which are inserted "hidden" at the start of the AST after Root, but not as children of Root
 /// They just sit there for later use, and before any real elements are added
 fn init() -> Vec<Element> {
     vec![]
@@ -110,7 +110,7 @@ fn init_boolean_fns() -> Elements {
                     "i64|f64|String|bool".to_string(),
                     "i64|f64|String|bool".to_string(),
                 ],
-                vec!["".to_string(), "".to_string()],
+                vec![ArgModifier::None, ArgModifier::None],
                 "bool".to_string(),
                 format!("arg~1 {} arg~2", bool_fn_name).to_string(),
             ),
@@ -129,7 +129,7 @@ fn init_initial_arithmetic_operators() -> Elements {
                 fn_name.to_string(),
                 vec!["arg~1".to_string(), "arg~2".to_string()],
                 vec!["i64|f64".to_string(), "i64|f64".to_string()],
-                vec!["".to_string(), "".to_string()],
+                vec![ArgModifier::None, ArgModifier::None],
                 "i64|f64".to_string(),
                 format!("arg~1 {} arg~2", fn_name).to_string(),
             ),
@@ -145,49 +145,55 @@ fn init_list_functions() -> Vec<elements::Element> {
     let list_fns = vec![
         (
             "map",
-            "arg~1.iter().map(|i: &~returntype~| arg~2(*i)).collect::<Vec<~returntype~>>()",
-            vec!["", "&"],
+            "arg~1.iter().map(arg~2).collect()",
+            //"arg~1.iter().map(|i: &~returntype~| arg~2(*i)).collect::<Vec<~returntype~>>()",
+            vec![ArgModifier::None, ArgModifier::FnArg(vec!["&".to_string()])],
             vecs,
             vecs,
         ),
         (
             "append",
             "arg~1.iter().cloned().chain(arg~2.iter().cloned()).collect()",
-            vec!["", ""],
+            vec![ArgModifier::None, ArgModifier::None],
             vecs,
             vecs,
         ),
         (
             "len",
             "arg~1.len() as i64",
-            vec!["", ""],
+            vec![ArgModifier::None, ArgModifier::None],
             vecs,
             "i64|f64|String",
         ),
     ];
-    let list_closure =
-        |(fn_name, output, modifier, argtype, returntype): (&str, &str, Vec<&str>, &str, &str)| {
-            let num_args = output.matches("arg~").count();
-            let mut arg_names: Vec<String> = vec![];
-            let mut arg_types: Vec<String> = vec![];
-            let mut arg_modifiers: Vec<String> = vec![];
-            for i in 0..num_args {
-                arg_names.push(format!("arg~{}", i + 1));
-                arg_modifiers.push(modifier[i].to_string());
-                arg_types.push(argtype.to_string());
-            }
-            (
-                ElementInfo::InbuiltFunctionDef(
-                    format!("List.{}", fn_name),
-                    arg_names,
-                    arg_types,
-                    arg_modifiers,
-                    returntype.to_string(),
-                    output.to_string(),
-                ),
-                vec![],
-            )
-        };
+    let list_closure = |(fn_name, output, modifier, argtype, returntype): (
+        &str,
+        &str,
+        Vec<ArgModifier>,
+        &str,
+        &str,
+    )| {
+        let num_args = output.matches("arg~").count();
+        let mut arg_names: Vec<String> = vec![];
+        let mut arg_types: Vec<String> = vec![];
+        let mut arg_modifiers: Vec<ArgModifier> = vec![];
+        for i in 0..num_args {
+            arg_names.push(format!("arg~{}", i + 1));
+            arg_modifiers.push(modifier[i].clone());
+            arg_types.push(argtype.to_string());
+        }
+        (
+            ElementInfo::InbuiltFunctionDef(
+                format!("List.{}", fn_name),
+                arg_names,
+                arg_types,
+                arg_modifiers,
+                returntype.to_string(),
+                output.to_string(),
+            ),
+            vec![],
+        )
+    };
     list_fns.into_iter().map(list_closure).collect()
 }
 
