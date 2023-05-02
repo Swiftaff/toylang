@@ -8,8 +8,6 @@ use crate::formatting;
 use crate::Ast;
 use crate::Compiler;
 
-use super::elements::ArgModifier;
-
 /// The main function to set the output string from the compiler
 ///
 /// Dynamically pushes and pops from a stack of root element children
@@ -303,13 +301,10 @@ fn get_output_for_list(ast: &mut Ast, children: Vec<usize>, returntype: String) 
 
 /// Output for InbuiltFnCall
 fn get_output_for_inbuiltfncall(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
-    //dbg!("InbuiltFunctionCall");
     if let Some(def) = elements::get_inbuilt_function_by_name(ast, &name) {
         match def.clone() {
-            ElementInfo::InbuiltFunctionDef(_, argnames, _, argmodifiers, _, format) => {
-                //dbg!(&argnames, &children);
+            ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _, format) => {
                 let mut output = format;
-                //dbg!(&output);
                 for i in 0..argnames.len() {
                     let arg_var_num = format!("arg~{}", i + 1);
                     if i >= children.len() {
@@ -317,120 +312,8 @@ fn get_output_for_inbuiltfncall(ast: &mut Ast, name: String, children: Vec<usize
                     } else {
                         let arg_value_el_ref = children[i];
                         let arg_output = get_output_for_element_index(ast, arg_value_el_ref, true);
-
-                        // partially implemented inserting argmodifiers into each function arg
-
-                        /*
-                        // TODO look at again, may not be the best solution...
-                        // Assuming that an InbuiltFunctionCall's children are only
-                        // Args as ConstantRefs i.e. refs to previously defined constants (or functions)
-                        // we will do the following so that the user does not need to be concerned with annotating modifiers in toylang functions.
-                        // Probably a niaive approach, but hey ho for now...
-
-                        // 1. if there is a modifier for this arg
-                        match argmodifiers[i].clone() {
-                            ArgModifier::Arg(argmodifier) => {
-                                // TODO handle argmodifier for this argument
-                                dbg!("#### ArgModifier::Arg", &argmodifier);
-                            }
-                            ArgModifier::FnArg(fn_argmodifiers) => {
-                                // handle argmodifiers for this argument, which is a function with it's own arguments
-                                dbg!("#### ArgModifier::FnArg", &fn_argmodifiers);
-
-                                // 2. find the constant from the children index
-                                let c_index = children[i];
-                                dbg!("#", c_index);
-
-                                // 3. if it is a constantref to a functiondef
-                                let el = ast.elements[c_index].0.clone();
-                                match el {
-                                    ElementInfo::ConstantRef(c_name, _, c_refname) => {
-                                        if let Some(fn_index_being_referenced) =
-                                            elements::get_function_index_by_name(ast, &c_refname)
-                                        {
-                                            // 3. create a new name for the duplicate fn e.g. constant_name & "_for_" & name_of_this_function
-                                            let new_fn_name = format!("{}_for_{}", c_name, name);
-
-                                            dbg!(
-                                                "# #",
-                                                &new_fn_name,
-                                                &c_refname,
-                                                &fn_index_being_referenced
-                                            );
-
-                                            // 4. check a previous arg hasn't already duplicated it first
-                                            if let None = elements::get_constant_index_by_name(
-                                                ast,
-                                                &new_fn_name,
-                                            ) {
-                                                // 5. if not, duplicate the function
-                                                dbg!(
-                                                    "# # # TODO insert fn",
-                                                    fn_index_being_referenced
-                                                );
-                                                let duplicate_fn =
-                                                    ast.elements[fn_index_being_referenced].clone();
-
-                                                match duplicate_fn.0 {
-                                                    ElementInfo::FunctionDef(
-                                                        _,
-                                                        argnames,
-                                                        argtypes,
-                                                        returntype,
-                                                    ) => {
-                                                        // 6. update the fn args with the fn arg modifiers
-                                                        let mut new_argtypes = argtypes.clone();
-                                                        for i in 0..argtypes.len() as usize {
-                                                            new_argtypes[i] = format!(
-                                                                "{}{}",
-                                                                fn_argmodifiers[i], new_argtypes[i]
-                                                            );
-                                                        }
-
-                                                        let new_duplicate_fn = (
-                                                            elements::ElementInfo::FunctionDef(
-                                                                new_fn_name,
-                                                                argnames,
-                                                                new_argtypes,
-                                                                returntype,
-                                                            ),
-                                                            duplicate_fn.1,
-                                                        );
-
-                                                        // 7. insert duplicate function into the AST, just after the existing fn, under its parent
-                                                        if let Some(parent_of_current_fn_ref) =  parents::get_current_parent_ref_from_element_children_search(ast, fn_index_being_referenced){
-                                                            dbg!("@@",parent_of_current_fn_ref);
-                                                            let parent = ast.elements[parent_of_current_fn_ref].clone();
-                                                            let children = parent.1;
-                                                            let current_fn_position = children.iter().position(|&r| r == fn_index_being_referenced).unwrap();
-                                                            elements::append::append_as_nth_child_of_elindex(
-                                                                ast,
-                                                                new_duplicate_fn,
-                                                                parent_of_current_fn_ref,
-                                                                current_fn_position+1
-                                                            );
-
-                                                            // TODO - check if output is the right place to do this? what if earlier AT has been rendered already
-
-                                                            // 8. and finally, switch out the reference from the original fn to the duplicate fn instead
-                                                        }
-
-
-                                                    }
-                                                    _ => (),
-                                                }
-                                            }
-                                        }
-                                    }
-                                    _ => (),
-                                }
-                            }
-                            ArgModifier::None => (),
-                        }
-                        */
                         output = output.replace(&arg_var_num, &arg_output);
                     }
-                    //dbg!("---",&arg_var_num,arg_value_el_ref,&arg_output,&output);
                 }
                 if children.len() > 0 && children.len() == (argnames.len() + 1) {
                     let last_child = elements::get_last_element(ast);

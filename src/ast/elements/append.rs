@@ -1,7 +1,7 @@
 /*! Functions to append each Element to the AST
  */
 
-use crate::ast::elements::{self, ReturnType};
+use crate::ast::elements;
 use crate::ast::elements::{Element, ElementInfo};
 use crate::ast::parents;
 use crate::ast::parents::outdent;
@@ -75,7 +75,6 @@ pub fn types(compiler: &mut Compiler, index_of_type: usize) -> Result<(), ()> {
         ElementInfo::List(_) => {
             let list_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             let list_type = elements::get_elementinfo_type(&compiler.ast, &el.0);
-            //dbg!(&list_type);
             let vec_type = format!("Vec<{}>", list_type);
             compiler.ast.elements[list_ref].0 = ElementInfo::List(vec_type);
         }
@@ -168,7 +167,6 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
         //decide if we should outdent based on current_parent
         let current_parent_ref = parents::get_current_parent_ref_from_parents(&mut compiler.ast);
         let current_parent = compiler.ast.elements[current_parent_ref].clone();
-        //dbg!("---", &compiler.ast);
         match current_parent.0.clone() {
             ElementInfo::Println => {
                 outdent::println(compiler, current_parent);
@@ -186,7 +184,6 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
                 outdent::within_fndef_from_return_expression(compiler);
             }
             ElementInfo::FunctionCall(name, _) => {
-                //dbg!("here2");
                 outdent::fncall(compiler, current_parent, name);
             }
             ElementInfo::If(_) => {
@@ -221,7 +218,6 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("append::seol_if_last_in_line {:?}", ""));
     let is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - 1;
-    //dbg!("test", is_last_token_in_this_line);
     let mut append_seol: bool = true;
     if is_last_token_in_this_line {
         for el_index in (0..compiler.ast.elements.len()).rev() {
@@ -274,7 +270,6 @@ pub fn seol_if_last_in_line(compiler: &mut Compiler) -> Result<(), ()> {
         // then don't add the semicolon, just the EOL
         if append_seol {
             //self.ast.append((ElementInfo::Eol, vec![]));
-            //dbg!("here",parent_of_first_el_option);
             append(&mut compiler.ast, (ElementInfo::Seol, vec![]));
         }
     }
@@ -538,9 +533,7 @@ pub fn new_constant_or_arg(compiler: &mut Compiler, current_token: &String) -> R
         }
     }
 
-    //dbg!("constant 1", &self.ast.parents);
     outdent_if_last_expected_child(compiler);
-    //dbg!("constant 2", &self.ast.parents);
     seol_if_last_in_line(compiler)
 }
 
@@ -555,11 +548,9 @@ pub fn function_ref_or_call(
         "append::function_ref_or_call {:?} {:?} {:?}",
         current_token, args, returntype
     ));
-    //dbg!("FunctionCall", &current_token);
     indent_if_first_in_line(compiler);
 
     let parent = parents::get_current_parent_element_from_parents(&mut compiler.ast);
-    dbg!("!@!@!@", &parent);
     match parent.0 {
         ElementInfo::Parens => return handle_parens(compiler, current_token, returntype),
         _ => return function_call(compiler, current_token, args, returntype, true),
@@ -604,7 +595,7 @@ pub fn function_ref_or_call(
         parens_parent_ref: usize,
         current_token: &String,
     ) {
-        if let ElementInfo::InbuiltFunctionCall(name, index, returntype) =
+        if let ElementInfo::InbuiltFunctionCall(name, _, _) =
             compiler.ast.elements[parens_parent_ref].0.clone()
         {
             get_parens_index(compiler, parens_ref, parens_parent_ref, name, current_token);
@@ -621,16 +612,8 @@ pub fn function_ref_or_call(
         current_token: &String,
     ) {
         let children = compiler.ast.elements[parens_parent_ref].1.clone();
-        dbg!("$$$$$$$", parens_parent_ref, parens_ref);
         if let Some(index) = children.into_iter().position(|v| v == parens_ref) {
-            get_fn_def(
-                compiler,
-                name,
-                index,
-                current_token,
-                parens_parent_ref,
-                parens_ref,
-            );
+            get_fn_def(compiler, name, index, current_token, parens_ref);
         }
     }
 
@@ -640,7 +623,6 @@ pub fn function_ref_or_call(
         name: String,
         index: usize,
         current_token: &String,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
         if let Some(ElementInfo::InbuiltFunctionDef(_, _, _, argmodifiers, _, _)) =
@@ -652,7 +634,6 @@ pub fn function_ref_or_call(
                 index,
                 name,
                 current_token,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -665,7 +646,6 @@ pub fn function_ref_or_call(
         index: usize,
         name: String,
         current_token: &String,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
         if let ArgModifier::FnArg(fn_arg_modifier) = argmodifiers[index].clone() {
@@ -674,7 +654,6 @@ pub fn function_ref_or_call(
                 name,
                 current_token,
                 fn_arg_modifier,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -687,7 +666,6 @@ pub fn function_ref_or_call(
         name: String,
         current_token: &String,
         fn_arg_modifier: Vec<String>,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
         let name_with_no_dots = name.replace(".", "__");
@@ -698,7 +676,6 @@ pub fn function_ref_or_call(
                 current_token,
                 new_fn_name,
                 fn_arg_modifier,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -710,16 +687,8 @@ pub fn function_ref_or_call(
         name: &String,
         new_fn_name: String,
         fn_arg_modifier: Vec<String>,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
-        dbg!(
-            "@1",
-            &name,
-            &new_fn_name,
-            &fn_arg_modifier,
-            elements::get_function_index_by_name(&compiler.ast, &name)
-        );
         if let Some(fn_index_being_referenced) =
             elements::get_function_index_by_name(&compiler.ast, &name)
         {
@@ -742,7 +711,6 @@ pub fn function_ref_or_call(
                     compiler,
                     fn_index_being_referenced,
                     duplicate_fn,
-                    parens_parent_ref,
                     parens_ref,
                     new_fn_name,
                 );
@@ -754,7 +722,6 @@ pub fn function_ref_or_call(
             compiler: &mut Compiler,
             fn_index_being_referenced: usize,
             duplicate_fn: Element,
-            parens_parent_ref: usize,
             parens_ref: usize,
             new_fn_name: String,
         ) {
@@ -764,51 +731,31 @@ pub fn function_ref_or_call(
                     fn_index_being_referenced,
                 )
             {
-                dbg!("@@", parent_of_current_fn_ref);
                 let parent = compiler.ast.elements[parent_of_current_fn_ref].clone();
                 let children = parent.1;
                 let current_fn_position = children
                     .iter()
                     .position(|&r| r == fn_index_being_referenced)
                     .unwrap();
-                let new_fn_ref = elements::append::append_as_nth_child_of_elindex(
+                elements::append::append_as_nth_child_of_elindex(
                     &mut compiler.ast,
                     duplicate_fn.clone(),
                     parent_of_current_fn_ref,
                     current_fn_position + 1,
                 );
 
-                switch_old_fn_ref_for_new(
-                    compiler,
-                    parens_parent_ref,
-                    fn_index_being_referenced,
-                    new_fn_ref,
-                    parens_ref,
-                    new_fn_name,
-                );
+                switch_old_fn_ref_for_new(compiler, parens_ref, new_fn_name);
             }
         }
 
         /// And finally, switch out the reference from the original fn to the duplicate fn instead
         fn switch_old_fn_ref_for_new(
             compiler: &mut Compiler,
-            parens_parent_ref: usize,
-            fn_index_being_referenced: usize,
-            new_fn_ref: usize,
             parens_ref: usize,
             new_fn_name: String,
         ) {
-            dbg!(
-                "!@!@!@",
-                parens_parent_ref,
-                fn_index_being_referenced,
-                new_fn_ref,
-                parens_ref
-            );
             let constant_ref_for_current_fn = compiler.ast.elements[parens_ref].clone();
-            dbg!("xoxoxox", &constant_ref_for_current_fn);
             if let ElementInfo::ConstantRef(_, returntype, _) = constant_ref_for_current_fn.0 {
-                dbg!("xoxoxox");
                 compiler.ast.elements[parens_ref] = (
                     ElementInfo::ConstantRef(new_fn_name.clone(), returntype, new_fn_name),
                     constant_ref_for_current_fn.1,

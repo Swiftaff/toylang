@@ -22,7 +22,7 @@ lazy_static::lazy_static! {
 /// where each test is a tuple containing these three items as strings.
 /// The last two are generated, one for tests, the other for doctests
 struct DocTestOrTest {
-    fn_name: syn::LitStr,
+    _fn_name: syn::LitStr,
     toylang_input: syn::LitStr,
     expected_rust_output: syn::LitStr,
     //
@@ -56,7 +56,7 @@ impl Parse for DocTestOrTest {
 
         // return
         Ok(DocTestOrTest {
-            fn_name,
+            _fn_name: fn_name,
             toylang_input,
             expected_rust_output,
             fn_name_for_test,
@@ -87,7 +87,7 @@ impl Parse for TestIndex {
 #[proc_macro]
 pub fn generate_single_doctest(input: TokenStream) -> TokenStream {
     let DocTestOrTest {
-        fn_name: _,
+        _fn_name: _,
         toylang_input,
         expected_rust_output,
         fn_name_for_test: _,
@@ -126,7 +126,7 @@ pub fn call_to_generate_single_doctest(input: TokenStream) -> TokenStream {
 
 /// No input needed, just call it once and it loops over ALL_TESTS, calling proc macro above
 #[proc_macro]
-pub fn call_to_generate_all_doctests(input: TokenStream) -> TokenStream {
+pub fn call_to_generate_all_doctests(_input: TokenStream) -> TokenStream {
     let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
     let output = quote! {
         #(
@@ -142,7 +142,7 @@ pub fn call_to_generate_all_doctests(input: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn generate_single_test(input: TokenStream) -> TokenStream {
     let DocTestOrTest {
-        fn_name: _,
+        _fn_name: _,
         toylang_input,
         expected_rust_output,
         fn_name_for_test,
@@ -174,7 +174,7 @@ pub fn call_to_generate_single_test(input: TokenStream) -> TokenStream {
 
 /// No input needed, just call it once and it loops over ALL_TESTS, calling proc macro above
 #[proc_macro]
-pub fn call_to_generate_all_tests(input: TokenStream) -> TokenStream {
+pub fn call_to_generate_all_tests(_input: TokenStream) -> TokenStream {
     let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
     let output = quote! {
         #(
