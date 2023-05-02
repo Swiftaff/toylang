@@ -228,6 +228,13 @@
 <a href="#228" id="228">228</a>
 <a href="#229" id="229">229</a>
 <a href="#230" id="230">230</a>
+<a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! AST containing adjacency list of Elements, output string, parents array
  */
 </span><span class="kw">pub mod </span>elements;
@@ -391,9 +398,16 @@
         (
             <span class="string">&quot;len&quot;</span>,
             <span class="string">&quot;arg~1.len() as i64&quot;</span>,
-            <span class="macro">vec!</span>[ArgModifier::None, ArgModifier::None],
+            <span class="macro">vec!</span>[ArgModifier::None],
             vecs,
             <span class="string">&quot;i64|f64|String&quot;</span>,
+        ),
+        (
+            <span class="string">&quot;reverse&quot;</span>,
+            <span class="string">&quot;arg~1.into_iter().rev().collect()&quot;</span>,
+            <span class="macro">vec!</span>[ArgModifier::None],
+            vecs,
+            vecs,
         ),
     ];
     <span class="kw">let </span>list_closure = |(fn_name, output, modifier, argtype, returntype): (
