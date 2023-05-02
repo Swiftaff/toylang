@@ -1,7 +1,7 @@
 <img align="left" width="80" alt="Toylang" src="./icon.png">
 <h1>Toylang</h1>
 
-A toy language which compiles to rust for fun and experimentation (Windows only for now)
+A functional toy language using Polish Notation / Prefix Notation which compiles to rust for fun and experimentation (Windows only for now)
 
 See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
 
