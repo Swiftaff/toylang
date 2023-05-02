@@ -1,11 +1,13 @@
 <img align="left" width="80" alt="Toylang" src="./icon.png">
 <h1>Toylang</h1>
 
-A functional toy language using Polish Notation / Prefix Notation which compiles to rust for fun and experimentation (Windows only for now)
+A functional toy language using Polish Notation / Prefix Notation which compiles to Rust for fun and experimentation (Windows only for now)
 
-See also work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
+Work in progress [VS Code Extension](https://github.com/Swiftaff/toylang-vscode)
 
-Basic rustdocs are here [documentation](https://swiftaff.github.io/toylang/toylang/index.html)
+Rustdocs [documentation](https://swiftaff.github.io/toylang/toylang/index.html)
+
+Custom [Debugger](#debugger)
 
 ## Build
 
