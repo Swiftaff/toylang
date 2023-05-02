@@ -1,11 +1,23 @@
 /*!
     ## Toylang
-    A toy language which compiles to rust for fun and experimentation (Windows only for now)
+    A functional toy language using Polish Notation which compiles to Rust for fun and experimentation (Windows only for now)
 
     Private functions are provided for information, the main info is here:
     - [Github](https://github.com/Swiftaff/toylang) or the [compiler_runner] for general usage instructions
     - [debug_window_derive] for an extra debug windows app
     - [integration_tests][crate::integration_tests] for examples
+
+    ### Hello, world!
+    Toylang code:
+    ```toylang
+    @ "Hello, world!"
+    ```
+    Compiles to Rust code:
+    ```rust
+    fn main() {
+        println!("{}", "Hello, world!".to_string());
+    }
+    ```
 */
 
 // TODO make most function arguments refs

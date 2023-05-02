@@ -4,6 +4,18 @@
  * These tests are used twice
  * - First as standard integration tests - comparing the input to expected output
  * - Second as document tests - which checks at build time that the output code examples are actually valid rust code
+ *
+ * ### Hello, world!
+ *   Toylang code:
+ *   ```toylang
+ *   @ "Hello, world!"
+ *   ```
+ *   Compiles to Rust code:
+ *   ```rust
+ *   fn main() {
+ *       println!("{}", "Hello, world!".to_string());
+ *   }
+ *   ```
  */
 
 use toylang_macros::{
