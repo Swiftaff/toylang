@@ -96,7 +96,7 @@ impl IntegrationTests {
             (
                 "test_pass_list_map",
                 "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
-                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    fn mapfn_for_List__map(i: &i64) -> i64 {\r\n        i * 100\r\n    }\r\nlet mapped: Vec<i64> = list.iter().map(mapfn_for_List__map).collect();\r\n}\r\n",
+                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    fn mapfn_for_list_map(i: &i64) -> i64 {\r\n        i * 100\r\n    }\r\nlet mapped: Vec<i64> = list.iter().map(mapfn_for_list_map).collect();\r\n}\r\n",
             ),
             //
             // Basic arithmetic function calls

@@ -668,8 +668,8 @@ pub fn function_ref_or_call(
         fn_arg_modifier: Vec<String>,
         parens_ref: usize,
     ) {
-        let name_with_no_dots = name.replace(".", "__");
-        let new_fn_name = format!("{}_for_{}", current_token, name_with_no_dots);
+        let name_snake_case = name.replace(".", "_").to_lowercase();
+        let new_fn_name = format!("{}_for_{}", current_token, name_snake_case);
         if let None = elements::get_constant_index_by_name(&compiler.ast, &new_fn_name) {
             duplicate_fn(
                 compiler,

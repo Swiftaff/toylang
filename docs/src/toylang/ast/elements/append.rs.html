@@ -795,63 +795,10 @@
 <a href="#795" id="795">795</a>
 <a href="#796" id="796">796</a>
 <a href="#797" id="797">797</a>
-<a href="#798" id="798">798</a>
-<a href="#799" id="799">799</a>
-<a href="#800" id="800">800</a>
-<a href="#801" id="801">801</a>
-<a href="#802" id="802">802</a>
-<a href="#803" id="803">803</a>
-<a href="#804" id="804">804</a>
-<a href="#805" id="805">805</a>
-<a href="#806" id="806">806</a>
-<a href="#807" id="807">807</a>
-<a href="#808" id="808">808</a>
-<a href="#809" id="809">809</a>
-<a href="#810" id="810">810</a>
-<a href="#811" id="811">811</a>
-<a href="#812" id="812">812</a>
-<a href="#813" id="813">813</a>
-<a href="#814" id="814">814</a>
-<a href="#815" id="815">815</a>
-<a href="#816" id="816">816</a>
-<a href="#817" id="817">817</a>
-<a href="#818" id="818">818</a>
-<a href="#819" id="819">819</a>
-<a href="#820" id="820">820</a>
-<a href="#821" id="821">821</a>
-<a href="#822" id="822">822</a>
-<a href="#823" id="823">823</a>
-<a href="#824" id="824">824</a>
-<a href="#825" id="825">825</a>
-<a href="#826" id="826">826</a>
-<a href="#827" id="827">827</a>
-<a href="#828" id="828">828</a>
-<a href="#829" id="829">829</a>
-<a href="#830" id="830">830</a>
-<a href="#831" id="831">831</a>
-<a href="#832" id="832">832</a>
-<a href="#833" id="833">833</a>
-<a href="#834" id="834">834</a>
-<a href="#835" id="835">835</a>
-<a href="#836" id="836">836</a>
-<a href="#837" id="837">837</a>
-<a href="#838" id="838">838</a>
-<a href="#839" id="839">839</a>
-<a href="#840" id="840">840</a>
-<a href="#841" id="841">841</a>
-<a href="#842" id="842">842</a>
-<a href="#843" id="843">843</a>
-<a href="#844" id="844">844</a>
-<a href="#845" id="845">845</a>
-<a href="#846" id="846">846</a>
-<a href="#847" id="847">847</a>
-<a href="#848" id="848">848</a>
-<a href="#849" id="849">849</a>
-<a href="#850" id="850">850</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! Functions to append each Element to the AST
  */
 
-</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements::{<span class="self">self</span>, ReturnType};
+</span><span class="kw">use </span><span class="kw">crate</span>::ast::elements;
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::{Element, ElementInfo};
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents;
 <span class="kw">use </span><span class="kw">crate</span>::ast::parents::outdent;
@@ -925,8 +872,7 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         ElementInfo::List(<span class="kw">_</span>) =&gt; {
             <span class="kw">let </span>list_ref = parents::get_current_parent_ref_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
             <span class="kw">let </span>list_type = elements::get_elementinfo_type(<span class="kw-2">&amp;</span>compiler.ast, <span class="kw-2">&amp;</span>el.<span class="number">0</span>);
-            <span class="comment">//dbg!(&amp;list_type);
-            </span><span class="kw">let </span>vec_type = <span class="macro">format!</span>(<span class="string">&quot;Vec&lt;{}&gt;&quot;</span>, list_type);
+            <span class="kw">let </span>vec_type = <span class="macro">format!</span>(<span class="string">&quot;Vec&lt;{}&gt;&quot;</span>, list_type);
             compiler.ast.elements[list_ref].<span class="number">0 </span>= ElementInfo::List(vec_type);
         }
         <span class="kw">_ </span>=&gt; {
@@ -1018,8 +964,7 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         <span class="comment">//decide if we should outdent based on current_parent
         </span><span class="kw">let </span>current_parent_ref = parents::get_current_parent_ref_from_parents(<span class="kw-2">&amp;mut </span>compiler.ast);
         <span class="kw">let </span>current_parent = compiler.ast.elements[current_parent_ref].clone();
-        <span class="comment">//dbg!(&quot;---&quot;, &amp;compiler.ast);
-        </span><span class="kw">match </span>current_parent.<span class="number">0</span>.clone() {
+        <span class="kw">match </span>current_parent.<span class="number">0</span>.clone() {
             ElementInfo::Println =&gt; {
                 outdent::println(compiler, current_parent);
             }
@@ -1036,8 +981,7 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
                 outdent::within_fndef_from_return_expression(compiler);
             }
             ElementInfo::FunctionCall(name, <span class="kw">_</span>) =&gt; {
-                <span class="comment">//dbg!(&quot;here2&quot;);
-                </span>outdent::fncall(compiler, current_parent, name);
+                outdent::fncall(compiler, current_parent, name);
             }
             ElementInfo::If(<span class="kw">_</span>) =&gt; {
                 outdent::if_expression(compiler, current_parent);
@@ -1071,8 +1015,7 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
     compiler.log(<span class="macro">format!</span>(<span class="string">&quot;append::seol_if_last_in_line {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>is_last_token_in_this_line =
         compiler.current_line_token == compiler.lines_of_tokens[compiler.current_line].len() - <span class="number">1</span>;
-    <span class="comment">//dbg!(&quot;test&quot;, is_last_token_in_this_line);
-    </span><span class="kw">let </span><span class="kw-2">mut </span>append_seol: bool = <span class="bool-val">true</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>append_seol: bool = <span class="bool-val">true</span>;
     <span class="kw">if </span>is_last_token_in_this_line {
         <span class="kw">for </span>el_index <span class="kw">in </span>(<span class="number">0</span>..compiler.ast.elements.len()).rev() {
             <span class="kw">let </span>el = <span class="kw-2">&amp;</span>compiler.ast.elements[el_index];
@@ -1124,7 +1067,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         // then don&#39;t add the semicolon, just the EOL
         </span><span class="kw">if </span>append_seol {
             <span class="comment">//self.ast.append((ElementInfo::Eol, vec![]));
-            //dbg!(&quot;here&quot;,parent_of_first_el_option);
             </span>append(<span class="kw-2">&amp;mut </span>compiler.ast, (ElementInfo::Seol, <span class="macro">vec!</span>[]));
         }
     }
@@ -1388,10 +1330,8 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         }
     }
 
-    <span class="comment">//dbg!(&quot;constant 1&quot;, &amp;self.ast.parents);
-    </span>outdent_if_last_expected_child(compiler);
-    <span class="comment">//dbg!(&quot;constant 2&quot;, &amp;self.ast.parents);
-    </span>seol_if_last_in_line(compiler)
+    outdent_if_last_expected_child(compiler);
+    seol_if_last_in_line(compiler)
 }
 
 <span class="doccomment">/// Append FnRef or FnCall
@@ -1405,11 +1345,9 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         <span class="string">&quot;append::function_ref_or_call {:?} {:?} {:?}&quot;</span>,
         current_token, args, returntype
     ));
-    <span class="comment">//dbg!(&quot;FunctionCall&quot;, &amp;current_token);
-    </span>indent_if_first_in_line(compiler);
+    indent_if_first_in_line(compiler);
 
     <span class="kw">let </span>parent = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;mut </span>compiler.ast);
-    <span class="macro">dbg!</span>(<span class="string">&quot;!@!@!@&quot;</span>, <span class="kw-2">&amp;</span>parent);
     <span class="kw">match </span>parent.<span class="number">0 </span>{
         ElementInfo::Parens =&gt; <span class="kw">return </span>handle_parens(compiler, current_token, returntype),
         <span class="kw">_ </span>=&gt; <span class="kw">return </span>function_call(compiler, current_token, args, returntype, <span class="bool-val">true</span>),
@@ -1454,7 +1392,7 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         parens_parent_ref: usize,
         current_token: <span class="kw-2">&amp;</span>String,
     ) {
-        <span class="kw">if let </span>ElementInfo::InbuiltFunctionCall(name, index, returntype) =
+        <span class="kw">if let </span>ElementInfo::InbuiltFunctionCall(name, <span class="kw">_</span>, <span class="kw">_</span>) =
             compiler.ast.elements[parens_parent_ref].<span class="number">0</span>.clone()
         {
             get_parens_index(compiler, parens_ref, parens_parent_ref, name, current_token);
@@ -1471,16 +1409,8 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         current_token: <span class="kw-2">&amp;</span>String,
     ) {
         <span class="kw">let </span>children = compiler.ast.elements[parens_parent_ref].<span class="number">1</span>.clone();
-        <span class="macro">dbg!</span>(<span class="string">&quot;$$$$$$$&quot;</span>, parens_parent_ref, parens_ref);
         <span class="kw">if let </span><span class="prelude-val">Some</span>(index) = children.into_iter().position(|v| v == parens_ref) {
-            get_fn_def(
-                compiler,
-                name,
-                index,
-                current_token,
-                parens_parent_ref,
-                parens_ref,
-            );
+            get_fn_def(compiler, name, index, current_token, parens_ref);
         }
     }
 
@@ -1490,7 +1420,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         name: String,
         index: usize,
         current_token: <span class="kw-2">&amp;</span>String,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, argmodifiers, <span class="kw">_</span>, <span class="kw">_</span>)) =
@@ -1502,7 +1431,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
                 index,
                 name,
                 current_token,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -1515,7 +1443,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         index: usize,
         name: String,
         current_token: <span class="kw-2">&amp;</span>String,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
         <span class="kw">if let </span>ArgModifier::FnArg(fn_arg_modifier) = argmodifiers[index].clone() {
@@ -1524,7 +1451,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
                 name,
                 current_token,
                 fn_arg_modifier,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -1537,18 +1463,16 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         name: String,
         current_token: <span class="kw-2">&amp;</span>String,
         fn_arg_modifier: Vec&lt;String&gt;,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
-        <span class="kw">let </span>name_with_no_dots = name.replace(<span class="string">&quot;.&quot;</span>, <span class="string">&quot;__&quot;</span>);
-        <span class="kw">let </span>new_fn_name = <span class="macro">format!</span>(<span class="string">&quot;{}_for_{}&quot;</span>, current_token, name_with_no_dots);
+        <span class="kw">let </span>name_snake_case = name.replace(<span class="string">&quot;.&quot;</span>, <span class="string">&quot;_&quot;</span>).to_lowercase();
+        <span class="kw">let </span>new_fn_name = <span class="macro">format!</span>(<span class="string">&quot;{}_for_{}&quot;</span>, current_token, name_snake_case);
         <span class="kw">if let </span><span class="prelude-val">None </span>= elements::get_constant_index_by_name(<span class="kw-2">&amp;</span>compiler.ast, <span class="kw-2">&amp;</span>new_fn_name) {
             duplicate_fn(
                 compiler,
                 current_token,
                 new_fn_name,
                 fn_arg_modifier,
-                parens_parent_ref,
                 parens_ref,
             );
         }
@@ -1560,16 +1484,8 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
         name: <span class="kw-2">&amp;</span>String,
         new_fn_name: String,
         fn_arg_modifier: Vec&lt;String&gt;,
-        parens_parent_ref: usize,
         parens_ref: usize,
     ) {
-        <span class="macro">dbg!</span>(
-            <span class="string">&quot;@1&quot;</span>,
-            <span class="kw-2">&amp;</span>name,
-            <span class="kw-2">&amp;</span>new_fn_name,
-            <span class="kw-2">&amp;</span>fn_arg_modifier,
-            elements::get_function_index_by_name(<span class="kw-2">&amp;</span>compiler.ast, <span class="kw-2">&amp;</span>name)
-        );
         <span class="kw">if let </span><span class="prelude-val">Some</span>(fn_index_being_referenced) =
             elements::get_function_index_by_name(<span class="kw-2">&amp;</span>compiler.ast, <span class="kw-2">&amp;</span>name)
         {
@@ -1592,7 +1508,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
                     compiler,
                     fn_index_being_referenced,
                     duplicate_fn,
-                    parens_parent_ref,
                     parens_ref,
                     new_fn_name,
                 );
@@ -1604,7 +1519,6 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
             compiler: <span class="kw-2">&amp;mut </span>Compiler,
             fn_index_being_referenced: usize,
             duplicate_fn: Element,
-            parens_parent_ref: usize,
             parens_ref: usize,
             new_fn_name: String,
         ) {
@@ -1614,51 +1528,31 @@ pub fn _append_as_ref(ast: &amp;mut Ast, element: Element) -&gt; usize {
                     fn_index_being_referenced,
                 )
             {
-                <span class="macro">dbg!</span>(<span class="string">&quot;@@&quot;</span>, parent_of_current_fn_ref);
                 <span class="kw">let </span>parent = compiler.ast.elements[parent_of_current_fn_ref].clone();
                 <span class="kw">let </span>children = parent.<span class="number">1</span>;
                 <span class="kw">let </span>current_fn_position = children
                     .iter()
                     .position(|<span class="kw-2">&amp;</span>r| r == fn_index_being_referenced)
                     .unwrap();
-                <span class="kw">let </span>new_fn_ref = elements::append::append_as_nth_child_of_elindex(
+                elements::append::append_as_nth_child_of_elindex(
                     <span class="kw-2">&amp;mut </span>compiler.ast,
                     duplicate_fn.clone(),
                     parent_of_current_fn_ref,
                     current_fn_position + <span class="number">1</span>,
                 );
 
-                switch_old_fn_ref_for_new(
-                    compiler,
-                    parens_parent_ref,
-                    fn_index_being_referenced,
-                    new_fn_ref,
-                    parens_ref,
-                    new_fn_name,
-                );
+                switch_old_fn_ref_for_new(compiler, parens_ref, new_fn_name);
             }
         }
 
         <span class="doccomment">/// And finally, switch out the reference from the original fn to the duplicate fn instead
         </span><span class="kw">fn </span>switch_old_fn_ref_for_new(
             compiler: <span class="kw-2">&amp;mut </span>Compiler,
-            parens_parent_ref: usize,
-            fn_index_being_referenced: usize,
-            new_fn_ref: usize,
             parens_ref: usize,
             new_fn_name: String,
         ) {
-            <span class="macro">dbg!</span>(
-                <span class="string">&quot;!@!@!@&quot;</span>,
-                parens_parent_ref,
-                fn_index_being_referenced,
-                new_fn_ref,
-                parens_ref
-            );
             <span class="kw">let </span>constant_ref_for_current_fn = compiler.ast.elements[parens_ref].clone();
-            <span class="macro">dbg!</span>(<span class="string">&quot;xoxoxox&quot;</span>, <span class="kw-2">&amp;</span>constant_ref_for_current_fn);
             <span class="kw">if let </span>ElementInfo::ConstantRef(<span class="kw">_</span>, returntype, <span class="kw">_</span>) = constant_ref_for_current_fn.<span class="number">0 </span>{
-                <span class="macro">dbg!</span>(<span class="string">&quot;xoxoxox&quot;</span>);
                 compiler.ast.elements[parens_ref] = (
                     ElementInfo::ConstantRef(new_fn_name.clone(), returntype, new_fn_name),
                     constant_ref_for_current_fn.<span class="number">1</span>,
