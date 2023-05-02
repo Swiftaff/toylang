@@ -81,6 +81,22 @@ impl Parse for TestIndex {
     }
 }
 
+/// TestName is the name of the test required out of ALL_TESTS
+struct TestName {
+    _name: syn::LitStr,
+}
+
+/// Parser for TestName
+impl Parse for TestName {
+    fn parse(input: ParseStream) -> Result<Self, Error> {
+        // parse a single string
+        let name: syn::LitStr = input.parse()?;
+
+        // return
+        Ok(TestName { _name: name })
+    }
+}
+
 /// ## DocTests
 ///
 /// Takes three strings, generates a single doctest
@@ -172,14 +188,37 @@ pub fn call_to_generate_single_test(input: TokenStream) -> TokenStream {
     output.into()
 }
 
-/// No input needed, just call it once and it loops over ALL_TESTS, calling proc macro above
+/// Use this once with empty string and it loops over ALL_TESTS, calling proc macro above.
+/// Or provide a name to run only one test
 #[proc_macro]
-pub fn call_to_generate_all_tests(_input: TokenStream) -> TokenStream {
-    let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
-    let output = quote! {
-        #(
-            call_to_generate_single_test!(#loopy);
-        )*
+pub fn call_to_generate_all_tests_or_only_named(input: TokenStream) -> TokenStream {
+    let TestName { _name: name } = parse_macro_input!(input as TestName);
+    let only = ALL_TESTS
+        .tests
+        .clone()
+        .into_iter()
+        .position(|t| t.0 == name.value());
+    match only {
+        Some(index) => {
+            dbg!("WARNING! only running one test");
+            dbg!("WARNING! only running one test");
+            dbg!("WARNING! only running one test");
+            dbg!("WARNING! only running one test");
+            dbg!("WARNING! only running one test");
+            let test_index = syn::Index::from(index);
+            let output = quote! {
+                call_to_generate_single_test!(#test_index);
+            };
+            return output.into();
+        }
+        None => {
+            let loopy = (0..ALL_TESTS.tests.len()).map(syn::Index::from);
+            let output = quote! {
+                #(
+                    call_to_generate_single_test!(#loopy);
+                )*
+            };
+            return output.into();
+        }
     };
-    output.into()
 }

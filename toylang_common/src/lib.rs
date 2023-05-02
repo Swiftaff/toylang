@@ -99,6 +99,18 @@ impl IntegrationTests {
                 "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    fn mapfn_for_list_map(i: &i64) -> i64 {\r\n        i * 100\r\n    }\r\nlet mapped: Vec<i64> = list.iter().map(mapfn_for_list_map).collect();\r\n}\r\n",
             ),
             //
+            // List reverse
+            (
+                "test_pass_list_reverse",
+                "= list [ 1 2 3 ]\r\n= reversed List.reverse list",
+                "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let reversed: Vec<i64> = list.into_iter().rev().collect();\r\n}\r\n",
+            ),
+            (
+                "test_pass_list_reverse_float",
+                "= list [ 1.1 2.1 3.1 ]\r\n= reversed List.reverse list",
+                "fn main() {\r\n    let list: Vec<f64> = vec![ 1.1, 2.1, 3.1 ];\r\n    let reversed: Vec<f64> = list.into_iter().rev().collect();\r\n}\r\n",
+            ),
+            //
             // Basic arithmetic function calls
             ("test_pass_internal_function_calls_plus", "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"),
             ("test_pass_internal_function_calls_negative", "- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"),

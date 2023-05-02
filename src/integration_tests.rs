@@ -29,7 +29,8 @@ call_to_generate_all_doctests!();
 mod tests {
     use crate::Compiler;
     use toylang_macros::{
-        call_to_generate_all_tests, call_to_generate_single_test, generate_single_test,
+        call_to_generate_all_tests_or_only_named, call_to_generate_single_test,
+        generate_single_test,
     };
 
     /// helper function for tests
@@ -46,5 +47,6 @@ mod tests {
         }
     }
 
-    call_to_generate_all_tests!();
+    // Update the test name, and restart rust-analyzer to run only one test
+    call_to_generate_all_tests_or_only_named!("");
 }

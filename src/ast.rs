@@ -161,9 +161,16 @@ fn init_list_functions() -> Vec<elements::Element> {
         (
             "len",
             "arg~1.len() as i64",
-            vec![ArgModifier::None, ArgModifier::None],
+            vec![ArgModifier::None],
             vecs,
             "i64|f64|String",
+        ),
+        (
+            "reverse",
+            "arg~1.into_iter().rev().collect()",
+            vec![ArgModifier::None],
+            vecs,
+            vecs,
         ),
     ];
     let list_closure = |(fn_name, output, modifier, argtype, returntype): (
