@@ -338,11 +338,11 @@
     </span><span class="kw">let </span>this_fn_ref = compiler.ast.parents[compiler.ast.parents.len() - <span class="number">1</span>];
     <span class="kw">let </span>this_fn_children = compiler.ast.elements[this_fn_ref].<span class="number">1</span>.clone();
     <span class="kw">if </span>this_fn_children.len() &lt; <span class="number">2 </span>{
-        <span class="macro">dbg!</span>(
-            <span class="string">&quot;error in within_fndef_from_return_expression&quot;</span>,
-            <span class="kw-2">&amp;</span>compiler.ast
-        );
-        <span class="kw">return </span>();
+        <span class="comment">//dbg!(
+        //    &quot;error in within_fndef_from_return_expression&quot;,
+        //    &amp;compiler.ast
+        //);
+        </span><span class="kw">return </span>();
     }
     <span class="kw">let </span>last_child_ref = this_fn_children[this_fn_children.len() - <span class="number">1</span>];
     <span class="comment">// (should be safe to subtract 2 since there should always be a root)

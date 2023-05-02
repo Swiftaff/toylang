@@ -593,7 +593,7 @@ pub fn function_ref_or_call(
         if let Some(parens_parent_ref) =
             parents::get_current_parent_ref_from_element_children_search(&compiler.ast, parens_ref)
         {
-            check_for_inbuiltfncall(compiler, parens_ref, parens_parent_ref);
+            check_for_inbuiltfncall(compiler, parens_ref, parens_parent_ref, current_token);
         }
     }
 
@@ -602,11 +602,12 @@ pub fn function_ref_or_call(
         compiler: &mut Compiler,
         parens_ref: usize,
         parens_parent_ref: usize,
+        current_token: &String,
     ) {
         if let ElementInfo::InbuiltFunctionCall(name, index, returntype) =
             compiler.ast.elements[parens_parent_ref].0.clone()
         {
-            get_parens_index(compiler, parens_ref, parens_parent_ref, name);
+            get_parens_index(compiler, parens_ref, parens_parent_ref, name, current_token);
         }
     }
 
@@ -617,31 +618,203 @@ pub fn function_ref_or_call(
         parens_ref: usize,
         parens_parent_ref: usize,
         name: String,
+        current_token: &String,
     ) {
         let children = compiler.ast.elements[parens_parent_ref].1.clone();
+        dbg!("$$$$$$$", parens_parent_ref, parens_ref);
         if let Some(index) = children.into_iter().position(|v| v == parens_ref) {
-            get_fn_def(compiler, name, index);
+            get_fn_def(
+                compiler,
+                name,
+                index,
+                current_token,
+                parens_parent_ref,
+                parens_ref,
+            );
         }
     }
 
     /// Then get the matching fn_def of the inbuiltfncall, to get all it's argmodifiers
-    fn get_fn_def(compiler: &mut Compiler, name: String, index: usize) {
+    fn get_fn_def(
+        compiler: &mut Compiler,
+        name: String,
+        index: usize,
+        current_token: &String,
+        parens_parent_ref: usize,
+        parens_ref: usize,
+    ) {
         if let Some(ElementInfo::InbuiltFunctionDef(_, _, _, argmodifiers, _, _)) =
             elements::get_inbuilt_function_by_name(&compiler.ast, &name)
         {
-            get_fn_argmodifier(argmodifiers, index);
+            get_fn_argmodifier(
+                compiler,
+                argmodifiers,
+                index,
+                name,
+                current_token,
+                parens_parent_ref,
+                parens_ref,
+            );
         }
     }
 
     /// Get the single fn argmodifier for the fncall's Arg index
-    fn get_fn_argmodifier(argmodifiers: Vec<ArgModifier>, index: usize) {
+    fn get_fn_argmodifier(
+        compiler: &mut Compiler,
+        argmodifiers: Vec<ArgModifier>,
+        index: usize,
+        name: String,
+        current_token: &String,
+        parens_parent_ref: usize,
+        parens_ref: usize,
+    ) {
         if let ArgModifier::FnArg(fn_arg_modifier) = argmodifiers[index].clone() {
-            create_name_for_duplicate_function();
+            create_name_for_duplicate_function(
+                compiler,
+                name,
+                current_token,
+                fn_arg_modifier,
+                parens_parent_ref,
+                parens_ref,
+            );
         }
     }
 
-    fn create_name_for_duplicate_function() {
-        dbg!("!@!@!@"); //, parens_ref, parens_parent_ref);
+    /// Create a new name for the duplicate fn e.g. constant_name & "_for_" & name_of_this_function
+    /// and if it doesn't already exist duplicate it
+    fn create_name_for_duplicate_function(
+        compiler: &mut Compiler,
+        name: String,
+        current_token: &String,
+        fn_arg_modifier: Vec<String>,
+        parens_parent_ref: usize,
+        parens_ref: usize,
+    ) {
+        let name_with_no_dots = name.replace(".", "__");
+        let new_fn_name = format!("{}_for_{}", current_token, name_with_no_dots);
+        if let None = elements::get_constant_index_by_name(&compiler.ast, &new_fn_name) {
+            duplicate_fn(
+                compiler,
+                current_token,
+                new_fn_name,
+                fn_arg_modifier,
+                parens_parent_ref,
+                parens_ref,
+            );
+        }
+    }
+
+    /// Duplicate the fn with updated arg types
+    fn duplicate_fn(
+        compiler: &mut Compiler,
+        name: &String,
+        new_fn_name: String,
+        fn_arg_modifier: Vec<String>,
+        parens_parent_ref: usize,
+        parens_ref: usize,
+    ) {
+        dbg!(
+            "@1",
+            &name,
+            &new_fn_name,
+            &fn_arg_modifier,
+            elements::get_function_index_by_name(&compiler.ast, &name)
+        );
+        if let Some(fn_index_being_referenced) =
+            elements::get_function_index_by_name(&compiler.ast, &name)
+        {
+            let mut duplicate_fn = compiler.ast.elements[fn_index_being_referenced].clone();
+
+            if let ElementInfo::FunctionDef(_, argnames, argtypes, returntype) = duplicate_fn.0 {
+                // update the fn args with the fn arg modifiers
+                let mut new_argtypes = argtypes.clone();
+                for i in 0..argtypes.len() as usize {
+                    new_argtypes[i] = format!("{}{}", fn_arg_modifier[i], new_argtypes[i]);
+                }
+
+                duplicate_fn.0 = ElementInfo::FunctionDef(
+                    new_fn_name.clone(),
+                    argnames,
+                    new_argtypes,
+                    returntype,
+                );
+                insert_duplicate_fn_into_ast(
+                    compiler,
+                    fn_index_being_referenced,
+                    duplicate_fn,
+                    parens_parent_ref,
+                    parens_ref,
+                    new_fn_name,
+                );
+            }
+        }
+
+        /// Inserts the duplicate fn just after the existing fn that it is based on, and under its same parent
+        fn insert_duplicate_fn_into_ast(
+            compiler: &mut Compiler,
+            fn_index_being_referenced: usize,
+            duplicate_fn: Element,
+            parens_parent_ref: usize,
+            parens_ref: usize,
+            new_fn_name: String,
+        ) {
+            if let Some(parent_of_current_fn_ref) =
+                parents::get_current_parent_ref_from_element_children_search(
+                    &compiler.ast,
+                    fn_index_being_referenced,
+                )
+            {
+                dbg!("@@", parent_of_current_fn_ref);
+                let parent = compiler.ast.elements[parent_of_current_fn_ref].clone();
+                let children = parent.1;
+                let current_fn_position = children
+                    .iter()
+                    .position(|&r| r == fn_index_being_referenced)
+                    .unwrap();
+                let new_fn_ref = elements::append::append_as_nth_child_of_elindex(
+                    &mut compiler.ast,
+                    duplicate_fn.clone(),
+                    parent_of_current_fn_ref,
+                    current_fn_position + 1,
+                );
+
+                switch_old_fn_ref_for_new(
+                    compiler,
+                    parens_parent_ref,
+                    fn_index_being_referenced,
+                    new_fn_ref,
+                    parens_ref,
+                    new_fn_name,
+                );
+            }
+        }
+
+        /// And finally, switch out the reference from the original fn to the duplicate fn instead
+        fn switch_old_fn_ref_for_new(
+            compiler: &mut Compiler,
+            parens_parent_ref: usize,
+            fn_index_being_referenced: usize,
+            new_fn_ref: usize,
+            parens_ref: usize,
+            new_fn_name: String,
+        ) {
+            dbg!(
+                "!@!@!@",
+                parens_parent_ref,
+                fn_index_being_referenced,
+                new_fn_ref,
+                parens_ref
+            );
+            let constant_ref_for_current_fn = compiler.ast.elements[parens_ref].clone();
+            dbg!("xoxoxox", &constant_ref_for_current_fn);
+            if let ElementInfo::ConstantRef(_, returntype, _) = constant_ref_for_current_fn.0 {
+                dbg!("xoxoxox");
+                compiler.ast.elements[parens_ref] = (
+                    ElementInfo::ConstantRef(new_fn_name.clone(), returntype, new_fn_name),
+                    constant_ref_for_current_fn.1,
+                )
+            }
+        }
     }
 }
 

@@ -567,6 +567,40 @@
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
+<a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
 </pre><pre class="rust"><code><span class="doccomment">/*!
     ## A windows app to help with debugging development of Toylang
     Pass the debug flag to toylang.exe (-d or --debug) to open this interactive debugger which steps through the state of the Compiler&#39;s AST to troublshoot compilation errors.
@@ -837,7 +871,8 @@
         <span class="kw">let </span>all_text = [<span class="kw-2">&amp;</span>heading, text].join(<span class="string">&quot;&quot;</span>);
         <span class="self">self</span>.richtext_input.set_text(<span class="kw-2">&amp;</span>all_text);
 
-        <span class="self">self</span>.richtext_input.set_selection(<span class="number">0</span>..(heading.len() - <span class="number">1</span>) <span class="kw">as </span>u32);
+        <span class="self">self</span>.richtext_input
+            .set_selection(<span class="number">0</span>..(heading.len() - <span class="number">1</span>) <span class="kw">as </span>u32);
         <span class="self">self</span>.richtext_input.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
             height: <span class="prelude-val">Some</span>(<span class="number">400</span>),
             text_color: <span class="prelude-val">Some</span>([<span class="number">23</span>, <span class="number">105</span>, <span class="number">170</span>]),
@@ -845,7 +880,8 @@
             ..Default::default()
         });
 
-        <span class="self">self</span>.richtext_input.set_selection((heading.len() - <span class="number">1</span>) <span class="kw">as </span>u32..(all_text.len() - <span class="number">1</span>) <span class="kw">as </span>u32);
+        <span class="self">self</span>.richtext_input
+            .set_selection((heading.len() - <span class="number">1</span>) <span class="kw">as </span>u32..(all_text.len() - <span class="number">1</span>) <span class="kw">as </span>u32);
         <span class="self">self</span>.richtext_input.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
             height: <span class="prelude-val">Some</span>(<span class="number">300</span>),
             text_color: <span class="prelude-val">Some</span>([<span class="number">10</span>, <span class="number">10</span>, <span class="number">10</span>]),
@@ -875,14 +911,26 @@
     }
 
     <span class="kw">fn </span>history_update(<span class="kw-2">&amp;</span><span class="self">self</span>) {
-        <span class="self">self</span>.label7.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;History ({} of {})&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.history_trackbar.pos(), <span class="kw-2">&amp;</span><span class="self">self</span>.mydata.borrow().history_max));
-        <span class="self">self</span>.rich_text_control_set_text(<span class="kw-2">&amp;</span><span class="self">self</span>.richtext_dynamic_ast, <span class="kw-2">&amp;</span><span class="self">self</span>.mydata.borrow_mut().history[<span class="self">self</span>.history_trackbar.pos()]);
+        <span class="self">self</span>.label7.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+            <span class="string">&quot;History ({} of {})&quot;</span>,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.history_trackbar.pos(),
+            <span class="kw-2">&amp;</span><span class="self">self</span>.mydata.borrow().history_max
+        ));
+        <span class="self">self</span>.rich_text_control_set_text(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.richtext_dynamic_ast,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.mydata.borrow_mut().history[<span class="self">self</span>.history_trackbar.pos()],
+        );
         <span class="self">self</span>.richtext_dynamic_ast.scroll_lastline();
         <span class="self">self</span>.richtext_dynamic_ast.scroll(-<span class="number">20</span>);
     }
 }
 
-<span class="kw">fn </span>init(ui: <span class="kw-2">&amp;</span>toylang_debugger_ui::ToylangDebuggerUi, input: String, debug: bool, output: <span class="prelude-ty">Option</span>&lt;String&gt;) -&gt; Compiler {
+<span class="kw">fn </span>init(
+    ui: <span class="kw-2">&amp;</span>toylang_debugger_ui::ToylangDebuggerUi,
+    input: String,
+    debug: bool,
+    output: <span class="prelude-ty">Option</span>&lt;String&gt;,
+) -&gt; Compiler {
     ui.textinput_filepath.set_text(<span class="kw-2">&amp;</span>input);
     ui.textinput_outputdir.set_text(<span class="kw-2">&amp;</span>(output.clone().unwrap()));
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_loc, <span class="string">&quot; &quot;</span>);
@@ -913,8 +961,8 @@
         <span class="kw">let </span>reset: bool = ui.mydata.borrow().step_is_resetting;
         <span class="kw">let </span>log = <span class="macro">format!</span>(<span class="string">&quot;# {} {} {} {}&quot;</span>, step, step_max, step_is_running, reset);
         <span class="kw">if </span>log != log_prev {
-            <span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, <span class="kw-2">&amp;</span>log);
-            log_prev = log;
+            <span class="comment">//println!(&quot;{}&quot;, &amp;log);
+            </span>log_prev = log;
         }
 
         <span class="kw">if </span>step_is_running {
@@ -970,7 +1018,10 @@
                 <span class="comment">//dbg!(step, step_max, completed_step);
                 </span><span class="kw">let </span>txt_loc = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLinesOfChars(<span class="kw-2">&amp;</span>compiler.lines_of_chars));
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_loc, <span class="kw-2">&amp;</span>txt_loc);
-                ui.label1.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Lines of chars (0 - {})&quot;</span>, <span class="kw-2">&amp;</span>compiler.lines_of_chars.len() - <span class="number">1</span>));
+                ui.label1.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                    <span class="string">&quot;Lines of chars (0 - {})&quot;</span>,
+                    <span class="kw-2">&amp;</span>compiler.lines_of_chars.len() - <span class="number">1
+                </span>));
 
                 ui.button0.set_enabled(<span class="bool-val">false</span>);
                 ui.button1.set_enabled(<span class="bool-val">false</span>);
@@ -985,7 +1036,10 @@
                 <span class="comment">//dbg!(step, step_max, completed_step);
                 </span><span class="kw">let </span>txt_lot = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLinesOfTokens(<span class="kw-2">&amp;</span>compiler.lines_of_tokens));
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_lot, <span class="kw-2">&amp;</span>txt_lot);
-                ui.label2.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Lines of tokens (0 - {})&quot;</span>, <span class="kw-2">&amp;</span>compiler.lines_of_tokens.len() - <span class="number">1</span>));
+                ui.label2.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                    <span class="string">&quot;Lines of tokens (0 - {})&quot;</span>,
+                    <span class="kw-2">&amp;</span>compiler.lines_of_tokens.len() - <span class="number">1
+                </span>));
 
                 ui.button0.set_enabled(<span class="bool-val">false</span>);
                 ui.button1.set_enabled(<span class="bool-val">false</span>);
@@ -1020,7 +1074,8 @@
 
                     <span class="comment">// update richtext_ast_current
                     </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="kw-2">&amp;</span>new_text);
-                    ui.richtext_ast_current.set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
+                    ui.richtext_ast_current
+                        .set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
                     ui.richtext_ast_current.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
                         text_color: <span class="prelude-val">Some</span>([<span class="number">20</span>, <span class="number">200</span>, <span class="number">20</span>]),
                         ..Default::default()
@@ -1031,12 +1086,14 @@
                     <span class="comment">// update richtext_error_stack
                     </span><span class="kw">let </span>txt_error = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugErrorStack(<span class="kw-2">&amp;</span>compiler.error_stack));
                     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="kw-2">&amp;</span>txt_error);
-                    ui.richtext_error_stack.set_selection(<span class="number">28</span>..((txt_error.len() <span class="kw">as </span>u32) - <span class="number">4</span>));
+                    ui.richtext_error_stack
+                        .set_selection(<span class="number">28</span>..((txt_error.len() <span class="kw">as </span>u32) - <span class="number">4</span>));
                     ui.richtext_error_stack.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
                         text_color: <span class="prelude-val">Some</span>([<span class="number">200</span>, <span class="number">20</span>, <span class="number">20</span>]),
                         ..Default::default()
                     });
-                    ui.label5.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Error stack ({})&quot;</span>, <span class="kw-2">&amp;</span>compiler.error_stack.len()));
+                    ui.label5
+                        .set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Error stack ({})&quot;</span>, <span class="kw-2">&amp;</span>compiler.error_stack.len()));
 
                     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="kw-2">&amp;</span>txt_logs);
 
@@ -1044,8 +1101,12 @@
 
                     <span class="kw">if </span>compiler.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
                         <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.debug_compiler_history.len() - <span class="number">1</span>;
-                        ui.mydata.borrow_mut().history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
-                        ui.mydata.borrow_mut().history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
+                        ui.mydata
+                            .borrow_mut()
+                            .history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
+                        ui.mydata
+                            .borrow_mut()
+                            .history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
                         ui.history_trackbar.set_range_max(pos);
                         ui.history_update();
                         ui.history_trackbar.set_pos(pos);
@@ -1090,7 +1151,8 @@
 
                 <span class="comment">// update richtext_ast_current
                 </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="kw-2">&amp;</span>new_text);
-                ui.richtext_ast_current.set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
+                ui.richtext_ast_current
+                    .set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
                 ui.richtext_ast_current.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
                     text_color: <span class="prelude-val">Some</span>([<span class="number">20</span>, <span class="number">200</span>, <span class="number">20</span>]),
                     ..Default::default()
@@ -1103,8 +1165,12 @@
 
                 <span class="kw">if </span>compiler.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
                     <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.debug_compiler_history.len() - <span class="number">1</span>;
-                    ui.mydata.borrow_mut().history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
-                    ui.mydata.borrow_mut().history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
+                    ui.mydata
+                        .borrow_mut()
+                        .history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
+                    ui.mydata
+                        .borrow_mut()
+                        .history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
                     ui.history_trackbar.set_range_max(pos);
                     ui.history_update();
                     ui.history_trackbar.set_pos(pos);
@@ -1113,12 +1179,14 @@
                 <span class="comment">// update richtext_error_stack
                 </span><span class="kw">let </span>txt_error = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugErrorStack(<span class="kw-2">&amp;</span>compiler.error_stack));
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="kw-2">&amp;</span>txt_error);
-                ui.richtext_error_stack.set_selection(<span class="number">28</span>..((txt_error.len() <span class="kw">as </span>u32) - <span class="number">4</span>));
+                ui.richtext_error_stack
+                    .set_selection(<span class="number">28</span>..((txt_error.len() <span class="kw">as </span>u32) - <span class="number">4</span>));
                 ui.richtext_error_stack.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
                     text_color: <span class="prelude-val">Some</span>([<span class="number">200</span>, <span class="number">20</span>, <span class="number">20</span>]),
                     ..Default::default()
                 });
-                ui.label5.set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Error stack ({})&quot;</span>, <span class="kw-2">&amp;</span>compiler.error_stack.len()));
+                ui.label5
+                    .set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Error stack ({})&quot;</span>, <span class="kw-2">&amp;</span>compiler.error_stack.len()));
 
                 <span class="comment">// update richtext_output
                 </span><span class="kw">let </span>txt_output = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, compiler.ast.output);

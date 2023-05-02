@@ -979,6 +979,13 @@
 <a href="#979" id="979">979</a>
 <a href="#980" id="980">980</a>
 <a href="#981" id="981">981</a>
+<a href="#982" id="982">982</a>
+<a href="#983" id="983">983</a>
+<a href="#984" id="984">984</a>
+<a href="#985" id="985">985</a>
+<a href="#986" id="986">986</a>
+<a href="#987" id="987">987</a>
+<a href="#988" id="988">988</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! Elements are the individual nodes in the AST.
  *
  * Each is made of an ElementInfo like Int(Value), and a Vec of indexes, which are references to child Elements elsewhere in the AST.
@@ -1106,10 +1113,17 @@
 <span class="kw">type </span>RefName = String;
 <span class="kw">type </span>ArgNames = Vec&lt;String&gt;;
 <span class="kw">type </span>ArgTypes = Vec&lt;String&gt;;
-<span class="kw">type </span>ArgModifier = String;
-<span class="kw">type </span>ArgModifiers = Vec&lt;ArgModifier&gt;;
+<span class="comment">//type ArgModifier = String;
+</span><span class="kw">type </span>ArgModifiers = Vec&lt;ArgModifier&gt;;
 <span class="kw">type </span>Format = String;
 <span class="kw">type </span>Scope = ElIndex;
+
+<span class="attr">#[derive(Clone, Debug)]
+</span><span class="kw">pub enum </span>ArgModifier {
+    Arg(String),
+    FnArg(Vec&lt;String&gt;),
+    <span class="prelude-val">None</span>,
+}
 
 <span class="doccomment">/// Finds the original element referred to, e.g. when using a variable name
 </span><span class="kw">pub fn </span>get_element_by_name(ast: <span class="kw-2">&amp;</span>Ast, name: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Option</span>&lt;Element&gt; {
@@ -1267,8 +1281,8 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
                 <span class="kw">if </span>el.<span class="number">1</span>.len() &gt; <span class="number">1 </span>{
                     second_child_type = get_infered_type_of_any_element(<span class="kw-2">&amp;</span>ast, el.<span class="number">1</span>[<span class="number">1</span>]);
                 } <span class="kw">else </span>{
-                    <span class="macro">dbg!</span>(<span class="kw-2">&amp;</span>el.<span class="number">1</span>);
-                }
+                    <span class="comment">//dbg!(&amp;el.1);
+                </span>}
                 <span class="kw">return </span>ElementInfo::If(second_child_type);
             }
             <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
@@ -1490,8 +1504,8 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
         <span class="kw">let </span>second_child = <span class="kw-2">&amp;</span>ast.elements[children[<span class="number">1</span>]];
         get_elementinfo_type(ast, <span class="kw-2">&amp;</span>second_child.<span class="number">0</span>)
     } <span class="kw">else </span>{
-        <span class="macro">dbg!</span>(<span class="string">&quot;error in get_infered_type_of_if_element&quot;</span>);
-        <span class="string">&quot;error&quot;</span>.to_string()
+        <span class="comment">//dbg!(&quot;error in get_infered_type_of_if_element&quot;);
+        </span><span class="string">&quot;error&quot;</span>.to_string()
     }
 }
 
@@ -1535,7 +1549,7 @@ pub fn _is_existing_constant(compiler: &amp;mut Compiler) -&gt; bool {
     let parent = parents::get_current_parent_element_from_parents(&amp;compiler.ast);
     let parent_assignment_has_no_children = false;
     if compiler.logs.len() == 150 {
-        dbg!(compiler.logs.len(), &amp;parent, &amp;compiler.ast.parents);
+        //dbg!(compiler.logs.len(), &amp;parent, &amp;compiler.ast.parents);
     }
 */
 /*
@@ -1714,7 +1728,7 @@ match parent.0 {
             ElementInfo::Bool(boolean) =&gt; <span class="macro">format!</span>(<span class="string">&quot;Bool: {}&quot;</span>, boolean),
             ElementInfo::Arg(name, scope, argmodifier, returntype) =&gt; {
                 <span class="macro">format!</span>(
-                    <span class="string">&quot;Arg: {} scope:{} argmodifier:({}) ({})&quot;</span>,
+                    <span class="string">&quot;Arg: {} scope:{} argmodifier:({:?}) ({})&quot;</span>,
                     name, scope, argmodifier, returntype
                 )
             }

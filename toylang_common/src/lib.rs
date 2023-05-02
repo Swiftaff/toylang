@@ -91,15 +91,13 @@ impl IntegrationTests {
             //
             // List len
             ("test_pass_list_len", "= list [ 1 2 3 ]\r\n= len List.len list", "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n"),
-            /*
             //
             // List map
             (
                 "test_pass_list_map",
                 "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
-                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    let mapped: Vec<i64> = list.iter().map(mapfn).collect();\r\n}\r\n",
+                "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    fn mapfn_for_List__map(i: &i64) -> i64 {\r\n        i * 100\r\n    }\r\nlet mapped: Vec<i64> = list.iter().map(mapfn_for_List__map).collect();\r\n}\r\n",
             ),
-            */
             //
             // Basic arithmetic function calls
             ("test_pass_internal_function_calls_plus", "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"),
