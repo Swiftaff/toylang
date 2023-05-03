@@ -87,6 +87,13 @@ pub fn token_by_first_chars(
         None
     };
     match first_char {
+        '{' => match second_char {
+            Some(_second) => {
+                return errors::append_error(compiler, 0, 1, ERRORS.a_struct);
+            }
+            None => struct_start(compiler),
+        },
+        '}' => struct_end(compiler),
         '[' => match second_char {
             Some(second) => {
                 if second == ']' {
@@ -281,6 +288,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 }
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 Some((ElementInfo::Root, _)) => (),
+                Some((ElementInfo::Struct(_, _, _), _)) => (),
                 Some((ElementInfo::List(_), _)) => (),
                 Some((ElementInfo::CommentSingleLine(_), _)) => (),
                 Some((ElementInfo::Int(_), _)) => (),
@@ -348,6 +356,30 @@ pub fn list_empty(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.log(format!("parse::list_empty {:?}", ""));
     list_start(compiler)?;
     list_end(compiler)
+}
+
+/// Parses start of a Struct
+pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("parse::struct_start {:?}", ""));
+    elements::append::struct_start(compiler)
+}
+
+/// Parses end of a Struct
+pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("parse::struct_end {:?}", ""));
+    let a_struct = parents::get_current_parent_element_from_parents(&compiler.ast);
+    match a_struct {
+        (ElementInfo::Struct(name, keys, keytypes), children) => {
+            if keys.len() == 0 || keytypes.len() == 0 || children.len() == 0 {
+                return append_error(compiler, 0, 1, ERRORS.a_struct);
+            }
+        }
+        _ => (),
+    }
+    parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
+    elements::append::seol_if_last_in_line(compiler)
 }
 
 /// Parses start of a List

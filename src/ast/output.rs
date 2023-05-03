@@ -181,6 +181,10 @@ fn get_output_for_element_index(
         ElementInfo::String(val) => format!("{}.to_string()", val),
         ElementInfo::Bool(val) => format!("{}.to_string()", val),
         ElementInfo::Arg(name, _scope, _argmodifier, _returntype) => name,
+        ElementInfo::Struct(name, keys, _) => {
+            let args = formatting::get_formatted_argnames(&keys);
+            format!("{}::new({});\r\n", name, args)
+        }
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => name,
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
@@ -226,6 +230,7 @@ fn is_parent_skippable(ast: &mut Ast, element_index: usize) -> bool {
         Some((ElementInfo::Println, _)) => true,
         Some((ElementInfo::List(_), _)) => true,
         Some((ElementInfo::If(_), _)) => true,
+        Some((ElementInfo::Struct(_, _, _), _)) => true,
         // explicitly listing other types rather than using _ to not overlook new types in future.
         Some((ElementInfo::Root, _)) => false,
         Some((ElementInfo::CommentSingleLine(_), _)) => false,

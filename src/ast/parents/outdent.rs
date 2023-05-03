@@ -113,6 +113,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
+                ElementInfo::Struct(_, _, _) => (),
                 ElementInfo::Assignment => (),
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
                 ElementInfo::FunctionDefWIP => (),
@@ -247,6 +248,17 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
     //dbg!("outdent.println");
     if current_parent.1.len() > 0 {
         outdent(compiler);
+    }
+}
+
+/// Outdents from Struct
+pub fn a_struct(compiler: &mut Compiler, current_parent: Element) {
+    compiler.log(format!("outdent::struct {:?}", current_parent));
+    //dbg!("Struct");
+    if let ElementInfo::Struct(_, keys, _) = current_parent.0 {
+        if current_parent.1.len() > keys.len() {
+            outdent(compiler);
+        }
     }
 }
 

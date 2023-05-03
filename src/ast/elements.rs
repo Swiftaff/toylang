@@ -27,6 +27,7 @@ pub enum ElementInfo {
     Indent,                                    //no children
     Unused,                                    //no children
     ConstantRef(Name, ReturnType, RefName),    //no children
+    Struct(Name, ArgNames, Vec<ReturnType>),   //no children
     Constant(Name, ReturnType),                //1 child, value
     Assignment,                                //1 child, constant
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ArgModifiers, ReturnType, Format), //children = lines of function contents
@@ -39,7 +40,8 @@ pub enum ElementInfo {
     LoopForRange(Name, From, To), //children = lines of loop contents
     Println,         //1 child, value
     If(ReturnType),  //3 children, boolean_expression true_return_expression false_return_expression
-    Root,            //children = lines of function contents
+
+    Root, //children = lines of function contents
 }
 
 /// Fake function #1, only useful for copy/pasting all the elementinfo types!
@@ -55,6 +57,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::String(_) => replaceme,
         ElementInfo::Bool(_) => replaceme,
         ElementInfo::Arg(_, _, _, _) => replaceme,
+        ElementInfo::Struct(_, _, _) => replaceme,
         ElementInfo::Constant(_, _) => replaceme,
         ElementInfo::ConstantRef(_, _, _) => replaceme,
         ElementInfo::Assignment => replaceme,
@@ -90,6 +93,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::String(_), _)) => replaceme,
         Some((ElementInfo::Bool(_), _)) => replaceme,
         Some((ElementInfo::Arg(_, _, _, _), _)) => replaceme,
+        Some((ElementInfo::Struct(_, _, _), _)) => replaceme,
         Some((ElementInfo::Constant(_, _), _)) => replaceme,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
         Some((ElementInfo::Assignment, _)) => replaceme,
@@ -305,6 +309,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Float(_) => (),
             ElementInfo::String(_) => (),
             ElementInfo::Bool(_) => (),
+            ElementInfo::Struct(_, _, _) => (),
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
@@ -362,6 +367,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Float(_) => (),
         ElementInfo::String(_) => (),
         ElementInfo::Bool(_) => (),
+        ElementInfo::Struct(_, _, _) => (),
         ElementInfo::Assignment => (),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),
@@ -531,6 +537,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::String(_) => "String".to_string(),
         ElementInfo::Bool(_) => "bool".to_string(),
         ElementInfo::Assignment => undefined,
+        ElementInfo::Struct(_, _, _) => undefined,
         ElementInfo::Constant(_, returntype) => returntype.clone(),
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
         ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
@@ -743,6 +750,9 @@ impl fmt::Debug for ElementInfo {
                     "Arg: {} scope:{} argmodifier:({:?}) ({})",
                     name, scope, argmodifier, returntype
                 )
+            }
+            ElementInfo::Struct(name, keys, keytypes) => {
+                format!("Struct: {} keys: {:?} keytypes: {:?}", name, keys, keytypes)
             }
             ElementInfo::Constant(name, returntype) => {
                 format!("Constant: {} ({})", name, returntype)

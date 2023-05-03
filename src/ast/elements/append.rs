@@ -171,6 +171,9 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Println => {
                 outdent::println(compiler, current_parent);
             }
+            ElementInfo::Struct(_, _, _) => {
+                outdent::a_struct(compiler, current_parent);
+            }
             ElementInfo::Constant(_, _) => {
                 outdent::constant(compiler, current_parent);
             }
@@ -284,6 +287,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         ElementInfo::Float(_) => true,
         ElementInfo::String(_) => true,
         ElementInfo::Bool(_) => true,
+        ElementInfo::Struct(_, _, _) => true,
         ElementInfo::Constant(_, _) => true,
         ElementInfo::ConstantRef(_, _, _) => true,
         ElementInfo::InbuiltFunctionCall(_, _, _) => true,
@@ -409,6 +413,28 @@ pub fn function_call1(
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     seol_if_last_in_line(compiler)
+}
+
+/// Append start of a struct
+pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
+    compiler.log(format!("append::struct_start {:?}", ""));
+    indent_if_first_in_line(compiler);
+    let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    let mut struct_name = "Undefined".to_string();
+    if let ElementInfo::Constant(name, _) = parent.0 {
+        struct_name = name;
+    };
+    struct_name = struct_name.to_lowercase().replace("_", "");
+    let mut temp_struct_name: Vec<char> = struct_name.chars().collect();
+    temp_struct_name[0] = temp_struct_name[0].to_uppercase().nth(0).unwrap();
+    struct_name = temp_struct_name.into_iter().collect::<String>();
+    append(
+        &mut compiler.ast,
+        (ElementInfo::Struct(struct_name, vec![], vec![]), vec![]),
+    );
+    errors::error_if_parent_is_invalid(compiler)?;
+    parents::indent::indent(&mut compiler.ast);
+    Ok(())
 }
 
 /// Append start of a list

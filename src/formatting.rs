@@ -34,6 +34,19 @@ pub fn get_formatted_argname_argtype_pairs(
     args
 }
 
+pub fn get_formatted_argnames(argnames: &Vec<String>) -> String {
+    let mut args = "".to_string();
+    for a in 0..argnames.len() {
+        let comma = if a + 1 == argnames.len() {
+            "".to_string()
+        } else {
+            ", ".to_string()
+        };
+        args = format!("{}{}{}", args, argnames[a], comma);
+    }
+    args
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
