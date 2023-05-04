@@ -181,10 +181,7 @@ fn get_output_for_element_index(
         ElementInfo::String(val) => format!("{}.to_string()", val),
         ElementInfo::Bool(val) => format!("{}.to_string()", val),
         ElementInfo::Arg(name, _scope, _argmodifier, _returntype) => name,
-        ElementInfo::Struct(name, keys, _) => {
-            let args = formatting::get_formatted_argnames(&keys);
-            format!("{}::new({});\r\n", name, args)
-        }
+        ElementInfo::Struct(name, _, _) => get_output_for_struct(ast, name, children),
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => name,
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
@@ -255,6 +252,33 @@ fn is_parent_skippable(ast: &mut Ast, element_index: usize) -> bool {
         Some((ElementInfo::Unused, _)) => false,
         None => false,
     }
+}
+
+/// Output for Struct
+fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
+    // a Structs children should all be Assignments
+    // each Assignment should have one child Constant
+    let mut constants = vec![];
+    for i in 0..children.len() as usize {
+        let constant = ast.elements[children[i]].1[0];
+        constants.push(constant);
+    }
+
+    let mut args_output = "".to_string();
+
+    // each Constant should have one child Value or Expression that will be used as an argument to the fn new(arg1, arg2)
+    for i in 0..constants.len() as usize {
+        let arg_ref = ast.elements[constants[i]].1[0];
+        let arg = get_output_for_element_index(ast, arg_ref, false);
+        let no_first_comma = if i == 0 {
+            "".to_string()
+        } else {
+            ", ".to_string()
+        };
+        args_output = format!("{}{}{}", &args_output, &no_first_comma, &arg);
+    }
+
+    format!("{}::new({});\r\n", name, args_output)
 }
 
 /// Output for Assignment

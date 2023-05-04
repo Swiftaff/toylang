@@ -360,6 +360,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::If(_) => {
             return get_infered_type_of_if_element(ast, el.1);
         }
+        ElementInfo::Struct(name, _, _) => return name.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => (),
         ElementInfo::CommentSingleLine(_) => (),
@@ -367,7 +368,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Float(_) => (),
         ElementInfo::String(_) => (),
         ElementInfo::Bool(_) => (),
-        ElementInfo::Struct(_, _, _) => (),
+
         ElementInfo::Assignment => (),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),

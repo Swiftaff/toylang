@@ -271,3 +271,24 @@ ast/parents.rs
 1. Use the env! macro to get an environment variable and then use it in your code.
 1. Use the lazy_static! macro to create a lazy static variable that can be accessed from multiple files.
 1. Use the const keyword to define a constant and then access it from another file.
+
+# Adding a new toylang feature
+
+-   add new element to
+
+    -   elements:: enum, then this will highlight other obvious fns here and below to update
+
+    -   parse::token_by_first_chars - how to parse start of new element
+    -   parse::constant
+
+    -   outdent::within_fndef_from_return_expression
+    -   outdent:: new_element fn to outdent it based on a specific scenario in the ast
+
+    -   append::outdent_if_last_expected_child - link to above
+    -   append::is_return_expression
+    -   append:: new_element fn to append to the ast
+
+    -   errors:: add to various errors
+
+    -   output::get_output_for_element_index
+    -   output::is_parent_skippable

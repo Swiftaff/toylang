@@ -567,7 +567,7 @@ pub fn error_if_parent_is_invalid_for_struct(
         parent
     ));
     match parent.0 {
-        ElementInfo::Assignment => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
         _ => append_error(compiler, 0, 1, ERRORS.struct_undefined),
     }
 }
