@@ -20,7 +20,7 @@ fn testy() {
 
 /// While loop over the tokens in the current line
 pub fn current_line(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::current_line {:?}", ""));
+    compiler.ast.log(format!("parse::current_line {:?}", ""));
     let tokens = compiler.lines_of_tokens[compiler.current_line].clone();
     if tokens.len() > 0 {
         while compiler.current_line_token < tokens.len() {
@@ -33,7 +33,9 @@ pub fn current_line(compiler: &mut Compiler) -> Result<(), ()> {
 
 /// Parse token, it's either an inbuiltFn, Arg, Type or something else
 pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()> {
-    compiler.log(format!("parse::current_token {:?}", &tokens));
+    compiler
+        .ast
+        .log(format!("parse::current_token {:?}", &tokens));
     let current_token = &tokens[compiler.current_line_token];
     let current_token_vec: &Vec<char> = &tokens[compiler.current_line_token].chars().collect();
     if current_token_vec.len() == 0 {
@@ -76,7 +78,7 @@ pub fn token_by_first_chars(
     current_token: &String,
     current_token_vec: &Vec<char>,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::token_by_first_chars {:?} {:?}",
         &current_token, current_token_vec
     ));
@@ -173,7 +175,7 @@ pub fn comment_single_line(
     compiler: &mut Compiler,
     current_token_vec: &Vec<char>,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::comment_single_line {:?}",
         current_token_vec
     ));
@@ -186,19 +188,21 @@ pub fn comment_single_line(
 
 /// Parses a Println
 pub fn println(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::println {:?}", ""));
+    compiler.ast.log(format!("parse::println {:?}", ""));
     elements::append::println(compiler)
 }
 
 /// Parses a If
 pub fn if_expression(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::if_expression {:?}", ""));
+    compiler.ast.log(format!("parse::if_expression {:?}", ""));
     elements::append::if_expression(compiler)
 }
 
 /// Parses a String
 pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
-    compiler.log(format!("parse::string {:?}", current_token));
+    compiler
+        .ast
+        .log(format!("parse::string {:?}", current_token));
     if is_string(&current_token) {
         elements::append::string(compiler, current_token)
     } else {
@@ -210,7 +214,7 @@ pub fn string(compiler: &mut Compiler, current_token: &String) -> Result<(), ()>
 /// Parses an Int
 pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     //dbg!("parse_int - positive only for now");
-    compiler.log(format!("parse::int {:?}", current_token));
+    compiler.ast.log(format!("parse::int {:?}", current_token));
     let all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
     let chars: Vec<char> = current_token.chars().collect();
     let first_char_is_negative_sign = chars[0] == '-';
@@ -233,7 +237,9 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
 
 /// Parses a Float
 pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
-    compiler.log(format!("parse::float {:?}", current_token));
+    compiler
+        .ast
+        .log(format!("parse::float {:?}", current_token));
     if current_token.len() > 0 && is_float(current_token) {
         elements::append::float(compiler, current_token)
     } else {
@@ -243,7 +249,9 @@ pub fn float(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> 
 
 /// Parses a Constant - as a Constant, ConstantRef, Arg, FunctionDef, If - or an error
 pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
-    compiler.log(format!("parse::constant {:?}", current_token));
+    compiler
+        .ast
+        .log(format!("parse::constant {:?}", current_token));
     let el_option = elements::get_element_by_name(&compiler.ast, current_token);
     match el_option {
         Some(_) => {
@@ -320,7 +328,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
 /// Parses as assignment
 pub fn assignment(compiler: &mut Compiler) -> Result<(), ()> {
     // TODO error checking
-    compiler.log(format!("parse::assignment {:?}", ""));
+    compiler.ast.log(format!("parse::assignment {:?}", ""));
     elements::append::assignment(compiler)
 }
 
@@ -331,7 +339,7 @@ pub fn inbuilt_function_call(
     index_of_function: usize,
 ) -> Result<(), ()> {
     //TODO error checking
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::inbuilt_function_call {:?} {:?}",
         current_token, index_of_function
     ));
@@ -344,7 +352,7 @@ pub fn function_call(
     current_token: &String,
     index_of_function: usize,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::function_call {:?} {:?}",
         current_token, index_of_function
     ));
@@ -353,20 +361,20 @@ pub fn function_call(
 
 /// Parses an empty List
 pub fn list_empty(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::list_empty {:?}", ""));
+    compiler.ast.log(format!("parse::list_empty {:?}", ""));
     list_start(compiler)?;
     list_end(compiler)
 }
 
 /// Parses start of a Struct
 pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::struct_start {:?}", ""));
+    compiler.ast.log(format!("parse::struct_start {:?}", ""));
     elements::append::struct_start(compiler)
 }
 
 /// Parses end of a Struct
 pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::struct_end {:?}", ""));
+    compiler.ast.log(format!("parse::struct_end {:?}", ""));
     let a_struct = parents::get_current_parent_element_from_parents(&compiler.ast);
     match a_struct {
         (ElementInfo::Struct(name, keys, keytypes), children) => {
@@ -384,13 +392,13 @@ pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
 
 /// Parses start of a List
 pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::list_start {:?}", ""));
+    compiler.ast.log(format!("parse::list_start {:?}", ""));
     elements::append::list_start(compiler)
 }
 
 /// Parses end of a List
 pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::list_end {:?}", ""));
+    compiler.ast.log(format!("parse::list_end {:?}", ""));
     let list = parents::get_current_parent_element_from_parents(&compiler.ast);
     match list {
         (ElementInfo::List(returntype), children) => {
@@ -408,19 +416,23 @@ pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
 
 /// Parses start of a FnDef
 pub fn function_definition_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::function_definition_start {:?}", ""));
+    compiler
+        .ast
+        .log(format!("parse::function_definition_start {:?}", ""));
     elements::append::function_definition_start(compiler)
 }
 
 /// Parses start of a Loop for range
 pub fn loop_for_range_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::loop_for_range_start {:?}", ""));
+    compiler
+        .ast
+        .log(format!("parse::loop_for_range_start {:?}", ""));
     elements::append::loop_for_range_start(compiler)
 }
 
 /// Parses end of a Loop for range
 pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::loop_end {:?}", ""));
+    compiler.ast.log(format!("parse::loop_end {:?}", ""));
     /* At the point you parse a loop end,
        and because we don't look ahead when parsing,
        the Ast thinks this is what has been parsed
@@ -503,7 +515,9 @@ pub fn loop_end(compiler: &mut Compiler) -> Result<(), ()> {
 
 /// Parses end of a FnDef
 pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("parse::function_definition_end {:?}", ""));
+    compiler
+        .ast
+        .log(format!("parse::function_definition_end {:?}", ""));
     /*
     At the point you parse a function definition end,
     and because we don't look ahead when parsing,
@@ -624,7 +638,7 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
 
 /// Parses a Fn type signature or start of a fnRef
 pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::functiontypesig_or_functionreference_start {:?}",
         ""
     ));
@@ -633,7 +647,7 @@ pub fn functiontypesig_or_functionreference_start(compiler: &mut Compiler) -> Re
 
 /// Parses a Fn type signature, or end of a FnRef
 pub fn functiontypesig_or_functionreference_end(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "parse::functiontypesig_or_functionreference_end {:?}",
         ""
     ));

@@ -4,7 +4,7 @@ pub mod elements;
 pub mod output;
 pub mod parents;
 
-use crate::ast::elements::{ArgModifier, ElIndex, Element, ElementInfo, Elements};
+use crate::ast::elements::{ArgModifier, DebugElements, ElIndex, Element, ElementInfo, Elements};
 use std::fmt;
 
 /// AST containing Elements as an adjacency list of tree nodes.
@@ -26,6 +26,9 @@ use std::fmt;
 /// // |     |_9 int                                |_(9: Int,  [])
 /// // |_10 Int                                     |_(10: Int, [])
 /// ```
+
+type Logs = Vec<String>;
+
 #[derive(Clone)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1
@@ -34,6 +37,8 @@ pub struct Ast {
     //note: parents are only used for building, ignored output.
     //becuse of that, split outputting to be less confusing?
     pub parents: Vec<ElIndex>,
+    pub logs: Logs,
+    pub debug_compiler_history: Vec<String>,
 }
 
 impl Default for Ast {
@@ -42,6 +47,8 @@ impl Default for Ast {
             elements: init(),
             output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
+            logs: vec![],
+            debug_compiler_history: vec![],
         }
     }
 }
@@ -49,6 +56,13 @@ impl Default for Ast {
 impl Ast {
     pub fn new() -> Ast {
         Ast::default()
+    }
+    /// Called by all functions - inserts a single log line, and a copy of the AST state
+    pub fn log(self: &mut Self, string: String) {
+        self.logs.push(string);
+        let debug_els = format!("{:?}", DebugElements(&self.elements));
+        //let els = rem_first_and_last(&debug_els);
+        self.debug_compiler_history.push(debug_els);
     }
 }
 

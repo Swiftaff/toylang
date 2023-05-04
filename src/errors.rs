@@ -122,7 +122,7 @@ pub fn append_error(
     arrow_len: usize,
     error: &str,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::append_error {:?} {:?} {:?}",
         arrow_indent, arrow_len, error
     ));
@@ -153,7 +153,7 @@ pub fn append_error(
 
 /// Main function to check if parent of Element is invalid - this then calls all the other functions below
 pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
-    compiler.log(format!("errors::append_error {:?}", ""));
+    compiler.ast.log(format!("errors::append_error {:?}", ""));
     let el = elements::get_last_element(&compiler.ast);
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
     //dbg!("error_if_parent_is_invalid", &el, &parent);
@@ -204,7 +204,7 @@ pub fn error_if_parent_is_invalid_for_list(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_list {:?}",
         parent
     ));
@@ -244,7 +244,7 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_commentsingleline {:?}",
         parent
     ));
@@ -297,7 +297,7 @@ pub fn error_if_parent_is_invalid_for_int(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_int {:?}",
         parent
     ));
@@ -341,7 +341,7 @@ pub fn error_if_parent_is_invalid_for_float(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_float {:?}",
         parent
     ));
@@ -385,7 +385,7 @@ pub fn error_if_parent_is_invalid_for_string(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_string {:?}",
         parent
     ));
@@ -429,7 +429,7 @@ pub fn error_if_parent_is_invalid_for_bool(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_bool {:?}",
         parent
     ));
@@ -473,7 +473,7 @@ pub fn error_if_parent_is_invalid_for_arg(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_arg {:?}",
         parent
     ));
@@ -517,7 +517,7 @@ pub fn error_if_parent_is_invalid_for_constantref(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_constantref {:?}",
         parent
     ));
@@ -562,7 +562,7 @@ pub fn error_if_parent_is_invalid_for_struct(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_struct {:?}",
         parent
     ));
@@ -576,7 +576,7 @@ pub fn error_if_parent_is_invalid_for_constant(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_constant {:?}",
         parent
     ));
@@ -592,7 +592,7 @@ pub fn error_if_parent_is_invalid_for_assignment(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_assignment {:?}",
         parent
     ));
@@ -655,7 +655,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_inbuiltfncall {:?}",
         parent
     ));
@@ -700,7 +700,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_fncall {:?}",
         parent
     ));
@@ -743,7 +743,7 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_parenthesis {:?}",
         parent
     ));
@@ -794,7 +794,7 @@ pub fn error_if_parent_is_invalid_for_loopfor(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_loopfor {:?}",
         parent
     ));
@@ -836,7 +836,7 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_fndefwip {:?}",
         parent
     ));
@@ -913,7 +913,7 @@ pub fn error_if_parent_is_invalid_for_println(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_println {:?}",
         parent
     ));
@@ -965,7 +965,7 @@ pub fn error_if_parent_is_invalid_for_if_expression(
     compiler: &mut Compiler,
     parent: &Element,
 ) -> Result<(), ()> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "errors::error_if_parent_is_invalid_for_if_expression {:?}",
         parent
     ));

@@ -565,7 +565,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
 
 /*
 pub fn _is_existing_constant(compiler: &mut Compiler) -> bool {
-    compiler.log(format!("elements::is_existing_constant {:?}", ""));
+    compiler.ast.log(format!("elements::is_existing_constant {:?}", ""));
     let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
     let parent_assignment_has_no_children = false;
     if compiler.logs.len() == 150 {
@@ -617,7 +617,7 @@ pub fn replace_funcdefwip_with_funcdef(
     name: &String,
     func_def_ref: usize,
 ) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "elements::replace_funcdefwip_with_funcdef {:?} {:?} {:?}",
         children, name, func_def_ref
     ));
@@ -633,7 +633,7 @@ pub fn replace_funcdefwip_with_funcdef(
 
 /// Get a vec of types based on child refs, assuming they are Types or Parens (containing a Dyn Fn with types)
 pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> Vec<String> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "elements::get_argtypes_from_argtokens {:?}",
         children
     ));
@@ -658,7 +658,7 @@ pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) 
 
 /// Get returntype from children assuming one is a Type
 pub fn get_returntype_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> String {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "elements::get_returntype_from_argtokens {:?}",
         children
     ));
@@ -676,7 +676,7 @@ pub fn get_argnames_from_argtokens(
     children: &[usize],
     argtypes: &Vec<String>,
 ) -> Vec<String> {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "elements::get_argnames_from_argtokens {:?} {:?}",
         children, argtypes
     ));
@@ -710,7 +710,7 @@ pub fn get_formatted_dyn_fn_type_sig(
     compiler: &mut Compiler,
     paren_children: &Vec<usize>,
 ) -> String {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "elements::get_formatted_dyn_fn_type_sig {:?}",
         paren_children
     ));
@@ -821,6 +821,39 @@ impl fmt::Debug for ElementsVec {
         write_subtree(&self, f, root_index, 0)?;
         Ok(())
     }
+}
+
+pub struct DebugElements<'a>(pub &'a Elements);
+
+impl<'a> fmt::Debug for DebugElements<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut el_debug = "".to_string();
+        let els = &self;
+        for el in 0..els.0.len() {
+            let children_debug = debug_flat_usize_array(&els.0[el].1);
+            let elinfo_debug = format!("{:?} {}", els.0[el].0, children_debug);
+            let el_index = if el > 9 {
+                "".to_string()
+            } else {
+                " ".to_string()
+            };
+            el_debug = format!("{}{}{}: {}\r\n", el_debug, el_index, el, elinfo_debug);
+        }
+        write!(
+            f,
+            "Custom Debug of Elements [\r\nElements:\r\n{}\r\n]",
+            el_debug
+        )
+    }
+}
+
+fn debug_flat_usize_array(arr: &Vec<usize>) -> String {
+    let mut arr_debug = "[ ".to_string();
+    for string in arr {
+        arr_debug = format!("{}{}, ", arr_debug, string);
+    }
+    arr_debug = format!("{}]", arr_debug);
+    arr_debug
 }
 
 fn write_subtree(

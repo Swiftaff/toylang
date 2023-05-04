@@ -10,7 +10,7 @@ use crate::Compiler;
 ///
 /// Removes last item from parents stack, to indicate that parser is moving out of current code block, and up a level to next sibling. Defaults to containing only root
 pub fn outdent(compiler: &mut Compiler) {
-    compiler.log(format!("outdent::outdent {:?}", ""));
+    compiler.ast.log(format!("outdent::outdent {:?}", ""));
     compiler.ast.parents = if compiler.ast.parents.len() < 2 {
         vec![0]
     } else {
@@ -20,7 +20,7 @@ pub fn outdent(compiler: &mut Compiler) {
 
 /// Outdents from within a FnDef, outdenting based on the return Element
 pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::within_fndef_from_return_expression {:?}",
         ""
     ));
@@ -134,7 +134,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
 
 /// Outdents from within an InbuiltFnCall, inside inbuiltFnDef
 pub fn within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler: &mut Compiler, fndefref: usize) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::within_fndef_for_inbuiltfncall_from_inbuiltfndef {:?}",
         fndefref
     ));
@@ -168,7 +168,7 @@ pub fn inbuiltfncall_from_inbuiltfndef(
     current_parent: Element,
     fndefref: usize,
 ) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::within_fndef_for_inbuiltfncall_from_inbuiltfndef {:?} {:?}",
         current_parent, fndefref
     ));
@@ -189,7 +189,7 @@ pub fn inbuiltfncall_from_inbuiltfndef(
 
 /// Outdents from within a FnDef for FnCall inside FnDef?
 pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::within_fndef_for_fncall_from_fndef {:?}",
         name
     ));
@@ -213,7 +213,9 @@ pub fn within_fndef_for_fncall_from_fndef(compiler: &mut Compiler, name: &String
 
 /// Outdents from FnCall
 pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
-    compiler.log(format!("outdent::fncall {:?} {:?}", current_parent, name));
+    compiler
+        .ast
+        .log(format!("outdent::fncall {:?} {:?}", current_parent, name));
     match current_parent.0 {
         ElementInfo::Println => println(compiler, current_parent),
         _ => {
@@ -244,7 +246,9 @@ pub fn fncall(compiler: &mut Compiler, current_parent: Element, name: String) {
 
 /// Outdents from Println
 pub fn println(compiler: &mut Compiler, current_parent: Element) {
-    compiler.log(format!("outdent::println {:?}", current_parent));
+    compiler
+        .ast
+        .log(format!("outdent::println {:?}", current_parent));
     //dbg!("outdent.println");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -253,7 +257,9 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from Struct
 pub fn a_struct(compiler: &mut Compiler, current_parent: Element) {
-    compiler.log(format!("outdent::struct {:?}", current_parent));
+    compiler
+        .ast
+        .log(format!("outdent::struct {:?}", current_parent));
     //dbg!("Struct");
     if let ElementInfo::Struct(_, keys, _) = current_parent.0 {
         if current_parent.1.len() > keys.len() {
@@ -264,7 +270,9 @@ pub fn a_struct(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from Constant
 pub fn constant(compiler: &mut Compiler, current_parent: Element) {
-    compiler.log(format!("outdent::constant {:?}", current_parent));
+    compiler
+        .ast
+        .log(format!("outdent::constant {:?}", current_parent));
     //dbg!("Constant");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -273,7 +281,9 @@ pub fn constant(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from Assignment
 pub fn assignment(compiler: &mut Compiler, current_parent: Element) {
-    compiler.log(format!("outdent::assignment {:?}", current_parent));
+    compiler
+        .ast
+        .log(format!("outdent::assignment {:?}", current_parent));
     //dbg!("Assignment");
     if current_parent.1.len() > 0 {
         outdent(compiler);
@@ -282,7 +292,9 @@ pub fn assignment(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from If
 pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
-    compiler.log(format!("outdent::if_expression {:?}", current_parent));
+    compiler
+        .ast
+        .log(format!("outdent::if_expression {:?}", current_parent));
     //dbg!("If");
     if current_parent.1.len() > 2 {
         outdent(compiler);
@@ -291,7 +303,7 @@ pub fn if_expression(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from FnCall of Arg?
 pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_children: usize) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::functioncall_of_arg {:?} {:?}",
         returntype, num_children
     ));
@@ -305,7 +317,7 @@ pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_chi
 
 /// Outdents from FnCall of FnDef?
 pub fn functioncall_of_functiondef(compiler: &mut Compiler, num_children: usize, args: usize) {
-    compiler.log(format!(
+    compiler.ast.log(format!(
         "outdent::functioncall_of_functiondef {:?} {:?}",
         num_children, args
     ));

@@ -40,7 +40,6 @@ pub type Tokens = Vec<String>;
 type ErrorStack = Vec<String>;
 type LinesOfChars = Vec<Vec<char>>;
 type LinesOfTokens = Vec<Tokens>;
-type Logs = Vec<String>;
 
 fn rem_first_and_last(value: &str) -> String {
     let mut chars = value.chars();
@@ -133,7 +132,6 @@ pub struct Compiler {
     pub debug: bool,
     pub debug_step: usize,
     pub debug_line: usize,
-    pub debug_compiler_history: Vec<String>,
     pub filepath: String,
     pub outputdir: String,
     pub lines_of_chars: LinesOfChars,
@@ -143,7 +141,6 @@ pub struct Compiler {
     pub current_line_token: usize,
     pub error_stack: ErrorStack,
     pub ast: Ast,
-    pub logs: Logs,
 }
 
 impl Compiler {
@@ -163,7 +160,7 @@ impl Compiler {
         }
         let debug_step = 0;
         let debug_line = 0 as usize;
-        let debug_compiler_history = vec![];
+
         //println!("2");
         let mut outputdir = "".to_string();
         if let Some(outputdir_found) = &option_outputdir {
@@ -177,16 +174,15 @@ impl Compiler {
         let current_line_token = 0;
         let error_stack = vec![];
         let ast = Ast::new();
-        let logs = vec![format!(
-            "lib::new {:?} {:?} {:?}",
-            filepath, debug, option_outputdir
-        )];
+        //let logs = vec![format!(
+        //    "lib::new {:?} {:?} {:?}",
+        //    filepath, debug, option_outputdir
+        //)];
         Ok(Compiler {
             file,
             debug,
             debug_step,
             debug_line,
-            debug_compiler_history,
             filepath,
             outputdir,
             lines_of_chars,
@@ -196,13 +192,12 @@ impl Compiler {
             current_line_token,
             error_stack,
             ast,
-            logs,
         })
     }
 
     /// Begins running the compiler, run_main_tasks, write_file_or_error
     pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
-        self.log(format!("lib::run {:?}", ""));
+        self.ast.log(format!("lib::run {:?}", ""));
         self.file.get(&self.filepath)?;
         match self.run_main_tasks() {
             Ok(_) => (),
@@ -215,16 +210,10 @@ impl Compiler {
         )
     }
 
-    /// Called by all functions - inserts a single log line, and a copy of the AST state
-    pub fn log(self: &mut Self, string: String) {
-        self.logs.push(string);
-        self.debug_compiler_history.push(format!("{:?}", self.ast));
-    }
-
     /// Used by the debugger program to request to run one of the steps in the compiler
     /// to allow step by step debugging
     pub fn debug_step(self: &mut Self, step: usize) -> usize {
-        self.log(format!("lib::debug_step {:?}", step));
+        self.ast.log(format!("lib::debug_step {:?}", step));
         let mut completed_step: usize = 0;
         self.debug_step = step;
 
@@ -296,7 +285,7 @@ impl Compiler {
 
     /// The main tasks run by the compiler, set lines_of_chars, lines_of_tokens, run_main_loop
     pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
-        self.log(format!("lib::run_main_tasks {:?}", ""));
+        self.ast.log(format!("lib::run_main_tasks {:?}", ""));
         self.set_lines_of_chars();
         self.set_lines_of_tokens();
         self.run_main_loop()
@@ -304,7 +293,7 @@ impl Compiler {
 
     /// Calling the main loop where the lines_of_tokens are parsed and compiler errors are generated
     fn run_main_loop(self: &mut Self) -> Result<(), ()> {
-        self.log(format!("lib::run_main_loop {:?}", ""));
+        self.ast.log(format!("lib::run_main_loop {:?}", ""));
         // ref: https://doc.rust-lang.org/reference/tokens.html
         // ref: https://elm-lang.org/docs/syntax
 
@@ -341,7 +330,8 @@ impl Compiler {
 
     /// Actually loop over parsing each line of tokens
     fn main_loop_over_lines_of_tokens(self: &mut Self) -> Result<(), ()> {
-        self.log(format!("lib::main_loop_over_lines_of_tokens {:?}", ""));
+        self.ast
+            .log(format!("lib::main_loop_over_lines_of_tokens {:?}", ""));
         //self.set_ast_output_for_main_fn_start();
         if self.debug {
             let line = self.debug_line;
@@ -356,7 +346,7 @@ impl Compiler {
 
     /// Parse a single line of tokens
     fn parse_one_line(self: &mut Self, line: usize) -> Result<(), ()> {
-        self.log(format!("lib::parse_one_line {:?}", line));
+        self.ast.log(format!("lib::parse_one_line {:?}", line));
         if line < self.lines_of_tokens.len() && self.lines_of_tokens[line].len() > 0 {
             self.current_line = line;
             self.current_line_token = 0;
@@ -367,7 +357,7 @@ impl Compiler {
 
     /// Initially generate lines of characters based on input file
     fn set_lines_of_chars(self: &mut Self) {
-        self.log(format!("lib::set_lines_of_chars {:?}", ""));
+        self.ast.log(format!("lib::set_lines_of_chars {:?}", ""));
         let mut index_from = 0;
         let mut index_to = 0;
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
@@ -415,7 +405,7 @@ impl Compiler {
 
     /// Initially generate lines_of_tokens based on lines_of_chars
     fn set_lines_of_tokens(self: &mut Self) {
-        self.log(format!("lib::set_lines_of_tokens {:?}", ""));
+        self.ast.log(format!("lib::set_lines_of_tokens {:?}", ""));
         for line in 0..self.lines_of_chars.len() {
             let mut index_from = 0;
             let mut index_to = 0;

@@ -392,7 +392,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 let txt_ast = format!("{:?}", compiler.ast);
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
-                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
+                let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                 let txt_output = format!("{}", compiler.output);
 
                 ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
@@ -453,7 +453,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     //dbg!(step, step_max, completed_step);
                     let current_text = ui.richtext_ast_current.text();
                     let new_text = format!("{:?}", compiler.ast);
-                    let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
+                    let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                     let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                     let new_len = new_text.len() as u32;
                     let mut first_non_matching_char = 0;
@@ -496,14 +496,14 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                     ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
-                    if compiler.logs.len() as usize > 0 {
-                        let pos = &compiler.debug_compiler_history.len() - 1;
+                    if compiler.ast.logs.len() as usize > 0 {
+                        let pos = &compiler.ast.debug_compiler_history.len() - 1;
                         ui.mydata
                             .borrow_mut()
                             .history_max_update(format!("{}", pos));
                         ui.mydata
                             .borrow_mut()
-                            .history_update(&compiler.debug_compiler_history);
+                            .history_update(&compiler.ast.debug_compiler_history);
                         ui.history_trackbar.set_range_max(pos);
                         ui.history_update();
                         ui.history_trackbar.set_pos(pos);
@@ -530,7 +530,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 //dbg!(step, step_max, completed_step);
                 let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
-                let txt_logs = format!("{:?}", DebugLogs(&compiler.logs));
+                let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let new_len = new_text.len() as u32;
                 let mut first_non_matching_char = 0;
@@ -560,14 +560,14 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
                 ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
-                if compiler.logs.len() as usize > 0 {
-                    let pos = &compiler.debug_compiler_history.len() - 1;
+                if compiler.ast.logs.len() as usize > 0 {
+                    let pos = &compiler.ast.debug_compiler_history.len() - 1;
                     ui.mydata
                         .borrow_mut()
                         .history_max_update(format!("{}", pos));
                     ui.mydata
                         .borrow_mut()
-                        .history_update(&compiler.debug_compiler_history);
+                        .history_update(&compiler.ast.debug_compiler_history);
                     ui.history_trackbar.set_range_max(pos);
                     ui.history_update();
                     ui.history_trackbar.set_pos(pos);

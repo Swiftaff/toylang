@@ -13,7 +13,7 @@ use crate::Compiler;
 /// Dynamically pushes and pops from a stack of root element children
 /// Outputting
 pub fn set_output(compiler: &mut Compiler) {
-    compiler.log(format!("output::set_output {:?}", ""));
+    compiler.ast.log(format!("output::set_output {:?}", ""));
 
     replace_any_unknown_types(&mut compiler.ast);
 
