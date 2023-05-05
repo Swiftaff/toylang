@@ -60,8 +60,12 @@ impl Ast {
     /// Called by all functions - inserts a single log line, and a copy of the AST state
     pub fn log(self: &mut Self, string: String) {
         self.logs.push(string);
-        let debug_els = format!("{:?}", DebugElements(&self.elements));
-        //let els = rem_first_and_last(&debug_els);
+        let debug_els = format!(
+            "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput:\r\n{:?}",
+            DebugElements(&self.elements),
+            &self.parents,
+            &self.output
+        );
         self.debug_compiler_history.push(debug_els);
     }
 }

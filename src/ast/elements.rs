@@ -905,7 +905,7 @@ mod tests {
         let mut n = ast1.elements.len();
         let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
         append::append(&mut ast1, el1);
-        assert_eq!(output::get_depths_vec(ast1), vec![[n]]);
+        assert_eq!(output::get_depths_vec(&mut ast1), vec![[n]]);
 
         //3 el under root
         let mut ast2 = Ast::new();
@@ -916,7 +916,7 @@ mod tests {
         append::append(&mut ast2, el21);
         append::append(&mut ast2, el22);
         append::append(&mut ast2, el23);
-        assert_eq!(output::get_depths_vec(ast2), vec![[n, n + 1, n + 2]]);
+        assert_eq!(output::get_depths_vec(&mut ast2), vec![[n, n + 1, n + 2]]);
 
         //1 el under with 2 children, under root
         let mut ast3 = Ast::new();
@@ -932,7 +932,7 @@ mod tests {
         append::append(&mut ast3, el32);
         append::append(&mut ast3, el33);
         assert_eq!(
-            output::get_depths_vec(ast3),
+            output::get_depths_vec(&mut ast3),
             vec![vec![n], vec![n + 2, n + 1]]
         );
 
@@ -1001,7 +1001,7 @@ mod tests {
         append::append(&mut c.ast, el410);
 
         assert_eq!(
-            output::get_depths_vec(c.ast),
+            output::get_depths_vec(&mut c.ast),
             vec![
                 vec![n, n + 1, n + 2, n + 9],
                 vec![n + 4, n + 3],

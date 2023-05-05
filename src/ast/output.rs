@@ -66,10 +66,12 @@ fn indent_and_add_children(
     children: Vec<usize>,
     stack: Vec<usize>,
 ) -> Vec<usize> {
+    compiler
+        .ast
+        .log(format!("output::indent_and_add_children {:?}", ""));
     // add the following to stack in reverse order so they are then handled immediately,
     // and in correct order when popped off the stack in the next while loops
     let mut new_stack = stack.clone();
-
     // prepend with current item end tag indicator - so we know to close it after the outdent
     new_stack.splice(0..0, vec![current_el_index]);
     // prepend with 0 (marker for outdent)
@@ -83,6 +85,10 @@ fn indent_and_add_children(
 
 /// outdent from list of children, back to parents next sibling
 fn output_end_of_element_and_outdent(compiler: &mut Compiler, stack: &Vec<usize>) -> Vec<usize> {
+    compiler.ast.log(format!(
+        "output::output_end_of_element_and_outdent {:?}",
+        ""
+    ));
     parents::outdent::outdent(compiler);
     // push current end tag to output
     let end_tag = stack[0];
@@ -96,8 +102,9 @@ fn output_end_of_element_and_outdent(compiler: &mut Compiler, stack: &Vec<usize>
 
 /// Goes through the Ast several times to fill in all the Undefined types
 pub fn replace_any_unknown_types(ast: &mut Ast) {
+    ast.log(format!("output::replace_any_unknown_types {:?}", ""));
     for _i in 0..10 {
-        let depths = get_depths_vec(ast.clone());
+        let depths = get_depths_vec(&mut ast.clone());
         let depths_flattened = get_depths_flattened(&depths);
         for el_index in depths_flattened {
             ast.elements[el_index].0 =
@@ -111,7 +118,8 @@ pub fn replace_any_unknown_types(ast: &mut Ast) {
 /// Ordered from deepest block in the 'tree' to highest
 /// (ordered top to bottom for blocks at same level)
 /// and reverse order within each block
-pub fn get_depths_vec(ast: Ast) -> Vec<Vec<usize>> {
+pub fn get_depths_vec(ast: &mut Ast) -> Vec<Vec<usize>> {
+    ast.log(format!("output::get_depths_vec {:?}", ""));
     let mut tracked_parents: Vec<usize> = vec![0];
     let mut children: Vec<usize> = ast.elements[0].1.clone();
     let mut depths: Vec<Vec<usize>> = vec![children];
@@ -164,6 +172,10 @@ fn get_output_for_element_index(
     element_index: usize,
     skip_in_case_handled_by_parent: bool,
 ) -> String {
+    ast.log(format!(
+        "output::get_output_for_element_index {:?}",
+        element_index
+    ));
     let element = ast.elements[element_index].clone();
     let children = element.1;
     let empty_string = "".to_string();
@@ -220,9 +232,10 @@ fn get_output_for_element_index(
 
 /// Defines which Elements' children should be skipped from being output directly,
 /// as the children are handled by the parent Element's output
-fn is_parent_skippable(ast: &mut Ast, element_index: usize) -> bool {
-    match parents::get_current_parent_element_from_element_children_search(&ast, element_index) {
-        Some((ElementInfo::Assignment, _)) => true,
+    ast.log(format!(
+        "output::is_skippable_due_to_parent {} {:?}",
+        element_index, parent
+    ));
         Some((ElementInfo::FunctionCall(_, _), _)) => true,
         Some((ElementInfo::Println, _)) => true,
         Some((ElementInfo::List(_), _)) => true,
@@ -256,6 +269,7 @@ fn is_parent_skippable(ast: &mut Ast, element_index: usize) -> bool {
 
 /// Output for Struct
 fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_struct {:?}", name));
     // a Structs children should all be Assignments
     // each Assignment should have one child Constant
     let mut constants = vec![];
@@ -283,6 +297,7 @@ fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> S
 
 /// Output for Assignment
 fn get_output_for_assignment(ast: &mut Ast, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_assignment {:?}", ""));
     let mut returntype = "Undefined".to_string();
     if children.len() < 1 {
         format!(
@@ -305,7 +320,7 @@ fn get_output_for_assignment(ast: &mut Ast, children: Vec<usize>) -> String {
 
 /// Output for List
 fn get_output_for_list(ast: &mut Ast, children: Vec<usize>, returntype: String) -> String {
-    //dbg!("List");
+    ast.log(format!("output::get_output_for_list {:?}", ""));
     if children.len() > 0 {
         let mut output = "vec![ ".to_string();
         for i in 0..children.len() {
@@ -330,6 +345,7 @@ fn get_output_for_list(ast: &mut Ast, children: Vec<usize>, returntype: String) 
 
 /// Output for InbuiltFnCall
 fn get_output_for_inbuiltfncall(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_inbuiltfncall {:?}", ""));
     if let Some(def) = elements::get_inbuilt_function_by_name(ast, &name) {
         match def.clone() {
             ElementInfo::InbuiltFunctionDef(_, argnames, _, _, _, format) => {
@@ -364,6 +380,7 @@ fn get_output_for_inbuiltfncall(ast: &mut Ast, name: String, children: Vec<usize
 
 /// Output for FunctionCall
 fn get_output_for_functioncall(ast: &mut Ast, name: String, arguments: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_functioncall {:?}", ""));
     let empty_string = "".to_string();
     let mut args = empty_string.clone();
     for i in 0..arguments.len() {
@@ -371,7 +388,6 @@ fn get_output_for_functioncall(ast: &mut Ast, name: String, arguments: Vec<usize
         //let arg_el = ast.elements[arg_el_ref];
         let arg = get_output_for_element_index(ast, arg_el_ref, false);
         let mut borrow = empty_string.clone();
-        //dbg!("here", &name, &returntype, &arg_el);
         if let Some(fndef_ref) = elements::get_function_index_by_name(ast, &name) {
             let fndef = &ast.elements[fndef_ref];
             match &fndef.0 {
@@ -398,6 +414,7 @@ fn get_output_for_functioncall(ast: &mut Ast, name: String, arguments: Vec<usize
 
 /// Output for Parens
 fn get_output_for_parens(ast: &mut Ast, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_parens {:?}", ""));
     let mut output = "".to_string();
     for i in 0..children.len() {
         let child_ref = children[i];
@@ -409,6 +426,7 @@ fn get_output_for_parens(ast: &mut Ast, children: Vec<usize>) -> String {
 
 /// Output for Println
 fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_output_for_println {:?}", ""));
     let mut output = "".to_string();
     for i in 0..children.len() {
         let child_ref = children[i];
@@ -420,6 +438,7 @@ fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
 
 /// Output for If statement
 fn get_output_for_if(ast: &mut Ast, children: Vec<usize>, returntype: String) -> String {
+    ast.log(format!("output::get_output_for_if {:?}", ""));
     let mut output = "".to_string();
     if children.len() < 3 {
         dbg!("output error", &returntype, &children);
@@ -450,12 +469,14 @@ fn get_output_for_if(ast: &mut Ast, children: Vec<usize>, returntype: String) ->
 
 /// Append the current element's formatted string to the output string
 fn set_output_for_element_open(ast: &mut Ast, el_index: usize) {
+    ast.log(format!("output::set_output_for_element_open {:?}", ""));
     let element_string = get_output_for_element_index(ast, el_index, true);
     set_output_append(ast, &element_string);
 }
 
 /// Append an indented closing bracket for FunctionDef to the output string, or nothing
 fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
+    ast.log(format!("output::set_output_for_element_close {:?}", ""));
     if el_index < ast.elements.len() {
         let element = &ast.elements[el_index];
         let element_string = match element.0 {
@@ -473,5 +494,6 @@ fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
 
 /// Append a string to the output string
 fn set_output_append(ast: &mut Ast, append_string: &str) {
+    ast.log(format!("output::set_output_append {:?}", append_string));
     ast.output = format!("{}{}", ast.output, append_string);
 }
