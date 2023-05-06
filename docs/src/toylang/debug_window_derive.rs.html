@@ -601,6 +601,8 @@
 <a href="#601" id="601">601</a>
 <a href="#602" id="602">602</a>
 <a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
 </pre><pre class="rust"><code><span class="doccomment">/*!
     ## A windows app to help with debugging development of Toylang
     Pass the debug flag to toylang.exe (-d or --debug) to open this interactive debugger which steps through the state of the Compiler&#39;s AST to troublshoot compilation errors.
@@ -612,11 +614,11 @@
 <span class="kw">use </span>nwd::NwgUi;
 <span class="kw">use </span>nwg::NativeUi;
 <span class="kw">use </span>std::cell::RefCell;
+<span class="kw">use </span>std::process;
 
 <span class="kw">use </span><span class="kw">crate</span>::ast::elements::ElementsVec;
 <span class="kw">use </span><span class="kw">crate</span>::file::DebugFileContents;
 <span class="kw">use crate</span>::{Compiler, DebugErrorStack, DebugLinesOfChars, DebugLinesOfTokens, DebugLogs};
-<span class="kw">use </span>std::process;
 
 <span class="kw">const </span>APP_NAME: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Toylang - Compiler debugger&quot;</span>;
 
@@ -731,92 +733,90 @@
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_reset] </span>)]
     button_reset: nwg::Button,
 
-    <span class="comment">// Row 2
+    <span class="comment">// File Contents
     </span><span class="attr">#[nwg_control(text: <span class="string">&quot;File Contents&quot;</span>)]
     #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">0</span>, col_span: <span class="number">3</span>)]
     </span>label0: nwg::Label,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;Lines of chars&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">3</span>, col_span: <span class="number">3</span>)]
-    </span>label1: nwg::Label,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;Lines of tokens&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">6</span>, col_span: <span class="number">3</span>)]
-    </span>label2: nwg::Label,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;AST previous&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">9</span>, col_span: <span class="number">3</span>)]
-    </span>label3: nwg::Label,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;AST current&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">12</span>, col_span: <span class="number">3</span>)]
-    </span>label4: nwg::Label,
-
-    <span class="comment">// Row 3
-    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>,)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">0</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
+    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>,)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">0</span>, row_span: <span class="number">2</span>, col_span: <span class="number">3</span>)]
     </span>richtext_input: nwg::RichTextBox,
 
+    <span class="comment">/*
+    #[nwg_control(text: &quot;&quot;)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 5, col_span: 3)]
+    richtext_ast_previous: nwg::RichTextBox,
+
+    #[nwg_control(text: &quot;&quot;)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 12, row_span: 5, col_span: 3)]
+    richtext_ast_current: nwg::RichTextBox,
+    */
+    // Lines of Chars
+    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;Lines of chars&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">5</span>,  col: <span class="number">0</span>, col_span: <span class="number">3</span>)]
+    </span>label1: nwg::Label,
+
     <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>,)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">3</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">6</span>, col: <span class="number">0</span>, row_span: <span class="number">2</span>, col_span: <span class="number">3</span>)]
     </span>richtext_loc: nwg::RichTextBox,
 
+    <span class="comment">// Lines of Tokens
+    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;Lines of tokens&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">0</span>, col_span: <span class="number">3</span>)]
+    </span>label2: nwg::Label,
+
     <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>,)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">6</span>, row_span: <span class="number">5</span>, col_span:<span class="number">3</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">0</span>, row_span: <span class="number">2</span>, col_span:<span class="number">3</span>)]
     </span>richtext_lot: nwg::RichTextBox,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">9</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
-    </span>richtext_ast_previous: nwg::RichTextBox,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">12</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
-    </span>richtext_ast_current: nwg::RichTextBox,
-
-    <span class="comment">// Row 4
+    <span class="comment">// Error Stack
     </span><span class="attr">#[nwg_control(text: <span class="string">&quot;Error stack&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">0</span>, col_span: <span class="number">3</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">11</span>,  col: <span class="number">0</span>, col_span: <span class="number">3</span>)]
     </span>label5: nwg::Label,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;Logs&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">3</span>, col_span: <span class="number">3</span>)]
+    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">12</span>, col: <span class="number">0</span>, row_span: <span class="number">2</span>, col_span: <span class="number">3</span>)]
+    </span>richtext_error_stack: nwg::RichTextBox,
+
+    <span class="comment">// Logs
+    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;Logs&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">3</span>, col_span: <span class="number">3</span>)]
     </span>label6: nwg::Label,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;AST (0 of 0)&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">6</span>, col_span: <span class="number">1</span>)]
+    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">3</span>, row_span: <span class="number">11</span>, col_span: <span class="number">6</span>)]
+    </span>richtext_logs: nwg::RichTextBox,
+
+    <span class="comment">// History
+    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;History (0 of 0)&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">2</span>,  col: <span class="number">9</span>, col_span: <span class="number">6</span>)]
     </span>label7: nwg::Label,
 
-    <span class="attr">#[nwg_control(parent: window, size: (<span class="number">250</span>, <span class="number">30</span>), position: (<span class="number">900</span>,<span class="number">700</span>), range: <span class="prelude-val">Some</span>(<span class="number">0</span>..<span class="number">0</span>) )]
+    <span class="attr">#[nwg_control(parent: window, size: (<span class="number">250</span>, <span class="number">30</span>), position: (<span class="number">900</span>,<span class="number">200</span>), range: <span class="prelude-val">Some</span>(<span class="number">0</span>..<span class="number">0</span>) )]
     #[nwg_events( OnHorizontalScroll: [ToylangDebugger::history_update] </span>)]
     history_trackbar: nwg::TrackBar,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;AST Current (Tree)&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">9</span>, col_span: <span class="number">3</span>)]
-    </span>label8: nwg::Label,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;Output&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">8</span>,  col: <span class="number">12</span>, col_span: <span class="number">3</span>)]
-    </span>label9: nwg::Label,
-
-    <span class="comment">// Row 5
-    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">0</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
-    </span>richtext_error_stack: nwg::RichTextBox,
-
     <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">3</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
-    </span>richtext_logs: nwg::RichTextBox,
-
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">6</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">3</span>, col: <span class="number">9</span>, row_span: <span class="number">7</span>, col_span: <span class="number">6</span>)]
     </span>richtext_dynamic_ast: nwg::RichTextBox,
 
-    <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">9</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
-    </span>richtext_tree: nwg::RichTextBox,
+    <span class="comment">/*
+    // AST Current (tree)
+    #[nwg_control(text: &quot;AST Current (Tree)&quot;)]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 9, col_span: 3)]
+    label8: nwg::Label,
+
+    #[nwg_control(text: &quot;&quot;)]
+    #[nwg_layout_item(layout: grid, row: 9, col: 9, row_span: 2, col_span: 6)]
+    richtext_tree: nwg::RichTextBox,
+    */
+    // Output
+    </span><span class="attr">#[nwg_control(text: <span class="string">&quot;Output&quot;</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">10</span>,  col: <span class="number">9</span>, col_span: <span class="number">6</span>)]
+    </span>label9: nwg::Label,
 
     <span class="attr">#[nwg_control(text: <span class="string">&quot;&quot;</span>)]
-    #[nwg_layout_item(layout: grid, row: <span class="number">9</span>, col: <span class="number">12</span>, row_span: <span class="number">5</span>, col_span: <span class="number">3</span>)]
+    #[nwg_layout_item(layout: grid, row: <span class="number">11</span>, col: <span class="number">9</span>, row_span: <span class="number">3</span>, col_span: <span class="number">6</span>)]
     </span>richtext_output: nwg::RichTextBox,
 }
 
@@ -867,7 +867,7 @@
 
     <span class="kw">pub fn </span>rich_text_input_init(<span class="kw-2">&amp;</span><span class="self">self</span>) {
         <span class="kw">let </span>heading = <span class="macro">format!</span>(<span class="string">&quot;{}\r\n&quot;</span>, APP_NAME);
-        <span class="kw">let </span>text = <span class="string">&quot;\r\n\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler&#39;s\r\ninternal data structures as it processes\r\nyour input filepath.&quot;</span>;
+        <span class="kw">let </span>text = <span class="string">&quot;\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler&#39;s\r\ninternal data structures as it processes\r\nyour input filepath.&quot;</span>;
         <span class="kw">let </span>all_text = [<span class="kw-2">&amp;</span>heading, text].join(<span class="string">&quot;&quot;</span>);
         <span class="self">self</span>.richtext_input.set_text(<span class="kw-2">&amp;</span>all_text);
 
@@ -935,12 +935,12 @@
     ui.textinput_outputdir.set_text(<span class="kw-2">&amp;</span>(output.clone().unwrap()));
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_loc, <span class="string">&quot; &quot;</span>);
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_lot, <span class="string">&quot; &quot;</span>);
-    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_previous, <span class="string">&quot; &quot;</span>);
-    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="string">&quot; &quot;</span>);
-    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="string">&quot; &quot;</span>);
+    <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_ast_previous, &quot; &quot;);
+    //ui.rich_text_control_set_text(&amp;ui.richtext_ast_current, &quot; &quot;);
+    </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="string">&quot; &quot;</span>);
     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="string">&quot; &quot;</span>);
-    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_tree, <span class="string">&quot; &quot;</span>);
-    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="string">&quot; &quot;</span>);
+    <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_tree, &quot; &quot;);
+    </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="string">&quot; &quot;</span>);
     <span class="kw">return </span>Compiler::new(input.clone(), debug, output.clone(), <span class="bool-val">true</span>).unwrap_or_else(|err| {
         <span class="macro">println!</span>(<span class="string">&quot;Problem parsing arguments: {}&quot;</span>, err);
         process::exit(<span class="number">1</span>);
@@ -995,15 +995,15 @@
                 <span class="kw">let </span>txt_ast = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, compiler.ast);
                 <span class="kw">let </span>txt_tree = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, ElementsVec(compiler.ast.elements.clone()));
                 <span class="kw">let </span>txt_error = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugErrorStack(<span class="kw-2">&amp;</span>compiler.error_stack));
-                <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.logs));
-                <span class="kw">let </span>txt_output = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, compiler.output);
+                <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.ast.logs));
+                <span class="kw">let </span>txt_output = compiler.ast.output.to_string();
 
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_input, <span class="kw-2">&amp;</span>txt_input);
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="kw-2">&amp;</span>txt_ast);
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="kw-2">&amp;</span>txt_error);
+                <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_ast_current, &amp;txt_ast);
+                </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="kw-2">&amp;</span>txt_error);
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="kw-2">&amp;</span>txt_logs);
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_tree, <span class="kw-2">&amp;</span>txt_tree);
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="kw-2">&amp;</span>txt_output);
+                <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_tree, &amp;txt_tree);
+                </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="kw-2">&amp;</span>txt_output);
 
                 ui.button0.set_enabled(<span class="bool-val">false</span>);
 
@@ -1054,36 +1054,38 @@
             <span class="kw">if </span>step_max &gt;= <span class="number">4 </span><span class="kw">as </span>usize {
                 <span class="kw">if </span>completed_step == <span class="number">3 </span>{
                     <span class="comment">//dbg!(step, step_max, completed_step);
-                    </span><span class="kw">let </span>current_text = ui.richtext_ast_current.text();
-                    <span class="kw">let </span>new_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, compiler.ast);
-                    <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.logs));
+                    //let current_text = ui.richtext_ast_current.text();
+                    </span><span class="kw">let </span>new_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, compiler.ast);
+                    <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.ast.logs));
                     <span class="kw">let </span>txt_tree = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, ElementsVec(compiler.ast.elements.clone()));
                     <span class="kw">let </span>new_len = new_text.len() <span class="kw">as </span>u32;
-                    <span class="kw">let </span><span class="kw-2">mut </span>first_non_matching_char = <span class="number">0</span>;
-                    <span class="kw">for </span>(c1, c2) <span class="kw">in </span>new_text.chars().zip(current_text.chars()) {
-                        <span class="kw">if </span>c1 != c2 {
-                            <span class="kw">break</span>;
-                        }
-                        first_non_matching_char += <span class="number">1</span>;
-                    }
+                    <span class="comment">//let mut first_non_matching_char = 0;
+                    //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                    //    if c1 != c2 {
+                    //        break;
+                    //    }
+                    //    first_non_matching_char += 1;
+                    //}
 
-                    <span class="comment">// update richtext_ast_previous
-                    </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_previous, <span class="kw-2">&amp;</span>current_text);
+                    /*
+                    // update richtext_ast_previous
+                    ui.rich_text_control_set_text(&amp;ui.richtext_ast_previous, &amp;current_text);
                     ui.richtext_ast_previous.scroll_lastline();
-                    ui.richtext_ast_previous.scroll(-<span class="number">20</span>);
+                    ui.richtext_ast_previous.scroll(-20);
 
-                    <span class="comment">// update richtext_ast_current
-                    </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="kw-2">&amp;</span>new_text);
+                    // update richtext_ast_current
+                    ui.rich_text_control_set_text(&amp;ui.richtext_ast_current, &amp;new_text);
                     ui.richtext_ast_current
-                        .set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
-                    ui.richtext_ast_current.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
-                        text_color: <span class="prelude-val">Some</span>([<span class="number">20</span>, <span class="number">200</span>, <span class="number">20</span>]),
+                        .set_selection(first_non_matching_char..new_len - 1);
+                    ui.richtext_ast_current.set_char_format(&amp;nwg::CharFormat {
+                        text_color: Some([20, 200, 20]),
                         ..Default::default()
                     });
                     ui.richtext_ast_current.scroll_lastline();
-                    ui.richtext_ast_current.scroll(-<span class="number">20</span>);
+                    ui.richtext_ast_current.scroll(-20);
+                    */
 
-                    <span class="comment">// update richtext_error_stack
+                    // update richtext_error_stack
                     </span><span class="kw">let </span>txt_error = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugErrorStack(<span class="kw-2">&amp;</span>compiler.error_stack));
                     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_error_stack, <span class="kw-2">&amp;</span>txt_error);
                     ui.richtext_error_stack
@@ -1097,23 +1099,23 @@
 
                     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="kw-2">&amp;</span>txt_logs);
 
-                    ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_tree, <span class="kw-2">&amp;</span>txt_tree);
+                    <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_tree, &amp;txt_tree);
 
-                    <span class="kw">if </span>compiler.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
-                        <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.debug_compiler_history.len() - <span class="number">1</span>;
+                    </span><span class="kw">if </span>compiler.ast.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
+                        <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.ast.debug_compiler_history.len() - <span class="number">1</span>;
                         ui.mydata
                             .borrow_mut()
                             .history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
                         ui.mydata
                             .borrow_mut()
-                            .history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
+                            .history_update(<span class="kw-2">&amp;</span>compiler.ast.debug_compiler_history);
                         ui.history_trackbar.set_range_max(pos);
                         ui.history_update();
                         ui.history_trackbar.set_pos(pos);
                     }
 
                     <span class="comment">// update richtext_output
-                    </span><span class="kw">let </span>txt_output = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, compiler.ast.output);
+                    </span><span class="kw">let </span>txt_output = compiler.ast.output.to_string();
                     ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="kw-2">&amp;</span>txt_output);
                 }
                 <span class="kw">if </span>completed_step == <span class="number">4 </span>{
@@ -1131,46 +1133,48 @@
 
             <span class="kw">if </span>completed_step == <span class="number">5 </span>{
                 <span class="comment">//dbg!(step, step_max, completed_step);
-                </span><span class="kw">let </span>current_text = ui.richtext_ast_current.text();
-                <span class="kw">let </span>new_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, compiler.ast);
-                <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.logs));
+                //let current_text = ui.richtext_ast_current.text();
+                </span><span class="kw">let </span>new_text = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, compiler.ast);
+                <span class="kw">let </span>txt_logs = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, DebugLogs(<span class="kw-2">&amp;</span>compiler.ast.logs));
                 <span class="kw">let </span>txt_tree = <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, ElementsVec(compiler.ast.elements.clone()));
                 <span class="kw">let </span>new_len = new_text.len() <span class="kw">as </span>u32;
-                <span class="kw">let </span><span class="kw-2">mut </span>first_non_matching_char = <span class="number">0</span>;
-                <span class="kw">for </span>(c1, c2) <span class="kw">in </span>new_text.chars().zip(current_text.chars()) {
-                    <span class="kw">if </span>c1 != c2 {
-                        <span class="kw">break</span>;
-                    }
-                    first_non_matching_char += <span class="number">1</span>;
-                }
+                <span class="comment">//let mut first_non_matching_char = 0;
+                //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                //    if c1 != c2 {
+                //        break;
+                //    }
+                //    first_non_matching_char += 1;
+                //}
 
-                <span class="comment">// update richtext_ast_previous
-                </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_previous, <span class="kw-2">&amp;</span>current_text);
+                /*
+                // update richtext_ast_previous
+                ui.rich_text_control_set_text(&amp;ui.richtext_ast_previous, &amp;current_text);
                 ui.richtext_ast_previous.scroll_lastline();
-                ui.richtext_ast_previous.scroll(-<span class="number">20</span>);
+                ui.richtext_ast_previous.scroll(-20);
 
-                <span class="comment">// update richtext_ast_current
-                </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_ast_current, <span class="kw-2">&amp;</span>new_text);
+                // update richtext_ast_current
+                ui.rich_text_control_set_text(&amp;ui.richtext_ast_current, &amp;new_text);
                 ui.richtext_ast_current
-                    .set_selection(first_non_matching_char..new_len - <span class="number">1</span>);
-                ui.richtext_ast_current.set_char_format(<span class="kw-2">&amp;</span>nwg::CharFormat {
-                    text_color: <span class="prelude-val">Some</span>([<span class="number">20</span>, <span class="number">200</span>, <span class="number">20</span>]),
+                    .set_selection(first_non_matching_char..new_len - 1);
+                ui.richtext_ast_current.set_char_format(&amp;nwg::CharFormat {
+                    text_color: Some([20, 200, 20]),
                     ..Default::default()
                 });
                 ui.richtext_ast_current.scroll_lastline();
-                ui.richtext_ast_current.scroll(-<span class="number">20</span>);
+                ui.richtext_ast_current.scroll(-20);
+                */
 
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="kw-2">&amp;</span>txt_logs);
-                ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_tree, <span class="kw-2">&amp;</span>txt_tree);
+                </span>ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_logs, <span class="kw-2">&amp;</span>txt_logs);
+                <span class="comment">//ui.rich_text_control_set_text(&amp;ui.richtext_tree, &amp;txt_tree);
 
-                <span class="kw">if </span>compiler.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
-                    <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.debug_compiler_history.len() - <span class="number">1</span>;
+                </span><span class="kw">if </span>compiler.ast.logs.len() <span class="kw">as </span>usize &gt; <span class="number">0 </span>{
+                    <span class="kw">let </span>pos = <span class="kw-2">&amp;</span>compiler.ast.debug_compiler_history.len() - <span class="number">1</span>;
                     ui.mydata
                         .borrow_mut()
                         .history_max_update(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, pos));
                     ui.mydata
                         .borrow_mut()
-                        .history_update(<span class="kw-2">&amp;</span>compiler.debug_compiler_history);
+                        .history_update(<span class="kw-2">&amp;</span>compiler.ast.debug_compiler_history);
                     ui.history_trackbar.set_range_max(pos);
                     ui.history_update();
                     ui.history_trackbar.set_pos(pos);
@@ -1189,7 +1193,7 @@
                     .set_text(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Error stack ({})&quot;</span>, <span class="kw-2">&amp;</span>compiler.error_stack.len()));
 
                 <span class="comment">// update richtext_output
-                </span><span class="kw">let </span>txt_output = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, compiler.ast.output);
+                </span><span class="kw">let </span>txt_output = compiler.ast.output.to_string();
                 ui.rich_text_control_set_text(<span class="kw-2">&amp;</span>ui.richtext_output, <span class="kw-2">&amp;</span>txt_output);
 
                 ui.button0.set_enabled(<span class="bool-val">false</span>);

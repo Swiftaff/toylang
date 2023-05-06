@@ -74,6 +74,7 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
 </pre><pre class="rust"><code><span class="doccomment">/*!
     ## Instructions for using toylang CLI
 
@@ -139,7 +140,8 @@
 </span><span class="kw">use </span><span class="kw">crate</span>::Compiler;
 <span class="kw">use </span>std::process;
 
-<span class="kw">pub fn </span>main(input: String, debug: bool, output: <span class="prelude-ty">Option</span>&lt;String&gt;, nosave: bool) {
+<span class="doccomment">/// Only function for compiler_runner
+</span><span class="kw">pub fn </span>main(input: String, debug: bool, output: <span class="prelude-ty">Option</span>&lt;String&gt;, nosave: bool) {
     <span class="kw">let </span><span class="kw-2">mut </span>compiler = Compiler::new(input, debug, output, nosave).unwrap_or_else(|err| {
         <span class="macro">println!</span>(<span class="string">&quot;Problem parsing arguments: {}&quot;</span>, err);
         process::exit(<span class="number">1</span>);

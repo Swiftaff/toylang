@@ -509,16 +509,6 @@
 <a href="#509" id="509">509</a>
 <a href="#510" id="510">510</a>
 <a href="#511" id="511">511</a>
-<a href="#512" id="512">512</a>
-<a href="#513" id="513">513</a>
-<a href="#514" id="514">514</a>
-<a href="#515" id="515">515</a>
-<a href="#516" id="516">516</a>
-<a href="#517" id="517">517</a>
-<a href="#518" id="518">518</a>
-<a href="#519" id="519">519</a>
-<a href="#520" id="520">520</a>
-<a href="#521" id="521">521</a>
 </pre><pre class="rust"><code><span class="doccomment">/*!
     ## Toylang
     A functional toy language using Polish Notation which compiles to Rust for fun and experimentation (Windows only for now)
@@ -561,7 +551,6 @@
 <span class="kw">type </span>ErrorStack = Vec&lt;String&gt;;
 <span class="kw">type </span>LinesOfChars = Vec&lt;Vec&lt;char&gt;&gt;;
 <span class="kw">type </span>LinesOfTokens = Vec&lt;Tokens&gt;;
-<span class="kw">type </span>Logs = Vec&lt;String&gt;;
 
 <span class="kw">fn </span>rem_first_and_last(value: <span class="kw-2">&amp;</span>str) -&gt; String {
     <span class="kw">let </span><span class="kw-2">mut </span>chars = value.chars();
@@ -654,7 +643,6 @@
     <span class="kw">pub </span>debug: bool,
     <span class="kw">pub </span>debug_step: usize,
     <span class="kw">pub </span>debug_line: usize,
-    <span class="kw">pub </span>debug_compiler_history: Vec&lt;String&gt;,
     <span class="kw">pub </span>filepath: String,
     <span class="kw">pub </span>outputdir: String,
     <span class="kw">pub </span>lines_of_chars: LinesOfChars,
@@ -664,7 +652,6 @@
     <span class="kw">pub </span>current_line_token: usize,
     <span class="kw">pub </span>error_stack: ErrorStack,
     <span class="kw">pub </span>ast: Ast,
-    <span class="kw">pub </span>logs: Logs,
 }
 
 <span class="kw">impl </span>Compiler {
@@ -684,7 +671,7 @@
         </span>}
         <span class="kw">let </span>debug_step = <span class="number">0</span>;
         <span class="kw">let </span>debug_line = <span class="number">0 </span><span class="kw">as </span>usize;
-        <span class="kw">let </span>debug_compiler_history = <span class="macro">vec!</span>[];
+
         <span class="comment">//println!(&quot;2&quot;);
         </span><span class="kw">let </span><span class="kw-2">mut </span>outputdir = <span class="string">&quot;&quot;</span>.to_string();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(outputdir_found) = <span class="kw-2">&amp;</span>option_outputdir {
@@ -698,16 +685,15 @@
         <span class="kw">let </span>current_line_token = <span class="number">0</span>;
         <span class="kw">let </span>error_stack = <span class="macro">vec!</span>[];
         <span class="kw">let </span>ast = Ast::new();
-        <span class="kw">let </span>logs = <span class="macro">vec!</span>[<span class="macro">format!</span>(
-            <span class="string">&quot;lib::new {:?} {:?} {:?}&quot;</span>,
-            filepath, debug, option_outputdir
-        )];
-        <span class="prelude-val">Ok</span>(Compiler {
+        <span class="comment">//let logs = vec![format!(
+        //    &quot;lib::new {:?} {:?} {:?}&quot;,
+        //    filepath, debug, option_outputdir
+        //)];
+        </span><span class="prelude-val">Ok</span>(Compiler {
             file,
             debug,
             debug_step,
             debug_line,
-            debug_compiler_history,
             filepath,
             outputdir,
             lines_of_chars,
@@ -717,35 +703,28 @@
             current_line_token,
             error_stack,
             ast,
-            logs,
         })
     }
 
     <span class="doccomment">/// Begins running the compiler, run_main_tasks, write_file_or_error
     </span><span class="kw">pub fn </span>run(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>Error&gt;&gt; {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="self">self</span>.file.get(<span class="kw-2">&amp;</span><span class="self">self</span>.filepath)<span class="question-mark">?</span>;
         <span class="kw">match </span><span class="self">self</span>.run_main_tasks() {
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; (),
             <span class="prelude-val">Err</span>(_e) =&gt; (),
         }
         <span class="self">self</span>.file.writefile_or_error(
-            <span class="kw-2">&amp;</span><span class="self">self</span>.ast.output,
+            <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.ast.premain_output, <span class="kw-2">&amp;</span><span class="self">self</span>.ast.output),
             <span class="kw-2">&amp;</span><span class="self">self</span>.outputdir,
             <span class="self">self</span>.error_stack.len() &gt; <span class="number">0</span>,
         )
     }
 
-    <span class="doccomment">/// Called by all functions - inserts a single log line, and a copy of the AST state
-    </span><span class="kw">pub fn </span>log(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, string: String) {
-        <span class="self">self</span>.logs.push(string);
-        <span class="self">self</span>.debug_compiler_history.push(<span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="self">self</span>.ast));
-    }
-
     <span class="doccomment">/// Used by the debugger program to request to run one of the steps in the compiler
     /// to allow step by step debugging
     </span><span class="kw">pub fn </span>debug_step(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, step: usize) -&gt; usize {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::debug_step {:?}&quot;</span>, step));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::debug_step {:?}&quot;</span>, step));
         <span class="kw">let </span><span class="kw-2">mut </span>completed_step: usize = <span class="number">0</span>;
         <span class="self">self</span>.debug_step = step;
 
@@ -817,7 +796,7 @@
 
     <span class="doccomment">/// The main tasks run by the compiler, set lines_of_chars, lines_of_tokens, run_main_loop
     </span><span class="kw">pub fn </span>run_main_tasks(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run_main_tasks {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run_main_tasks {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="self">self</span>.set_lines_of_chars();
         <span class="self">self</span>.set_lines_of_tokens();
         <span class="self">self</span>.run_main_loop()
@@ -825,7 +804,7 @@
 
     <span class="doccomment">/// Calling the main loop where the lines_of_tokens are parsed and compiler errors are generated
     </span><span class="kw">fn </span>run_main_loop(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run_main_loop {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::run_main_loop {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="comment">// ref: https://doc.rust-lang.org/reference/tokens.html
         // ref: https://elm-lang.org/docs/syntax
 
@@ -862,7 +841,8 @@
 
     <span class="doccomment">/// Actually loop over parsing each line of tokens
     </span><span class="kw">fn </span>main_loop_over_lines_of_tokens(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::main_loop_over_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast
+            .log(<span class="macro">format!</span>(<span class="string">&quot;lib::main_loop_over_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="comment">//self.set_ast_output_for_main_fn_start();
         </span><span class="kw">if </span><span class="self">self</span>.debug {
             <span class="kw">let </span>line = <span class="self">self</span>.debug_line;
@@ -877,7 +857,7 @@
 
     <span class="doccomment">/// Parse a single line of tokens
     </span><span class="kw">fn </span>parse_one_line(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>, line: usize) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::parse_one_line {:?}&quot;</span>, line));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::parse_one_line {:?}&quot;</span>, line));
         <span class="kw">if </span>line &lt; <span class="self">self</span>.lines_of_tokens.len() &amp;&amp; <span class="self">self</span>.lines_of_tokens[line].len() &gt; <span class="number">0 </span>{
             <span class="self">self</span>.current_line = line;
             <span class="self">self</span>.current_line_token = <span class="number">0</span>;
@@ -888,7 +868,7 @@
 
     <span class="doccomment">/// Initially generate lines of characters based on input file
     </span><span class="kw">fn </span>set_lines_of_chars(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_chars {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_chars {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="kw">let </span><span class="kw-2">mut </span>index_from = <span class="number">0</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>index_to = <span class="number">0</span>;
         <span class="kw">let </span>char_vec: Vec&lt;char&gt; = <span class="self">self</span>.file.filecontents.chars().collect();
@@ -936,7 +916,7 @@
 
     <span class="doccomment">/// Initially generate lines_of_tokens based on lines_of_chars
     </span><span class="kw">fn </span>set_lines_of_tokens(<span class="self">self</span>: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) {
-        <span class="self">self</span>.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+        <span class="self">self</span>.ast.log(<span class="macro">format!</span>(<span class="string">&quot;lib::set_lines_of_tokens {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
         <span class="kw">for </span>line <span class="kw">in </span><span class="number">0</span>..<span class="self">self</span>.lines_of_chars.len() {
             <span class="kw">let </span><span class="kw-2">mut </span>index_from = <span class="number">0</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>index_to = <span class="number">0</span>;

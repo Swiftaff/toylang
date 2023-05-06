@@ -50,11 +50,6 @@ pub fn set_output(compiler: &mut Compiler) {
             set_output_for_element_open(&mut compiler.ast, current_el_index);
 
             // Render children if any, except of certain elements where the children are rendered by the parent
-            /*
-            let should_render_children =
-                !is_skippable_due_to_parent(&mut compiler.ast, current_el_index);
-            */
-            // Render children if any, except of certain elements where the children are rendered separately
             let should_render_children = match current_el.0 {
                 ElementInfo::InbuiltFunctionCall(_, _, _) => false,
                 ElementInfo::Struct(_, _, _) => false,
@@ -315,34 +310,34 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
 }
 
 /// Pre-main Output for Struct
+/// Should output something like this ...
+/// ```
+/// #[derive(Clone, Debug)]
+/// pub struct Newstruct {
+///     pub firstname: String,
+///     pub surname: String,
+///     pub age: i64,
+/// }
+///
+/// impl Newstruct {
+///     pub fn new(
+///         firstname: String,
+///         surname: String,
+///         age: i64,
+///         ) -> Newstruct {
+///         Newstruct {
+///             firstname,
+///             surname,
+///             age,
+///         }
+///     }
+/// }
+///
+///
+/// // ... two linebreaks before fn main() ...
+/// ```
 fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
     ast.log(format!("output::get_premain_output_for_struct {:?}", name));
-    /*
-    Should output something like this ...
-
-    #[derive(Clone, Debug)]
-    pub struct Newstruct {
-        pub firstname: String,
-        pub surname: String,
-        pub age: i64,
-    }
-
-    impl Newstruct {
-        pub fn new(
-            firstname: String,
-            surname: String,
-            age: i64,
-            ) -> Newstruct {
-            Newstruct {
-                firstname,
-                surname,
-                age,
-            }
-        }
-    }
-
-    ... two linebreaks before fn main() ...
-    */
 
     // a Structs children should all be Assignments
     // each Assignment should have one child Constant

@@ -986,6 +986,50 @@
 <a href="#986" id="986">986</a>
 <a href="#987" id="987">987</a>
 <a href="#988" id="988">988</a>
+<a href="#989" id="989">989</a>
+<a href="#990" id="990">990</a>
+<a href="#991" id="991">991</a>
+<a href="#992" id="992">992</a>
+<a href="#993" id="993">993</a>
+<a href="#994" id="994">994</a>
+<a href="#995" id="995">995</a>
+<a href="#996" id="996">996</a>
+<a href="#997" id="997">997</a>
+<a href="#998" id="998">998</a>
+<a href="#999" id="999">999</a>
+<a href="#1000" id="1000">1000</a>
+<a href="#1001" id="1001">1001</a>
+<a href="#1002" id="1002">1002</a>
+<a href="#1003" id="1003">1003</a>
+<a href="#1004" id="1004">1004</a>
+<a href="#1005" id="1005">1005</a>
+<a href="#1006" id="1006">1006</a>
+<a href="#1007" id="1007">1007</a>
+<a href="#1008" id="1008">1008</a>
+<a href="#1009" id="1009">1009</a>
+<a href="#1010" id="1010">1010</a>
+<a href="#1011" id="1011">1011</a>
+<a href="#1012" id="1012">1012</a>
+<a href="#1013" id="1013">1013</a>
+<a href="#1014" id="1014">1014</a>
+<a href="#1015" id="1015">1015</a>
+<a href="#1016" id="1016">1016</a>
+<a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+<a href="#1021" id="1021">1021</a>
+<a href="#1022" id="1022">1022</a>
+<a href="#1023" id="1023">1023</a>
+<a href="#1024" id="1024">1024</a>
+<a href="#1025" id="1025">1025</a>
+<a href="#1026" id="1026">1026</a>
+<a href="#1027" id="1027">1027</a>
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! Elements are the individual nodes in the AST.
  *
  * Each is made of an ElementInfo like Int(Value), and a Vec of indexes, which are references to child Elements elsewhere in the AST.
@@ -1015,6 +1059,7 @@
     </span>Indent,                                    <span class="comment">//no children
     </span>Unused,                                    <span class="comment">//no children
     </span>ConstantRef(Name, ReturnType, RefName),    <span class="comment">//no children
+    </span>Struct(Name, ArgNames, Vec&lt;ReturnType&gt;),   <span class="comment">//no children
     </span>Constant(Name, ReturnType),                <span class="comment">//1 child, value
     </span>Assignment,                                <span class="comment">//1 child, constant
     </span>InbuiltFunctionDef(Name, ArgNames, ArgTypes, ArgModifiers, ReturnType, Format), <span class="comment">//children = lines of function contents
@@ -1027,7 +1072,8 @@
     </span>LoopForRange(Name, From, To), <span class="comment">//children = lines of loop contents
     </span>Println,         <span class="comment">//1 child, value
     </span>If(ReturnType),  <span class="comment">//3 children, boolean_expression true_return_expression false_return_expression
-    </span>Root,            <span class="comment">//children = lines of function contents
+
+    </span>Root, <span class="comment">//children = lines of function contents
 </span>}
 
 <span class="doccomment">/// Fake function #1, only useful for copy/pasting all the elementinfo types!
@@ -1043,6 +1089,7 @@
         ElementInfo::String(<span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; replaceme,
         ElementInfo::Assignment =&gt; replaceme,
@@ -1078,6 +1125,7 @@
         <span class="prelude-val">Some</span>((ElementInfo::String(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Bool(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Arg(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
+        <span class="prelude-val">Some</span>((ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; replaceme,
         <span class="prelude-val">Some</span>((ElementInfo::Assignment, <span class="kw">_</span>)) =&gt; replaceme,
@@ -1293,6 +1341,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
             ElementInfo::Float(<span class="kw">_</span>) =&gt; (),
             ElementInfo::String(<span class="kw">_</span>) =&gt; (),
             ElementInfo::Bool(<span class="kw">_</span>) =&gt; (),
+            ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
             ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
             ElementInfo::FunctionDefWIP =&gt; (),
             ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
@@ -1311,7 +1360,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
     el.<span class="number">0
 </span>}
 
-<span class="doccomment">///Get the inferred type of an element where possible or ignore if not
+<span class="doccomment">/// Get the inferred type of an element where possible or ignore if not
 </span><span class="kw">pub fn </span>get_infered_type_of_any_element(ast: <span class="kw-2">&amp;</span>Ast, el_index: usize) -&gt; String {
     <span class="kw">let </span>el = ast.elements[el_index].clone();
     <span class="kw">let </span>el_info = <span class="kw-2">&amp;</span>el.<span class="number">0</span>;
@@ -1343,6 +1392,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
         ElementInfo::If(<span class="kw">_</span>) =&gt; {
             <span class="kw">return </span>get_infered_type_of_if_element(ast, el.<span class="number">1</span>);
         }
+        ElementInfo::Struct(name, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="kw">return </span>name.clone(),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future
         </span>ElementInfo::Root =&gt; (),
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; (),
@@ -1350,6 +1400,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
         ElementInfo::Float(<span class="kw">_</span>) =&gt; (),
         ElementInfo::String(<span class="kw">_</span>) =&gt; (),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; (),
+
         ElementInfo::Assignment =&gt; (),
         ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; (),
         ElementInfo::FunctionDefWIP =&gt; (),
@@ -1519,6 +1570,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
         ElementInfo::String(<span class="kw">_</span>) =&gt; <span class="string">&quot;String&quot;</span>.to_string(),
         ElementInfo::Bool(<span class="kw">_</span>) =&gt; <span class="string">&quot;bool&quot;</span>.to_string(),
         ElementInfo::Assignment =&gt; undefined,
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; undefined,
         ElementInfo::Constant(<span class="kw">_</span>, returntype) =&gt; returntype.clone(),
         ElementInfo::ConstantRef(<span class="kw">_</span>, returntype, <span class="kw">_</span>) =&gt; returntype.clone(),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, _fndef_index, returntype) =&gt; returntype.clone(),
@@ -1545,7 +1597,7 @@ pub fn _get_inbuilt_function_by_name_and_returntype(
 
 <span class="comment">/*
 pub fn _is_existing_constant(compiler: &amp;mut Compiler) -&gt; bool {
-    compiler.log(format!(&quot;elements::is_existing_constant {:?}&quot;, &quot;&quot;));
+    compiler.ast.log(format!(&quot;elements::is_existing_constant {:?}&quot;, &quot;&quot;));
     let parent = parents::get_current_parent_element_from_parents(&amp;compiler.ast);
     let parent_assignment_has_no_children = false;
     if compiler.logs.len() == 150 {
@@ -1597,7 +1649,7 @@ match parent.0 {
     name: <span class="kw-2">&amp;</span>String,
     func_def_ref: usize,
 ) {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::replace_funcdefwip_with_funcdef {:?} {:?} {:?}&quot;</span>,
         children, name, func_def_ref
     ));
@@ -1613,7 +1665,7 @@ match parent.0 {
 
 <span class="doccomment">/// Get a vec of types based on child refs, assuming they are Types or Parens (containing a Dyn Fn with types)
 </span><span class="kw">pub fn </span>get_argtypes_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; Vec&lt;String&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_argtypes_from_argtokens {:?}&quot;</span>,
         children
     ));
@@ -1638,7 +1690,7 @@ match parent.0 {
 
 <span class="doccomment">/// Get returntype from children assuming one is a Type
 </span><span class="kw">pub fn </span>get_returntype_from_argtokens(compiler: <span class="kw-2">&amp;mut </span>Compiler, children: <span class="kw-2">&amp;</span>[usize]) -&gt; String {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_returntype_from_argtokens {:?}&quot;</span>,
         children
     ));
@@ -1656,7 +1708,7 @@ match parent.0 {
     children: <span class="kw-2">&amp;</span>[usize],
     argtypes: <span class="kw-2">&amp;</span>Vec&lt;String&gt;,
 ) -&gt; Vec&lt;String&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_argnames_from_argtokens {:?} {:?}&quot;</span>,
         children, argtypes
     ));
@@ -1690,7 +1742,7 @@ match parent.0 {
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     paren_children: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;,
 ) -&gt; String {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;elements::get_formatted_dyn_fn_type_sig {:?}&quot;</span>,
         paren_children
     ));
@@ -1731,6 +1783,9 @@ match parent.0 {
                     <span class="string">&quot;Arg: {} scope:{} argmodifier:({:?}) ({})&quot;</span>,
                     name, scope, argmodifier, returntype
                 )
+            }
+            ElementInfo::Struct(name, keys, keytypes) =&gt; {
+                <span class="macro">format!</span>(<span class="string">&quot;Struct: {} keys: {:?} keytypes: {:?}&quot;</span>, name, keys, keytypes)
             }
             ElementInfo::Constant(name, returntype) =&gt; {
                 <span class="macro">format!</span>(<span class="string">&quot;Constant: {} ({})&quot;</span>, name, returntype)
@@ -1800,6 +1855,39 @@ match parent.0 {
     }
 }
 
+<span class="kw">pub struct </span>DebugElements&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw">pub </span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>Elements);
+
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; fmt::Debug <span class="kw">for </span>DebugElements&lt;<span class="lifetime">&#39;a</span>&gt; {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+        <span class="kw">let </span><span class="kw-2">mut </span>el_debug = <span class="string">&quot;&quot;</span>.to_string();
+        <span class="kw">let </span>els = <span class="kw-2">&amp;</span><span class="self">self</span>;
+        <span class="kw">for </span>el <span class="kw">in </span><span class="number">0</span>..els.<span class="number">0</span>.len() {
+            <span class="kw">let </span>children_debug = debug_flat_usize_array(<span class="kw-2">&amp;</span>els.<span class="number">0</span>[el].<span class="number">1</span>);
+            <span class="kw">let </span>elinfo_debug = <span class="macro">format!</span>(<span class="string">&quot;{:?} {}&quot;</span>, els.<span class="number">0</span>[el].<span class="number">0</span>, children_debug);
+            <span class="kw">let </span>el_index = <span class="kw">if </span>el &gt; <span class="number">9 </span>{
+                <span class="string">&quot;&quot;</span>.to_string()
+            } <span class="kw">else </span>{
+                <span class="string">&quot; &quot;</span>.to_string()
+            };
+            el_debug = <span class="macro">format!</span>(<span class="string">&quot;{}{}{}: {}\r\n&quot;</span>, el_debug, el_index, el, elinfo_debug);
+        }
+        <span class="macro">write!</span>(
+            f,
+            <span class="string">&quot;Custom Debug of Elements [\r\nElements:\r\n{}\r\n]&quot;</span>,
+            el_debug
+        )
+    }
+}
+
+<span class="kw">fn </span>debug_flat_usize_array(arr: <span class="kw-2">&amp;</span>Vec&lt;usize&gt;) -&gt; String {
+    <span class="kw">let </span><span class="kw-2">mut </span>arr_debug = <span class="string">&quot;[ &quot;</span>.to_string();
+    <span class="kw">for </span>string <span class="kw">in </span>arr {
+        arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}{}, &quot;</span>, arr_debug, string);
+    }
+    arr_debug = <span class="macro">format!</span>(<span class="string">&quot;{}]&quot;</span>, arr_debug);
+    arr_debug
+}
+
 <span class="kw">fn </span>write_subtree(
     elements: <span class="kw-2">&amp;</span>ElementsVec,
     f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;,
@@ -1849,7 +1937,7 @@ match parent.0 {
         <span class="kw">let </span><span class="kw-2">mut </span>n = ast1.elements.len();
         <span class="kw">let </span>el1: Element = (ElementInfo::Int(<span class="string">&quot;1&quot;</span>.to_string()), <span class="macro">vec!</span>[]);
         append::append(<span class="kw-2">&amp;mut </span>ast1, el1);
-        <span class="macro">assert_eq!</span>(output::get_depths_vec(ast1), <span class="macro">vec!</span>[[n]]);
+        <span class="macro">assert_eq!</span>(output::get_depths_vec(<span class="kw-2">&amp;mut </span>ast1), <span class="macro">vec!</span>[[n]]);
 
         <span class="comment">//3 el under root
         </span><span class="kw">let </span><span class="kw-2">mut </span>ast2 = Ast::new();
@@ -1860,7 +1948,7 @@ match parent.0 {
         append::append(<span class="kw-2">&amp;mut </span>ast2, el21);
         append::append(<span class="kw-2">&amp;mut </span>ast2, el22);
         append::append(<span class="kw-2">&amp;mut </span>ast2, el23);
-        <span class="macro">assert_eq!</span>(output::get_depths_vec(ast2), <span class="macro">vec!</span>[[n, n + <span class="number">1</span>, n + <span class="number">2</span>]]);
+        <span class="macro">assert_eq!</span>(output::get_depths_vec(<span class="kw-2">&amp;mut </span>ast2), <span class="macro">vec!</span>[[n, n + <span class="number">1</span>, n + <span class="number">2</span>]]);
 
         <span class="comment">//1 el under with 2 children, under root
         </span><span class="kw">let </span><span class="kw-2">mut </span>ast3 = Ast::new();
@@ -1876,7 +1964,7 @@ match parent.0 {
         append::append(<span class="kw-2">&amp;mut </span>ast3, el32);
         append::append(<span class="kw-2">&amp;mut </span>ast3, el33);
         <span class="macro">assert_eq!</span>(
-            output::get_depths_vec(ast3),
+            output::get_depths_vec(<span class="kw-2">&amp;mut </span>ast3),
             <span class="macro">vec!</span>[<span class="macro">vec!</span>[n], <span class="macro">vec!</span>[n + <span class="number">2</span>, n + <span class="number">1</span>]]
         );
 
@@ -1945,7 +2033,7 @@ match parent.0 {
         append::append(<span class="kw-2">&amp;mut </span>c.ast, el410);
 
         <span class="macro">assert_eq!</span>(
-            output::get_depths_vec(c.ast),
+            output::get_depths_vec(<span class="kw-2">&amp;mut </span>c.ast),
             <span class="macro">vec!</span>[
                 <span class="macro">vec!</span>[n, n + <span class="number">1</span>, n + <span class="number">2</span>, n + <span class="number">9</span>],
                 <span class="macro">vec!</span>[n + <span class="number">4</span>, n + <span class="number">3</span>],

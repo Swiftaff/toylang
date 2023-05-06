@@ -9,11 +9,11 @@ extern crate native_windows_gui as nwg;
 use nwd::NwgUi;
 use nwg::NativeUi;
 use std::cell::RefCell;
+use std::process;
 
 use crate::ast::elements::ElementsVec;
 use crate::file::DebugFileContents;
 use crate::{Compiler, DebugErrorStack, DebugLinesOfChars, DebugLinesOfTokens, DebugLogs};
-use std::process;
 
 const APP_NAME: &str = "Toylang - Compiler debugger";
 

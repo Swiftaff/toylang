@@ -15,7 +15,7 @@
  */
 </span><span class="kw">use </span><span class="kw">crate</span>::Ast;
 
-<span class="doccomment">/// Indent by adding current parent to parent stack
+<span class="doccomment">/// Indent by adding current element to parent stack
 </span><span class="kw">pub fn </span>indent(ast: <span class="kw-2">&amp;mut </span>Ast) {
     ast.parents.push(ast.elements.len() - <span class="number">1</span>);
 }

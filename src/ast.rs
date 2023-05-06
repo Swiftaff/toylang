@@ -7,12 +7,14 @@ pub mod parents;
 use crate::ast::elements::{ArgModifier, DebugElements, ElIndex, Element, ElementInfo, Elements};
 use std::fmt;
 
+type Logs = Vec<String>;
+
 /// AST containing Elements as an adjacency list of tree nodes.
 /// Each node is represented by a tuple containing its identifier and a list of the indexes of its children.
 /// The Tree can be walked by starting at the Root nodes children
 /// ```text
 /// // typical nested tree                          this flat ast
-/// // 0 (root)                                     |_(0: Root, [1,2,3,8])
+/// // 0 (root)                                     |_(0: Root, [1,2,3,10])
 /// // note internal functions are inserted here first
 /// // so indexes of actual elements will increase by # of functions rather than just 1 below
 /// // |_1 int                                      |_(1: Int,  [])
@@ -26,9 +28,6 @@ use std::fmt;
 /// // |     |_9 int                                |_(9: Int,  [])
 /// // |_10 Int                                     |_(10: Int, [])
 /// ```
-
-type Logs = Vec<String>;
-
 #[derive(Clone)]
 pub struct Ast {
     //first element is always root. Real elements start at index 1

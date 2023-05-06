@@ -328,7 +328,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
     el.0
 }
 
-///Get the inferred type of an element where possible or ignore if not
+/// Get the inferred type of an element where possible or ignore if not
 pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
     let el = ast.elements[el_index].clone();
     let el_info = &el.0;

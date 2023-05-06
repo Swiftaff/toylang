@@ -63,6 +63,7 @@
 use crate::Compiler;
 use std::process;
 
+/// Only function for compiler_runner
 pub fn main(input: String, debug: bool, output: Option<String>, nosave: bool) {
     let mut compiler = Compiler::new(input, debug, output, nosave).unwrap_or_else(|err| {
         println!("Problem parsing arguments: {}", err);

@@ -902,6 +902,47 @@
 <a href="#902" id="902">902</a>
 <a href="#903" id="903">903</a>
 <a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
+<a href="#910" id="910">910</a>
+<a href="#911" id="911">911</a>
+<a href="#912" id="912">912</a>
+<a href="#913" id="913">913</a>
+<a href="#914" id="914">914</a>
+<a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
+<a href="#933" id="933">933</a>
+<a href="#934" id="934">934</a>
+<a href="#935" id="935">935</a>
+<a href="#936" id="936">936</a>
+<a href="#937" id="937">937</a>
+<a href="#938" id="938">938</a>
+<a href="#939" id="939">939</a>
+<a href="#940" id="940">940</a>
+<a href="#941" id="941">941</a>
+<a href="#942" id="942">942</a>
+<a href="#943" id="943">943</a>
+<a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! Main Parser functions
  */
 </span><span class="kw">use </span><span class="kw">crate</span>::ast::parents;
@@ -924,7 +965,7 @@ fn testy() {
 
 </span><span class="doccomment">/// While loop over the tokens in the current line
 </span><span class="kw">pub fn </span>current_line(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::current_line {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::current_line {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>tokens = compiler.lines_of_tokens[compiler.current_line].clone();
     <span class="kw">if </span>tokens.len() &gt; <span class="number">0 </span>{
         <span class="kw">while </span>compiler.current_line_token &lt; tokens.len() {
@@ -937,7 +978,9 @@ fn testy() {
 
 <span class="doccomment">/// Parse token, it&#39;s either an inbuiltFn, Arg, Type or something else
 </span><span class="kw">pub fn </span>current_token(compiler: <span class="kw-2">&amp;mut </span>Compiler, tokens: <span class="kw-2">&amp;</span>Tokens) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::current_token {:?}&quot;</span>, <span class="kw-2">&amp;</span>tokens));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::current_token {:?}&quot;</span>, <span class="kw-2">&amp;</span>tokens));
     <span class="kw">let </span>current_token = <span class="kw-2">&amp;</span>tokens[compiler.current_line_token];
     <span class="kw">let </span>current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt; = <span class="kw-2">&amp;</span>tokens[compiler.current_line_token].chars().collect();
     <span class="kw">if </span>current_token_vec.len() == <span class="number">0 </span>{
@@ -980,7 +1023,7 @@ fn testy() {
     current_token: <span class="kw-2">&amp;</span>String,
     current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::token_by_first_chars {:?} {:?}&quot;</span>,
         <span class="kw-2">&amp;</span>current_token, current_token_vec
     ));
@@ -991,6 +1034,13 @@ fn testy() {
         <span class="prelude-val">None
     </span>};
     <span class="kw">match </span>first_char {
+        <span class="string">&#39;{&#39; </span>=&gt; <span class="kw">match </span>second_char {
+            <span class="prelude-val">Some</span>(_second) =&gt; {
+                <span class="kw">return </span>errors::append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.a_struct);
+            }
+            <span class="prelude-val">None </span>=&gt; struct_start(compiler),
+        },
+        <span class="string">&#39;}&#39; </span>=&gt; struct_end(compiler),
         <span class="string">&#39;[&#39; </span>=&gt; <span class="kw">match </span>second_char {
             <span class="prelude-val">Some</span>(second) =&gt; {
                 <span class="kw">if </span>second == <span class="string">&#39;]&#39; </span>{
@@ -1070,7 +1120,7 @@ fn testy() {
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     current_token_vec: <span class="kw-2">&amp;</span>Vec&lt;char&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::comment_single_line {:?}&quot;</span>,
         current_token_vec
     ));
@@ -1083,19 +1133,21 @@ fn testy() {
 
 <span class="doccomment">/// Parses a Println
 </span><span class="kw">pub fn </span>println(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::println {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::println {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::println(compiler)
 }
 
 <span class="doccomment">/// Parses a If
 </span><span class="kw">pub fn </span>if_expression(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::if_expression {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::if_expression {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::if_expression(compiler)
 }
 
 <span class="doccomment">/// Parses a String
 </span><span class="kw">pub fn </span>string(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::string {:?}&quot;</span>, current_token));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::string {:?}&quot;</span>, current_token));
     <span class="kw">if </span>is_string(<span class="kw-2">&amp;</span>current_token) {
         elements::append::string(compiler, current_token)
     } <span class="kw">else </span>{
@@ -1107,7 +1159,7 @@ fn testy() {
 <span class="doccomment">/// Parses an Int
 </span><span class="kw">pub fn </span>int(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     <span class="comment">//dbg!(&quot;parse_int - positive only for now&quot;);
-    </span>compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::int {:?}&quot;</span>, current_token));
+    </span>compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::int {:?}&quot;</span>, current_token));
     <span class="kw">let </span>all_chars_are_numeric = current_token.chars().into_iter().all(|c| c.is_numeric());
     <span class="kw">let </span>chars: Vec&lt;char&gt; = current_token.chars().collect();
     <span class="kw">let </span>first_char_is_negative_sign = chars[<span class="number">0</span>] == <span class="string">&#39;-&#39;</span>;
@@ -1130,7 +1182,9 @@ fn testy() {
 
 <span class="doccomment">/// Parses a Float
 </span><span class="kw">pub fn </span>float(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::float {:?}&quot;</span>, current_token));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::float {:?}&quot;</span>, current_token));
     <span class="kw">if </span>current_token.len() &gt; <span class="number">0 </span>&amp;&amp; is_float(current_token) {
         elements::append::float(compiler, current_token)
     } <span class="kw">else </span>{
@@ -1140,7 +1194,9 @@ fn testy() {
 
 <span class="doccomment">/// Parses a Constant - as a Constant, ConstantRef, Arg, FunctionDef, If - or an error
 </span><span class="kw">pub fn </span>constant(compiler: <span class="kw-2">&amp;mut </span>Compiler, current_token: <span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::constant {:?}&quot;</span>, current_token));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::constant {:?}&quot;</span>, current_token));
     <span class="kw">let </span>el_option = elements::get_element_by_name(<span class="kw-2">&amp;</span>compiler.ast, current_token);
     <span class="kw">match </span>el_option {
         <span class="prelude-val">Some</span>(<span class="kw">_</span>) =&gt; {
@@ -1185,6 +1241,7 @@ fn testy() {
                 }
                 <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future
                 </span><span class="prelude-val">Some</span>((ElementInfo::Root, <span class="kw">_</span>)) =&gt; (),
+                <span class="prelude-val">Some</span>((ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::List(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::CommentSingleLine(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
                 <span class="prelude-val">Some</span>((ElementInfo::Int(<span class="kw">_</span>), <span class="kw">_</span>)) =&gt; (),
@@ -1216,7 +1273,7 @@ fn testy() {
 <span class="doccomment">/// Parses as assignment
 </span><span class="kw">pub fn </span>assignment(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     <span class="comment">// TODO error checking
-    </span>compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::assignment {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    </span>compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::assignment {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::assignment(compiler)
 }
 
@@ -1227,7 +1284,7 @@ fn testy() {
     index_of_function: usize,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
     <span class="comment">//TODO error checking
-    </span>compiler.log(<span class="macro">format!</span>(
+    </span>compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::inbuilt_function_call {:?} {:?}&quot;</span>,
         current_token, index_of_function
     ));
@@ -1240,7 +1297,7 @@ fn testy() {
     current_token: <span class="kw-2">&amp;</span>String,
     index_of_function: usize,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::function_call {:?} {:?}&quot;</span>,
         current_token, index_of_function
     ));
@@ -1249,20 +1306,39 @@ fn testy() {
 
 <span class="doccomment">/// Parses an empty List
 </span><span class="kw">pub fn </span>list_empty(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_empty {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_empty {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     list_start(compiler)<span class="question-mark">?</span>;
     list_end(compiler)
 }
 
+<span class="doccomment">/// Parses start of a Struct
+</span><span class="kw">pub fn </span>struct_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::struct_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    elements::append::struct_start(compiler)
+}
+
+<span class="doccomment">/// Parses end of a Struct
+</span><span class="kw">pub fn </span>struct_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::struct_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    <span class="kw">let </span>a_struct = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
+    <span class="kw">if let </span>(ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>), children) = a_struct {
+        <span class="kw">if </span>children.len() == <span class="number">0 </span>{
+            <span class="kw">return </span>append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.a_struct);
+        }
+    }
+    parents::outdent::outdent(compiler);
+    elements::append::seol_if_last_in_line(compiler)
+}
+
 <span class="doccomment">/// Parses start of a List
 </span><span class="kw">pub fn </span>list_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::list_start(compiler)
 }
 
 <span class="doccomment">/// Parses end of a List
 </span><span class="kw">pub fn </span>list_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::list_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>list = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
     <span class="kw">match </span>list {
         (ElementInfo::List(returntype), children) =&gt; {
@@ -1280,19 +1356,23 @@ fn testy() {
 
 <span class="doccomment">/// Parses start of a FnDef
 </span><span class="kw">pub fn </span>function_definition_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::function_definition_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::function_definition_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::function_definition_start(compiler)
 }
 
 <span class="doccomment">/// Parses start of a Loop for range
 </span><span class="kw">pub fn </span>loop_for_range_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::loop_for_range_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::loop_for_range_start {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     elements::append::loop_for_range_start(compiler)
 }
 
 <span class="doccomment">/// Parses end of a Loop for range
 </span><span class="kw">pub fn </span>loop_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::loop_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;parse::loop_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="comment">/* At the point you parse a loop end,
        and because we don&#39;t look ahead when parsing,
        the Ast thinks this is what has been parsed
@@ -1375,7 +1455,9 @@ fn testy() {
 
 <span class="doccomment">/// Parses end of a FnDef
 </span><span class="kw">pub fn </span>function_definition_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;parse::function_definition_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler
+        .ast
+        .log(<span class="macro">format!</span>(<span class="string">&quot;parse::function_definition_end {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="comment">/*
     At the point you parse a function definition end,
     and because we don&#39;t look ahead when parsing,
@@ -1496,7 +1578,7 @@ fn testy() {
 
 </span><span class="doccomment">/// Parses a Fn type signature or start of a fnRef
 </span><span class="kw">pub fn </span>functiontypesig_or_functionreference_start(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::functiontypesig_or_functionreference_start {:?}&quot;</span>,
         <span class="string">&quot;&quot;
     </span>));
@@ -1505,7 +1587,7 @@ fn testy() {
 
 <span class="doccomment">/// Parses a Fn type signature, or end of a FnRef
 </span><span class="kw">pub fn </span>functiontypesig_or_functionreference_end(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;parse::functiontypesig_or_functionreference_end {:?}&quot;</span>,
         <span class="string">&quot;&quot;
     </span>));

@@ -1228,6 +1228,41 @@
 <a href="#1228" id="1228">1228</a>
 <a href="#1229" id="1229">1229</a>
 <a href="#1230" id="1230">1230</a>
+<a href="#1231" id="1231">1231</a>
+<a href="#1232" id="1232">1232</a>
+<a href="#1233" id="1233">1233</a>
+<a href="#1234" id="1234">1234</a>
+<a href="#1235" id="1235">1235</a>
+<a href="#1236" id="1236">1236</a>
+<a href="#1237" id="1237">1237</a>
+<a href="#1238" id="1238">1238</a>
+<a href="#1239" id="1239">1239</a>
+<a href="#1240" id="1240">1240</a>
+<a href="#1241" id="1241">1241</a>
+<a href="#1242" id="1242">1242</a>
+<a href="#1243" id="1243">1243</a>
+<a href="#1244" id="1244">1244</a>
+<a href="#1245" id="1245">1245</a>
+<a href="#1246" id="1246">1246</a>
+<a href="#1247" id="1247">1247</a>
+<a href="#1248" id="1248">1248</a>
+<a href="#1249" id="1249">1249</a>
+<a href="#1250" id="1250">1250</a>
+<a href="#1251" id="1251">1251</a>
+<a href="#1252" id="1252">1252</a>
+<a href="#1253" id="1253">1253</a>
+<a href="#1254" id="1254">1254</a>
+<a href="#1255" id="1255">1255</a>
+<a href="#1256" id="1256">1256</a>
+<a href="#1257" id="1257">1257</a>
+<a href="#1258" id="1258">1258</a>
+<a href="#1259" id="1259">1259</a>
+<a href="#1260" id="1260">1260</a>
+<a href="#1261" id="1261">1261</a>
+<a href="#1262" id="1262">1262</a>
+<a href="#1263" id="1263">1263</a>
+<a href="#1264" id="1264">1264</a>
+<a href="#1265" id="1265">1265</a>
 </pre><pre class="rust"><code><span class="doccomment">/*! This is meant to be an exhaustive list of errors possible in the compiler.
  *
  * It mainly is a central store of compiler errors, but with some functions to check if an Element is an invalid child of another Element.
@@ -1270,6 +1305,7 @@
     <span class="kw">pub </span>string: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>assign: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>list: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+    <span class="kw">pub </span>a_struct: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>int: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>int_out_of_bounds: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>int_negative: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
@@ -1282,6 +1318,7 @@
     //pub no_valid_expression: &amp;&#39;static str,
     </span><span class="kw">pub </span>constants_are_immutable: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>constant_undefined: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
+    <span class="kw">pub </span>struct_undefined: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>loop_for: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>loopfor_cant_be_child: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
     <span class="kw">pub </span>loopfor_end_but_no_start: <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str,
@@ -1305,6 +1342,7 @@
     string_cant_be_child_of_parenthesis:<span class="string">&quot;Invalid parenthesis - Float found inside parenthesis. Can only include a type in a function definition, or a function name as a reference&quot;</span>,
     constantref_cant_be_child_of_parenthesis:<span class="string">&quot;Invalid Constant Reference - only Types and Function names should be found inside parenthesis&quot;</span>,
     constant_undefined:<span class="string">&quot;Invalid Constant Definition - this constant has not previously been defined, so cannot be used anywhere except in a new definition, e.g. = a 123&quot;</span>,
+    struct_undefined:<span class="string">&quot;Invalid Struct Definition - this dtruct has not previously been defined, so cannot be used anywhere except in a new definition, e.g. = a { = key 123 }&quot;</span>,
     assignment_cant_be_child_of_constant:<span class="string">&quot;Invalid Constant Definition - \&quot;=\&quot; can&#39;t be the value of this constant&quot;</span>,
     assignment_cant_be_child_of_inbuiltfncall:<span class="string">&quot;Invalid Inbuilt Function Call - \&quot;=\&quot; found instead of value&quot;</span>,
     assignment_cant_be_child_of_fncal:<span class="string">&quot;Invalid Function Call - \&quot;=\&quot; found instead of value&quot;</span>,
@@ -1326,6 +1364,7 @@
     string: <span class="string">&quot;Invalid string found: Must be enclosed in quote marks \&quot;\&quot;&quot;</span>,
     assign: <span class="string">&quot;Invalid assignment: There are characters directly after &#39;=&#39;. It must be followed by a space&quot;</span>,
     list: <span class="string">&quot;Invalid list: List must be defined by elements(s) surrounded by [ ] with spaces between. An empty list must contain the type in the list like [ i64 ] . Types can&#39;t be values in a list, so they will be removed and the last found type will be assigned to the list returntype.&quot;</span>,
+    a_struct: <span class="string">&quot;Invalid struct: Struct must be defined by one or more assignments of a value to a key surrounded by { } with spaces between such as = mystruct { = key1 \&quot;mystring\&quot; = key2 12.34 }&quot;</span>,
     int: <span class="string">&quot;Invalid int: there are characters after the first digit. Must only contain digits&quot;</span>,
     int_out_of_bounds: <span class="string">&quot;Invalid int: is out of bounds. Must be within the value of -9223372036854775808 to 9223372036854775807&quot;</span>,
     int_negative:<span class="string">&quot;Invalid negative int or float: Must follow a negative sign &#39;-&#39; with a digit&quot;</span>,
@@ -1348,7 +1387,7 @@
     arrow_len: usize,
     error: <span class="kw-2">&amp;</span>str,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::append_error {:?} {:?} {:?}&quot;</span>,
         arrow_indent, arrow_len, error
     ));
@@ -1379,7 +1418,7 @@
 
 <span class="doccomment">/// Main function to check if parent of Element is invalid - this then calls all the other functions below
 </span><span class="kw">pub fn </span>error_if_parent_is_invalid(compiler: <span class="kw-2">&amp;mut </span>Compiler) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(<span class="string">&quot;errors::append_error {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
+    compiler.ast.log(<span class="macro">format!</span>(<span class="string">&quot;errors::append_error {:?}&quot;</span>, <span class="string">&quot;&quot;</span>));
     <span class="kw">let </span>el = elements::get_last_element(<span class="kw-2">&amp;</span>compiler.ast);
     <span class="kw">let </span>parent = parents::get_current_parent_element_from_parents(<span class="kw-2">&amp;</span>compiler.ast);
     <span class="comment">//dbg!(&quot;error_if_parent_is_invalid&quot;, &amp;el, &amp;parent);
@@ -1397,6 +1436,7 @@
         ElementInfo::ConstantRef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             error_if_parent_is_invalid_for_constantref(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?
         </span>}
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_struct(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; error_if_parent_is_invalid_for_constant(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::Assignment =&gt; error_if_parent_is_invalid_for_assignment(compiler, <span class="kw-2">&amp;</span>parent)<span class="question-mark">?</span>,
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
@@ -1429,7 +1469,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_list {:?}&quot;</span>,
         parent
     ));
@@ -1446,6 +1486,7 @@
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::FunctionCall(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Parens =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.list_cant_be_child),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
         </span>ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1468,7 +1509,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_commentsingleline {:?}&quot;</span>,
         parent
     ));
@@ -1481,6 +1522,7 @@
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.comment_cant_be_child_of_constant)
         }
@@ -1520,7 +1562,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_int {:?}&quot;</span>,
         parent
     ));
@@ -1537,6 +1579,7 @@
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.int_cant_be_child_of_assignment)
         }
@@ -1563,7 +1606,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_float {:?}&quot;</span>,
         parent
     ));
@@ -1580,6 +1623,7 @@
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.float_cant_be_child_of_assignment)
         }
@@ -1606,7 +1650,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_string {:?}&quot;</span>,
         parent
     ));
@@ -1623,6 +1667,7 @@
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.string_cant_be_child_of_assignment)
         }
@@ -1649,7 +1694,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_bool {:?}&quot;</span>,
         parent
     ));
@@ -1666,6 +1711,7 @@
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.string_cant_be_child_of_assignment)
         }
@@ -1692,7 +1738,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_arg {:?}&quot;</span>,
         parent
     ));
@@ -1702,7 +1748,8 @@
         ElementInfo::FunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::Root =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        </span>ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::Root =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::InbuiltFunctionCall(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
@@ -1735,7 +1782,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_constantref {:?}&quot;</span>,
         parent
     ));
@@ -1750,6 +1797,7 @@
         ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Assignment =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.constants_are_immutable),
         ElementInfo::Parens =&gt; append_error(
             compiler,
@@ -1775,11 +1823,25 @@
     }
 }
 
+<span class="kw">pub fn </span>error_if_parent_is_invalid_for_struct(
+    compiler: <span class="kw-2">&amp;mut </span>Compiler,
+    parent: <span class="kw-2">&amp;</span>Element,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
+    compiler.ast.log(<span class="macro">format!</span>(
+        <span class="string">&quot;errors::error_if_parent_is_invalid_for_struct {:?}&quot;</span>,
+        parent
+    ));
+    <span class="kw">match </span>parent.<span class="number">0 </span>{
+        ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        <span class="kw">_ </span>=&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.struct_undefined),
+    }
+}
+
 <span class="kw">pub fn </span>error_if_parent_is_invalid_for_constant(
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_constant {:?}&quot;</span>,
         parent
     ));
@@ -1795,7 +1857,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_assignment {:?}&quot;</span>,
         parent
     ));
@@ -1806,6 +1868,7 @@
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::List(<span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.assignment_cant_be_child_of_list)
         }
@@ -1857,7 +1920,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_inbuiltfncall {:?}&quot;</span>,
         parent
     ));
@@ -1875,6 +1938,7 @@
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Println =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Parens =&gt; append_error(
             compiler,
             <span class="number">0</span>,
@@ -1901,7 +1965,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_fncall {:?}&quot;</span>,
         parent
     ));
@@ -1918,6 +1982,7 @@
         ElementInfo::LoopForRangeWIP =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::LoopForRange(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::If(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
         ElementInfo::Parens =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.fncall_cant_be_child_of_parenthesis)
         }
@@ -1943,7 +2008,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_parenthesis {:?}&quot;</span>,
         parent
     ));
@@ -1973,7 +2038,8 @@
             ERRORS.parenthesis_cant_be_child_of_assignment,
         ),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        </span>ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Int(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -1993,7 +2059,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_loopfor {:?}&quot;</span>,
         parent
     ));
@@ -2015,7 +2081,8 @@
         ElementInfo::Constant(<span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.loopfor_cant_be_child),
         ElementInfo::Assignment =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.loopfor_cant_be_child),
         <span class="comment">// explicitly listing other types rather than using _ to not overlook new types in future.
-        </span>ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        </span>ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
+        ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Int(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::String(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2034,7 +2101,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_fndefwip {:?}&quot;</span>,
         parent
     ));
@@ -2091,6 +2158,7 @@
         </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Int(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2110,7 +2178,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_println {:?}&quot;</span>,
         parent
     ));
@@ -2142,6 +2210,7 @@
         ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Int(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
@@ -2161,7 +2230,7 @@
     compiler: <span class="kw-2">&amp;mut </span>Compiler,
     parent: <span class="kw-2">&amp;</span>Element,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ()&gt; {
-    compiler.log(<span class="macro">format!</span>(
+    compiler.ast.log(<span class="macro">format!</span>(
         <span class="string">&quot;errors::error_if_parent_is_invalid_for_if_expression {:?}&quot;</span>,
         parent
     ));
@@ -2187,6 +2256,7 @@
         </span>ElementInfo::InbuiltFunctionDef(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
             append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error)
         }
+        ElementInfo::Struct(<span class="kw">_</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::CommentSingleLine(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Int(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),
         ElementInfo::Float(<span class="kw">_</span>) =&gt; append_error(compiler, <span class="number">0</span>, <span class="number">1</span>, ERRORS.impossible_error),

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":[["get_formatted_argname_argtype_pairs","Formats three vecs into a single string usually for inserting into the arguments of a function"]]};
+window.SIDEBAR_ITEMS = {"fn":[["get_formatted_argname_argtype_pairs","Formats three vecs into a single string usually for inserting into the arguments of a function"],["get_formatted_argnames",""]]};
