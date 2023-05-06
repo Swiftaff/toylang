@@ -1,1 +1,2 @@
-= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }
+= newstruct { = firstname "firstname" = surname "surname" = age 21 }
+@ newstruct

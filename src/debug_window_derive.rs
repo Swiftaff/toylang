@@ -179,7 +179,7 @@ pub struct ToylangDebugger {
     label6: nwg::Label,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 3, col: 3, row_span: 11, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 3, row_span: 5, col_span: 6)]
     richtext_logs: nwg::RichTextBox,
 
     // History
@@ -192,7 +192,7 @@ pub struct ToylangDebugger {
     history_trackbar: nwg::TrackBar,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 7, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 11, col_span: 6)]
     richtext_dynamic_ast: nwg::RichTextBox,
 
     /*
@@ -207,11 +207,11 @@ pub struct ToylangDebugger {
     */
     // Output
     #[nwg_control(text: "Output")]
-    #[nwg_layout_item(layout: grid, row: 10,  col: 9, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 8,  col: 3, col_span: 6)]
     label9: nwg::Label,
 
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 11, col: 9, row_span: 3, col_span: 6)]
+    #[nwg_layout_item(layout: grid, row: 9, col: 3, row_span: 5, col_span: 6)]
     richtext_output: nwg::RichTextBox,
 }
 
@@ -315,8 +315,10 @@ impl ToylangDebugger {
             &self.richtext_dynamic_ast,
             &self.mydata.borrow_mut().history[self.history_trackbar.pos()],
         );
-        self.richtext_dynamic_ast.scroll_lastline();
-        self.richtext_dynamic_ast.scroll(-20);
+        //let testy = &self.richtext_dynamic_ast.handle.hwnd();
+        //dbg!("{:?}", testy);
+        //self.richtext_dynamic_ast.scroll_lastline();
+        //self.richtext_dynamic_ast.scroll(-20);
     }
 }
 

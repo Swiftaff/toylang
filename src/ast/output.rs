@@ -401,9 +401,6 @@ fn get_output_for_struct(
         args_output = format!("{}{}{}", &args_output, &no_first_comma, &arg);
     }
 
-    // remove children so they aren't output later
-    //ast.elements[element_index].1 = vec![];
-
     format!("{}::new({})", name, args_output)
 }
 
@@ -551,12 +548,19 @@ fn get_output_for_parens(ast: &mut Ast, children: Vec<usize>) -> String {
 fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
     ast.log(format!("output::get_output_for_println {:?}", ""));
     let mut output = "".to_string();
-    for i in 0..children.len() {
-        let child_ref = children[i];
-        let child = get_output_for_element_index(ast, child_ref, false);
-        output = format!("{}{}", output, child);
+    let child_ref = children[0];
+    let child = get_output_for_element_index(ast, child_ref, false);
+    output = format!("{}{}", output, child);
+
+    // print with Display {} or Debug {:?}
+    let mut debug = "".to_string();
+    let constant_el = ast.elements[child_ref].clone();
+    if let ElementInfo::ConstantRef(name, _, _) = constant_el.0 {
+        if let Some(_) = elements::get_struct_index_by_name(ast, &name) {
+            debug = ":?".to_string();
+        }
     }
-    format!("println!(\"{{}}\", {})", output)
+    format!("println!(\"{{{}}}\", {})", debug, output)
 }
 
 /// Output for If statement
@@ -622,28 +626,7 @@ fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
             ElementInfo::LoopForRange(_, _, _) => {
                 format!(";\r\n{}}}", parents::get_indent(ast))
             }
-            ElementInfo::Struct(_, _, _) => {
-                // cleanup children
-                ast.elements[el_index].1 = vec![];
-                /*
-                let struct_children = ast.elements[el_index].1;
-                for i in 0..struct_children.len() {
-                    let child_assignment = struct_children[i];
-
-
-                    let assignment_children = ast.elements[child_assignment].1;
-                    for a in 0..assignment_children.len() {
-                        let child_constant = assignment_children[a];
-                        let constant_children = ast.elements[child_constant].1;
-                        for v in 0..constant_children.len() {
-                            let child_value =
-                        }
-                    }
-                }
-                */
-                dbg!("struct");
-                "".to_string()
-            }
+            ElementInfo::Struct(_, _, _) => "".to_string(),
             _ => "".to_string(),
         };
         set_output_append(ast, &element_string);

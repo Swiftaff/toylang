@@ -382,6 +382,8 @@ pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
         }
     }
     parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
+    parents::outdent::outdent(compiler);
     elements::append::seol_if_last_in_line(compiler)
 }
 

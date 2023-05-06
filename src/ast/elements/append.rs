@@ -437,9 +437,7 @@ pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
         struct_name = name;
     };
     struct_name = struct_name.to_lowercase().replace("_", "");
-    let mut temp_struct_name: Vec<char> = struct_name.chars().collect();
-    temp_struct_name[0] = temp_struct_name[0].to_uppercase().nth(0).unwrap();
-    struct_name = temp_struct_name.into_iter().collect::<String>();
+    struct_name = upper_first_char(&struct_name);
     append(
         &mut compiler.ast,
         (ElementInfo::Struct(struct_name, vec![], vec![]), vec![]),
@@ -447,6 +445,12 @@ pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
     errors::error_if_parent_is_invalid(compiler)?;
     parents::indent::indent(&mut compiler.ast);
     Ok(())
+}
+
+pub fn upper_first_char(name: &String) -> String {
+    let mut temp_struct_name: Vec<char> = name.chars().collect();
+    temp_struct_name[0] = temp_struct_name[0].to_uppercase().nth(0).unwrap();
+    temp_struct_name.into_iter().collect::<String>()
 }
 
 /// Append start of a list

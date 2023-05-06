@@ -158,7 +158,18 @@ pub fn get_element_by_name(ast: &Ast, name: &String) -> Option<Element> {
     if let Some(index) = get_arg_index_by_name(ast, name) {
         return Some(ast.elements[index].clone());
     }
+    if let Some(index) = get_struct_index_by_name(ast, name) {
+        return Some(ast.elements[index].clone());
+    }
     None
+}
+
+/// Get the index of the Struct based on its name
+pub fn get_struct_index_by_name(ast: &Ast, name: &String) -> Option<usize> {
+    ast.elements.iter().position(|(elinfo, _)| match elinfo {
+        ElementInfo::Struct(n, _, _) => n == &append::upper_first_char(name),
+        _ => false,
+    })
 }
 
 /// Get the index of the Arg based on its name
