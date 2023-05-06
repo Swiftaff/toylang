@@ -1,1 +1,1 @@
-= mystruct { = key1 "string" }
+= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }

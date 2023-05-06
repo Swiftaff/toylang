@@ -34,6 +34,8 @@ pub struct Ast {
     //first element is always root. Real elements start at index 1
     pub elements: Elements,
     pub output: String,
+    pub output_stack: Vec<ElIndex>,
+    pub premain_output: String,
     //note: parents are only used for building, ignored output.
     //becuse of that, split outputting to be less confusing?
     pub parents: Vec<ElIndex>,
@@ -46,6 +48,8 @@ impl Default for Ast {
         Ast {
             elements: init(),
             output: "".to_string(),
+            output_stack: vec![],
+            premain_output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
             logs: vec![],
             debug_compiler_history: vec![],
@@ -61,10 +65,12 @@ impl Ast {
     pub fn log(self: &mut Self, string: String) {
         self.logs.push(string);
         let debug_els = format!(
-            "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput:\r\n{:?}",
+            "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput_stack:\r\n{:?}\r\n\r\nPre-main Output:\r\n{:?}r\n\r\nOutput:\r\n{:?}",
             DebugElements(&self.elements),
             &self.parents,
-            &self.output
+            &self.output_stack,
+            &self.premain_output,
+            &self.output,
         );
         self.debug_compiler_history.push(debug_els);
     }
@@ -239,8 +245,8 @@ impl fmt::Debug for Ast {
         }
         write!(
             f,
-            "Custom Debug of Ast [\r\nElements:\r\n{}Parents: {}\r\nOutput: \r\n{:?}\r\n]",
-            el_debug, parents_debug, self.output
+            "Custom Debug of Ast [\r\nElements:\r\n{}Parents: {}\r\nOutput_stack: {:?}\r\nOutput: \r\n{:?}\r\n]",
+            el_debug, parents_debug, self.output_stack, self.output
         )
     }
 }

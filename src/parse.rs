@@ -376,16 +376,11 @@ pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
 pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.ast.log(format!("parse::struct_end {:?}", ""));
     let a_struct = parents::get_current_parent_element_from_parents(&compiler.ast);
-    match a_struct {
-        (ElementInfo::Struct(name, keys, keytypes), children) => {
-            if keys.len() == 0 || keytypes.len() == 0 || children.len() == 0 {
-                return append_error(compiler, 0, 1, ERRORS.a_struct);
-            }
+    if let (ElementInfo::Struct(_, _, _), children) = a_struct {
+        if children.len() == 0 {
+            return append_error(compiler, 0, 1, ERRORS.a_struct);
         }
-        _ => (),
     }
-    parents::outdent::outdent(compiler);
-    parents::outdent::outdent(compiler);
     parents::outdent::outdent(compiler);
     elements::append::seol_if_last_in_line(compiler)
 }

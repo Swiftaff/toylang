@@ -2,7 +2,7 @@
  */
 use crate::Ast;
 
-/// Indent by adding current parent to parent stack
+/// Indent by adding current element to parent stack
 pub fn indent(ast: &mut Ast) {
     ast.parents.push(ast.elements.len() - 1);
 }

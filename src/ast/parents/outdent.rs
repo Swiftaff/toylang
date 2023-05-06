@@ -255,19 +255,6 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
     }
 }
 
-/// Outdents from Struct
-pub fn a_struct(compiler: &mut Compiler, current_parent: Element) {
-    compiler
-        .ast
-        .log(format!("outdent::struct {:?}", current_parent));
-    //dbg!("Struct");
-    if let ElementInfo::Struct(_, keys, _) = current_parent.0 {
-        if current_parent.1.len() > keys.len() {
-            outdent(compiler);
-        }
-    }
-}
-
 /// Outdents from Constant
 pub fn constant(compiler: &mut Compiler, current_parent: Element) {
     compiler

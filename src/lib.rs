@@ -204,7 +204,7 @@ impl Compiler {
             Err(_e) => (),
         }
         self.file.writefile_or_error(
-            &self.ast.output,
+            &format!("{}{}", &self.ast.premain_output, &self.ast.output),
             &self.outputdir,
             self.error_stack.len() > 0,
         )

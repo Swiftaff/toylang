@@ -19,44 +19,56 @@ pub fn set_output(compiler: &mut Compiler) {
 
     set_output_append(&mut compiler.ast, "fn main() {\r\n");
 
-    // initialise stack with root reference (0)
-    compiler.ast.parents = vec![0];
+    // we re-use the ast.parents from the parser, using it's length only, as a simple way to define the ongoing indent level.
+    // The actual contents don't matter, so we reset it with two zeros for good measure to define the first indent level under the main function for the first line of code.
+    // Thereafter we pop or push the last AST element since thats what parents::indent::indent does - but the element doesn't matter, just the ast.parents length
+    // So it will usually contain duplicates like this, [ 0, 0, 29, 29, 29] (5 elements minus 2 indicating 3 levels of indent?)
+    compiler.ast.parents = vec![0, 0];
 
-    // the values of indent and outdent did matter earlier, when building the ast
-    // but no longer matter when outputting - we add and remove things from parents
-    // but then are just using parents.len() to display correct indent for each item
-    parents::indent::indent(&mut compiler.ast);
+    // We create a separate stack as a list of the children of root, i.e. the top level items to output
+    // we go down them and dynamically push/pop their children to the stack
+    // if we have added, and encounter, a 0, that indicates an "outdent marker" and we outdent ast.parents
+    // otherwise some elements will manually indent ast.parents as we go
 
-    // the stack starts off as a list of the children of root, i.e. the top level items to output
-    // we go down them and dynamically add/remove their children to the stack, indenting and outdenting as we go
-    let mut stack: Vec<usize> = compiler.ast.elements[0].1.clone();
-    while stack.len() > 0 {
-        let current_el_index = stack[0];
+    compiler.ast.output_stack = compiler.ast.elements[0].1.clone();
+
+    while compiler.ast.output_stack.len() > 0 {
+        let current_el_index = compiler.ast.output_stack[0];
         let current_el = compiler.ast.elements[current_el_index].clone();
         let current_el_is_an_outdent_marker = current_el_index == 0;
         let children = current_el.1;
 
-        // remove current item from stack
-        stack = parents::vec_remove_head(&stack);
+        // remove first/current item from stack
+        compiler.ast.output_stack = parents::vec_remove_head(&compiler.ast.output_stack);
 
         if current_el_is_an_outdent_marker {
-            stack = output_end_of_element_and_outdent(compiler, &stack);
+            compiler.ast.output_stack = output_end_of_element_and_outdent(compiler);
         } else {
             // push current element to output
+
+            set_premain_output_for_element(&mut compiler.ast, current_el_index);
             set_output_for_element_open(&mut compiler.ast, current_el_index);
 
+            // Render children if any, except of certain elements where the children are rendered by the parent
+            /*
+            let should_render_children =
+                !is_skippable_due_to_parent(&mut compiler.ast, current_el_index);
+            */
             // Render children if any, except of certain elements where the children are rendered separately
             let should_render_children = match current_el.0 {
                 ElementInfo::InbuiltFunctionCall(_, _, _) => false,
+                ElementInfo::Struct(_, _, _) => false,
                 _ => children.len() > 0,
             };
             if should_render_children {
-                stack = indent_and_add_children(compiler, current_el_index, children, stack);
+                compiler.ast.output_stack =
+                    indent_and_add_children(compiler, current_el_index, children);
             }
         }
     }
     parents::outdent::outdent(compiler);
     set_output_append(&mut compiler.ast, "}\r\n");
+    compiler.ast.output = format!("{}{}", compiler.ast.premain_output, compiler.ast.output);
 }
 
 /// indent from current parent and list children to output next
@@ -64,14 +76,13 @@ fn indent_and_add_children(
     compiler: &mut Compiler,
     current_el_index: usize,
     children: Vec<usize>,
-    stack: Vec<usize>,
 ) -> Vec<usize> {
     compiler
         .ast
         .log(format!("output::indent_and_add_children {:?}", ""));
     // add the following to stack in reverse order so they are then handled immediately,
     // and in correct order when popped off the stack in the next while loops
-    let mut new_stack = stack.clone();
+    let mut new_stack = compiler.ast.output_stack.clone();
     // prepend with current item end tag indicator - so we know to close it after the outdent
     new_stack.splice(0..0, vec![current_el_index]);
     // prepend with 0 (marker for outdent)
@@ -84,18 +95,18 @@ fn indent_and_add_children(
 }
 
 /// outdent from list of children, back to parents next sibling
-fn output_end_of_element_and_outdent(compiler: &mut Compiler, stack: &Vec<usize>) -> Vec<usize> {
+fn output_end_of_element_and_outdent(compiler: &mut Compiler) -> Vec<usize> {
     compiler.ast.log(format!(
         "output::output_end_of_element_and_outdent {:?}",
         ""
     ));
     parents::outdent::outdent(compiler);
     // push current end tag to output
-    let end_tag = stack[0];
+    let end_tag = compiler.ast.output_stack[0];
 
     set_output_for_element_close(&mut compiler.ast, end_tag);
     // removed the outdent marker earlier, now remove the end tag indicator
-    parents::vec_remove_head(&stack)
+    parents::vec_remove_head(&compiler.ast.output_stack)
     // if the end_tag was the end of a func_def we don't want to display the trailing semicolon
     // since it needs to be treated as the return statement, so remove it if there is one
 }
@@ -166,11 +177,11 @@ pub fn get_depths_flattened(depths: &Vec<Vec<usize>>) -> Vec<usize> {
     output
 }
 
-/// Gets the output string for an element based on its index
-fn get_output_for_element_index(
+/// Gets the output string for an element based on its index - but for the code before the main function
+fn get_premain_output_for_element_index(
     ast: &mut Ast,
     element_index: usize,
-    skip_in_case_handled_by_parent: bool,
+    request_skip_if_element_is_handled_by_parent: bool,
 ) -> String {
     ast.log(format!(
         "output::get_output_for_element_index {:?}",
@@ -181,7 +192,36 @@ fn get_output_for_element_index(
     let empty_string = "".to_string();
 
     //skip children for certain parents who already parsed them
-    if skip_in_case_handled_by_parent && is_parent_skippable(ast, element_index) {
+    if request_skip_if_element_is_handled_by_parent
+        && is_skippable_due_to_parent(ast, element_index)
+    {
+        return "".to_string();
+    }
+    if let ElementInfo::Struct(name, _, _) = element.0 {
+        get_premain_output_for_struct(ast, name, children)
+    } else {
+        "".to_string()
+    }
+}
+
+/// Gets the output string for an element based on its index
+fn get_output_for_element_index(
+    ast: &mut Ast,
+    element_index: usize,
+    request_skip_if_element_is_handled_by_parent: bool,
+) -> String {
+    ast.log(format!(
+        "output::get_output_for_element_index {:?}",
+        element_index
+    ));
+    let element = ast.elements[element_index].clone();
+    let children = element.1;
+    let empty_string = "".to_string();
+
+    //skip children for certain parents who already parsed them
+    if request_skip_if_element_is_handled_by_parent
+        && is_skippable_due_to_parent(ast, element_index)
+    {
         return "".to_string();
     }
 
@@ -193,7 +233,9 @@ fn get_output_for_element_index(
         ElementInfo::String(val) => format!("{}.to_string()", val),
         ElementInfo::Bool(val) => format!("{}.to_string()", val),
         ElementInfo::Arg(name, _scope, _argmodifier, _returntype) => name,
-        ElementInfo::Struct(name, _, _) => get_output_for_struct(ast, name, children),
+        ElementInfo::Struct(name, _, _) => {
+            get_output_for_struct(ast, name, children, element_index)
+        }
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => name,
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
@@ -232,10 +274,15 @@ fn get_output_for_element_index(
 
 /// Defines which Elements' children should be skipped from being output directly,
 /// as the children are handled by the parent Element's output
+fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
+    let parent =
+        parents::get_current_parent_element_from_element_children_search(&ast, element_index);
     ast.log(format!(
         "output::is_skippable_due_to_parent {} {:?}",
         element_index, parent
     ));
+    match parent {
+        Some((ElementInfo::Assignment, _)) => true,
         Some((ElementInfo::FunctionCall(_, _), _)) => true,
         Some((ElementInfo::Println, _)) => true,
         Some((ElementInfo::List(_), _)) => true,
@@ -267,8 +314,75 @@ fn get_output_for_element_index(
     }
 }
 
+/// Pre-main Output for Struct
+fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
+    ast.log(format!("output::get_premain_output_for_struct {:?}", name));
+    /*
+    Should output something like this ...
+
+    #[derive(Clone, Debug)]
+    pub struct Newstruct {
+        pub firstname: String,
+        pub surname: String,
+        pub age: i64,
+    }
+
+    impl Newstruct {
+        pub fn new(
+            firstname: String,
+            surname: String,
+            age: i64,
+            ) -> Newstruct {
+            Newstruct {
+                firstname,
+                surname,
+                age,
+            }
+        }
+    }
+
+    ... two linebreaks before fn main() ...
+    */
+
+    // a Structs children should all be Assignments
+    // each Assignment should have one child Constant
+    let mut struct_pub_keys_types = "".to_string();
+    let mut struct_keys_types = "".to_string();
+    let mut struct_keys = "".to_string();
+    for i in 0..children.len() as usize {
+        let assignment_ref = ast.elements[children[i]].1[0];
+        if let ElementInfo::Constant(key, a_type) = &ast.elements[assignment_ref].0 {
+            struct_pub_keys_types = format!(
+                "{}    pub {}: {},\r\n",
+                &struct_pub_keys_types, &key, &a_type
+            );
+            struct_keys_types = format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
+            struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+        }
+    }
+
+    let derive = "#[derive(Clone, Debug)]\r\n".to_string();
+    let a_struct = format!(
+        "pub struct {} {{\r\n{}}}\r\n\r\n",
+        name, struct_pub_keys_types
+    );
+    let new_fn = format!(
+        "    pub fn new(\r\n{}) -> {} {{\r\n        {} {{\r\n{}        }}\r\n    }}",
+        struct_keys_types, name, name, struct_keys
+    );
+    format!(
+        "{}{}impl Newstruct {{\r\n{}\r\n}}\r\n\r\n",
+        derive, a_struct, new_fn
+    )
+}
+
 /// Output for Struct
-fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
+fn get_output_for_struct(
+    ast: &mut Ast,
+    name: String,
+    children: Vec<usize>,
+    element_index: usize,
+) -> String {
     ast.log(format!("output::get_output_for_struct {:?}", name));
     // a Structs children should all be Assignments
     // each Assignment should have one child Constant
@@ -292,7 +406,10 @@ fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> S
         args_output = format!("{}{}{}", &args_output, &no_first_comma, &arg);
     }
 
-    format!("{}::new({});\r\n", name, args_output)
+    // remove children so they aren't output later
+    //ast.elements[element_index].1 = vec![];
+
+    format!("{}::new({})", name, args_output)
 }
 
 /// Output for Assignment
@@ -314,7 +431,18 @@ fn get_output_for_assignment(ast: &mut Ast, children: Vec<usize>) -> String {
             }
             _ => (),
         }
-        format!("let {}: {} = ", constant_output, returntype)
+        let mut mut_if_assigning_to_struct = "".to_string();
+        let first_child_ref = children[0];
+        if let ElementInfo::Constant(_, _) = ast.elements[first_child_ref].0 {
+            let constant_first_child_ref = ast.elements[first_child_ref].1[0];
+            if let ElementInfo::Struct(_, _, _) = ast.elements[constant_first_child_ref].0 {
+                mut_if_assigning_to_struct = "mut ".to_string();
+            }
+        }
+        format!(
+            "let {}{}: {} = ",
+            mut_if_assigning_to_struct, constant_output, returntype
+        )
     }
 }
 
@@ -467,9 +595,22 @@ fn get_output_for_if(ast: &mut Ast, children: Vec<usize>, returntype: String) ->
     return output;
 }
 
+/// Append the current element's formatted string to the output string - but for "premain", i.e. the output prepended before the main function
+fn set_premain_output_for_element(ast: &mut Ast, el_index: usize) {
+    ast.log(format!(
+        "output::set_output_for_element_premain {:?}",
+        el_index
+    ));
+    let element_string = get_premain_output_for_element_index(ast, el_index, true);
+    set_premain_output_append(ast, &element_string);
+}
+
 /// Append the current element's formatted string to the output string
 fn set_output_for_element_open(ast: &mut Ast, el_index: usize) {
-    ast.log(format!("output::set_output_for_element_open {:?}", ""));
+    ast.log(format!(
+        "output::set_output_for_element_open {:?}",
+        el_index
+    ));
     let element_string = get_output_for_element_index(ast, el_index, true);
     set_output_append(ast, &element_string);
 }
@@ -486,6 +627,28 @@ fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
             ElementInfo::LoopForRange(_, _, _) => {
                 format!(";\r\n{}}}", parents::get_indent(ast))
             }
+            ElementInfo::Struct(_, _, _) => {
+                // cleanup children
+                ast.elements[el_index].1 = vec![];
+                /*
+                let struct_children = ast.elements[el_index].1;
+                for i in 0..struct_children.len() {
+                    let child_assignment = struct_children[i];
+
+
+                    let assignment_children = ast.elements[child_assignment].1;
+                    for a in 0..assignment_children.len() {
+                        let child_constant = assignment_children[a];
+                        let constant_children = ast.elements[child_constant].1;
+                        for v in 0..constant_children.len() {
+                            let child_value =
+                        }
+                    }
+                }
+                */
+                dbg!("struct");
+                "".to_string()
+            }
             _ => "".to_string(),
         };
         set_output_append(ast, &element_string);
@@ -496,4 +659,13 @@ fn set_output_for_element_close(ast: &mut Ast, el_index: usize) {
 fn set_output_append(ast: &mut Ast, append_string: &str) {
     ast.log(format!("output::set_output_append {:?}", append_string));
     ast.output = format!("{}{}", ast.output, append_string);
+}
+
+/// Append a string to the output string for the premain section
+fn set_premain_output_append(ast: &mut Ast, append_string: &str) {
+    ast.log(format!(
+        "output::set_premain_output_append {:?}",
+        append_string
+    ));
+    ast.premain_output = format!("{}{}", ast.premain_output, append_string);
 }

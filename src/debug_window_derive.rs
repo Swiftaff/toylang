@@ -128,40 +128,16 @@ pub struct ToylangDebugger {
     #[nwg_events( OnButtonClick: [ToylangDebugger::change_step_reset] )]
     button_reset: nwg::Button,
 
-    // Row 2
+    // File Contents
     #[nwg_control(text: "File Contents")]
     #[nwg_layout_item(layout: grid, row: 2,  col: 0, col_span: 3)]
     label0: nwg::Label,
 
-    #[nwg_control(text: "Lines of chars")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 3, col_span: 3)]
-    label1: nwg::Label,
-
-    #[nwg_control(text: "Lines of tokens")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 6, col_span: 3)]
-    label2: nwg::Label,
-
-    #[nwg_control(text: "AST previous")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 9, col_span: 3)]
-    label3: nwg::Label,
-
-    #[nwg_control(text: "AST current")]
-    #[nwg_layout_item(layout: grid, row: 2,  col: 12, col_span: 3)]
-    label4: nwg::Label,
-
-    // Row 3
     #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 0, row_span: 5, col_span: 3)]
+    #[nwg_layout_item(layout: grid, row: 3, col: 0, row_span: 2, col_span: 3)]
     richtext_input: nwg::RichTextBox,
 
-    #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 3, row_span: 5, col_span: 3)]
-    richtext_loc: nwg::RichTextBox,
-
-    #[nwg_control(text: "",)]
-    #[nwg_layout_item(layout: grid, row: 3, col: 6, row_span: 5, col_span:3)]
-    richtext_lot: nwg::RichTextBox,
-
+    /*
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 5, col_span: 3)]
     richtext_ast_previous: nwg::RichTextBox,
@@ -169,51 +145,73 @@ pub struct ToylangDebugger {
     #[nwg_control(text: "")]
     #[nwg_layout_item(layout: grid, row: 3, col: 12, row_span: 5, col_span: 3)]
     richtext_ast_current: nwg::RichTextBox,
+    */
+    // Lines of Chars
+    #[nwg_control(text: "Lines of chars")]
+    #[nwg_layout_item(layout: grid, row: 5,  col: 0, col_span: 3)]
+    label1: nwg::Label,
 
-    // Row 4
-    #[nwg_control(text: "Error stack")]
+    #[nwg_control(text: "",)]
+    #[nwg_layout_item(layout: grid, row: 6, col: 0, row_span: 2, col_span: 3)]
+    richtext_loc: nwg::RichTextBox,
+
+    // Lines of Tokens
+    #[nwg_control(text: "Lines of tokens")]
     #[nwg_layout_item(layout: grid, row: 8,  col: 0, col_span: 3)]
+    label2: nwg::Label,
+
+    #[nwg_control(text: "",)]
+    #[nwg_layout_item(layout: grid, row: 9, col: 0, row_span: 2, col_span:3)]
+    richtext_lot: nwg::RichTextBox,
+
+    // Error Stack
+    #[nwg_control(text: "Error stack")]
+    #[nwg_layout_item(layout: grid, row: 11,  col: 0, col_span: 3)]
     label5: nwg::Label,
 
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 12, col: 0, row_span: 2, col_span: 3)]
+    richtext_error_stack: nwg::RichTextBox,
+
+    // Logs
     #[nwg_control(text: "Logs")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 3, col_span: 3)]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 3, col_span: 3)]
     label6: nwg::Label,
 
-    #[nwg_control(text: "AST (0 of 0)")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 6, col_span: 1)]
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 3, col: 3, row_span: 11, col_span: 6)]
+    richtext_logs: nwg::RichTextBox,
+
+    // History
+    #[nwg_control(text: "History (0 of 0)")]
+    #[nwg_layout_item(layout: grid, row: 2,  col: 9, col_span: 6)]
     label7: nwg::Label,
 
-    #[nwg_control(parent: window, size: (250, 30), position: (900,700), range: Some(0..0) )]
+    #[nwg_control(parent: window, size: (250, 30), position: (900,200), range: Some(0..0) )]
     #[nwg_events( OnHorizontalScroll: [ToylangDebugger::history_update] )]
     history_trackbar: nwg::TrackBar,
 
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 3, col: 9, row_span: 7, col_span: 6)]
+    richtext_dynamic_ast: nwg::RichTextBox,
+
+    /*
+    // AST Current (tree)
     #[nwg_control(text: "AST Current (Tree)")]
     #[nwg_layout_item(layout: grid, row: 8,  col: 9, col_span: 3)]
     label8: nwg::Label,
 
+    #[nwg_control(text: "")]
+    #[nwg_layout_item(layout: grid, row: 9, col: 9, row_span: 2, col_span: 6)]
+    richtext_tree: nwg::RichTextBox,
+    */
+    // Output
     #[nwg_control(text: "Output")]
-    #[nwg_layout_item(layout: grid, row: 8,  col: 12, col_span: 3)]
+    #[nwg_layout_item(layout: grid, row: 10,  col: 9, col_span: 6)]
     label9: nwg::Label,
 
-    // Row 5
     #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 0, row_span: 5, col_span: 3)]
-    richtext_error_stack: nwg::RichTextBox,
-
-    #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 3, row_span: 5, col_span: 3)]
-    richtext_logs: nwg::RichTextBox,
-
-    #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 6, row_span: 5, col_span: 3)]
-    richtext_dynamic_ast: nwg::RichTextBox,
-
-    #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 9, row_span: 5, col_span: 3)]
-    richtext_tree: nwg::RichTextBox,
-
-    #[nwg_control(text: "")]
-    #[nwg_layout_item(layout: grid, row: 9, col: 12, row_span: 5, col_span: 3)]
+    #[nwg_layout_item(layout: grid, row: 11, col: 9, row_span: 3, col_span: 6)]
     richtext_output: nwg::RichTextBox,
 }
 
@@ -264,7 +262,7 @@ impl ToylangDebugger {
 
     pub fn rich_text_input_init(&self) {
         let heading = format!("{}\r\n", APP_NAME);
-        let text = "\r\n\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler's\r\ninternal data structures as it processes\r\nyour input filepath.";
+        let text = "\r\nClick the buttons above in sequence\r\nto see the gradual output of the compiler's\r\ninternal data structures as it processes\r\nyour input filepath.";
         let all_text = [&heading, text].join("");
         self.richtext_input.set_text(&all_text);
 
@@ -332,11 +330,11 @@ fn init(
     ui.textinput_outputdir.set_text(&(output.clone().unwrap()));
     ui.rich_text_control_set_text(&ui.richtext_loc, " ");
     ui.rich_text_control_set_text(&ui.richtext_lot, " ");
-    ui.rich_text_control_set_text(&ui.richtext_ast_previous, " ");
-    ui.rich_text_control_set_text(&ui.richtext_ast_current, " ");
+    //ui.rich_text_control_set_text(&ui.richtext_ast_previous, " ");
+    //ui.rich_text_control_set_text(&ui.richtext_ast_current, " ");
     ui.rich_text_control_set_text(&ui.richtext_error_stack, " ");
     ui.rich_text_control_set_text(&ui.richtext_logs, " ");
-    ui.rich_text_control_set_text(&ui.richtext_tree, " ");
+    //ui.rich_text_control_set_text(&ui.richtext_tree, " ");
     ui.rich_text_control_set_text(&ui.richtext_output, " ");
     return Compiler::new(input.clone(), debug, output.clone(), true).unwrap_or_else(|err| {
         println!("Problem parsing arguments: {}", err);
@@ -393,13 +391,13 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
                 let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
-                let txt_output = format!("{}", compiler.output);
+                let txt_output = compiler.ast.output.to_string();
 
                 ui.rich_text_control_set_text(&ui.richtext_input, &txt_input);
-                ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
+                //ui.rich_text_control_set_text(&ui.richtext_ast_current, &txt_ast);
                 ui.rich_text_control_set_text(&ui.richtext_error_stack, &txt_error);
                 ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
-                ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
+                //ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
 
                 ui.button0.set_enabled(false);
@@ -451,19 +449,20 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
             if step_max >= 4 as usize {
                 if completed_step == 3 {
                     //dbg!(step, step_max, completed_step);
-                    let current_text = ui.richtext_ast_current.text();
+                    //let current_text = ui.richtext_ast_current.text();
                     let new_text = format!("{:?}", compiler.ast);
                     let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                     let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                     let new_len = new_text.len() as u32;
-                    let mut first_non_matching_char = 0;
-                    for (c1, c2) in new_text.chars().zip(current_text.chars()) {
-                        if c1 != c2 {
-                            break;
-                        }
-                        first_non_matching_char += 1;
-                    }
+                    //let mut first_non_matching_char = 0;
+                    //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                    //    if c1 != c2 {
+                    //        break;
+                    //    }
+                    //    first_non_matching_char += 1;
+                    //}
 
+                    /*
                     // update richtext_ast_previous
                     ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
                     ui.richtext_ast_previous.scroll_lastline();
@@ -479,6 +478,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     });
                     ui.richtext_ast_current.scroll_lastline();
                     ui.richtext_ast_current.scroll(-20);
+                    */
 
                     // update richtext_error_stack
                     let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
@@ -494,7 +494,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
                     ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
 
-                    ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
+                    //ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
                     if compiler.ast.logs.len() as usize > 0 {
                         let pos = &compiler.ast.debug_compiler_history.len() - 1;
@@ -510,7 +510,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     }
 
                     // update richtext_output
-                    let txt_output = format!("{}", compiler.ast.output);
+                    let txt_output = compiler.ast.output.to_string();
                     ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
                 }
                 if completed_step == 4 {
@@ -528,19 +528,20 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
 
             if completed_step == 5 {
                 //dbg!(step, step_max, completed_step);
-                let current_text = ui.richtext_ast_current.text();
+                //let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
                 let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                 let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let new_len = new_text.len() as u32;
-                let mut first_non_matching_char = 0;
-                for (c1, c2) in new_text.chars().zip(current_text.chars()) {
-                    if c1 != c2 {
-                        break;
-                    }
-                    first_non_matching_char += 1;
-                }
+                //let mut first_non_matching_char = 0;
+                //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
+                //    if c1 != c2 {
+                //        break;
+                //    }
+                //    first_non_matching_char += 1;
+                //}
 
+                /*
                 // update richtext_ast_previous
                 ui.rich_text_control_set_text(&ui.richtext_ast_previous, &current_text);
                 ui.richtext_ast_previous.scroll_lastline();
@@ -556,9 +557,10 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 });
                 ui.richtext_ast_current.scroll_lastline();
                 ui.richtext_ast_current.scroll(-20);
+                */
 
                 ui.rich_text_control_set_text(&ui.richtext_logs, &txt_logs);
-                ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
+                //ui.rich_text_control_set_text(&ui.richtext_tree, &txt_tree);
 
                 if compiler.ast.logs.len() as usize > 0 {
                     let pos = &compiler.ast.debug_compiler_history.len() - 1;
@@ -586,7 +588,7 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     .set_text(&format!("Error stack ({})", &compiler.error_stack.len()));
 
                 // update richtext_output
-                let txt_output = format!("{}", compiler.ast.output);
+                let txt_output = compiler.ast.output.to_string();
                 ui.rich_text_control_set_text(&ui.richtext_output, &txt_output);
 
                 ui.button0.set_enabled(false);

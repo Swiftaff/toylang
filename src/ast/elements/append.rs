@@ -181,9 +181,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Println => {
                 outdent::println(compiler, current_parent);
             }
-            ElementInfo::Struct(_, _, _) => {
-                outdent::a_struct(compiler, current_parent);
-            }
+            ElementInfo::Struct(_, _, _) => (), //the end_struct tag will outdent insstead of this start_struct tag
             ElementInfo::Constant(_, _) => {
                 outdent::constant(compiler, current_parent);
             }
