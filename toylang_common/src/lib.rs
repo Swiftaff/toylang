@@ -215,6 +215,10 @@ impl IntegrationTests {
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n= newstruct2 { = firstname \"firstname2\" = surname \"surname2\" = age 22 }",
                 "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string(), \"surname\".to_string(), 21);\r\n    let mut newstruct2: Newstruct = Newstruct::new(\"firstname2\".to_string(), \"surname2\".to_string(), 22);}\r\n",
             ),
+
+            // Also how to print a key - it is same as a struct edit - need to check for assignment before to differentiate
+
+
             */
             (
                 "test_pass_define_struct_edit_and_print",

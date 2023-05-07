@@ -427,3 +427,71 @@ fn main() {
 ```
 
 </td></tr></table>
+
+### Structs
+
+<table><tr><th>Toy</th><th>Rust</th></tr><tr><td>
+
+```
+// Define a struct
+= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//Edit a struct
+= newstruct.age 99
+
+//Print (debug) a full struct
+@ newstruct
+
+```
+
+</td><td>
+
+```rust
+// Define a struct
+#[derive(Clone, Debug)]
+pub struct Newstruct {
+    pub firstname: String,
+    pub surname: String,
+    pub age: i64,
+}
+
+impl Newstruct {
+    pub fn new(firstname: String, surname: String, age: i64) -> Newstruct {
+        Newstruct {
+            firstname,
+            surname,
+            age,
+        }
+    }
+}
+
+fn main() {
+    let mut newstruct: Newstruct = Newstruct::new("firstname".to_string(), "surname".to_string(), 21);
+
+    //Edit a struct
+    newstruct.age = 99;
+
+    //Print (debug) a full struct
+    println!("{:?}", &newstruct);
+}
+```
+
+</td></tr></table>
