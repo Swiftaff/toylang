@@ -378,16 +378,16 @@ fn main() {
 = mapfn \ i64 i64 i => * i 100
 
 
-= mapped List.map list ( mapfn )
+= mapped List::map list ( mapfn )
 
 // append
 = list1 [ 1 ]
 = list2 [ 2 3 ]
-= appended List.append list1 list2
+= appended List::append list1 list2
 
 // len
 = list [ 1 2 3 ]
-= len List.len list
+= len List::len list
 
 ```
 

@@ -214,7 +214,7 @@ fn init_list_functions() -> Vec<elements::Element> {
         }
         (
             ElementInfo::InbuiltFunctionDef(
-                format!("List.{}", fn_name),
+                format!("List::{}", fn_name),
                 arg_names,
                 arg_types,
                 arg_modifiers,

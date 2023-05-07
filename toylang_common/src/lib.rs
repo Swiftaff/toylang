@@ -85,7 +85,7 @@ impl IntegrationTests {
             // List append
             (
                 "test_pass_list_append",
-                "= list1 [ 1 ]\r\n= list2 [ 2 3 ]\r\n= appended List.append list1 list2",
+                "= list1 [ 1 ]\r\n= list2 [ 2 3 ]\r\n= appended List::append list1 list2",
                 "fn main() {\r\n    let list1: Vec<i64> = vec![ 1 ];\r\n    let list2: Vec<i64> = vec![ 2, 3 ];\r\n    let appended: Vec<i64> = list1.iter().cloned().chain(list2.iter().cloned()).collect();\r\n}\r\n",
             ),
             //
@@ -95,19 +95,19 @@ impl IntegrationTests {
             // List map
             (
                 "test_pass_list_map",
-                "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List.map list ( mapfn )",
+                "= list [ 1 ]\r\n= mapfn \\ i64 i64 i => * i 100\r\n= mapped List::map list ( mapfn )",
                 "fn main() {\r\n    let list: Vec<i64> = vec![ 1 ];\r\n    fn mapfn(i: i64) -> i64 {\r\n        i * 100\r\n    }\r\n    fn mapfn_for_list_map(i: &i64) -> i64 {\r\n        i * 100\r\n    }\r\nlet mapped: Vec<i64> = list.iter().map(mapfn_for_list_map).collect();\r\n}\r\n",
             ),
             //
             // List reverse
             (
                 "test_pass_list_reverse",
-                "= list [ 1 2 3 ]\r\n= reversed List.reverse list",
+                "= list [ 1 2 3 ]\r\n= reversed List::reverse list",
                 "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let reversed: Vec<i64> = list.into_iter().rev().collect();\r\n}\r\n",
             ),
             (
                 "test_pass_list_reverse_float",
-                "= list [ 1.1 2.1 3.1 ]\r\n= reversed List.reverse list",
+                "= list [ 1.1 2.1 3.1 ]\r\n= reversed List::reverse list",
                 "fn main() {\r\n    let list: Vec<f64> = vec![ 1.1, 2.1, 3.1 ];\r\n    let reversed: Vec<f64> = list.into_iter().rev().collect();\r\n}\r\n",
             ),
             //
