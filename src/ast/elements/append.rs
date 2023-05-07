@@ -181,7 +181,6 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Println => {
                 outdent::println(compiler, current_parent);
             }
-            ElementInfo::Struct(_, _, _) => (), //the end_struct tag will outdent insstead of this start_struct tag
             ElementInfo::Constant(_, _) => {
                 outdent::constant(compiler, current_parent);
             }
@@ -202,6 +201,8 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
+            ElementInfo::Struct(_, _, _) => (), //the end_struct tag will outdent insstead of this start_struct tag
+            ElementInfo::StructEdit(_, _) => outdent::struct_edit(compiler, current_parent),
             ElementInfo::List(_) => (),
             ElementInfo::CommentSingleLine(_) => (),
             ElementInfo::Int(_) => (),
@@ -306,6 +307,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         ElementInfo::Parens => true,
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => false,
+        ElementInfo::StructEdit(_, _) => false,
         ElementInfo::CommentSingleLine(_) => false,
         ElementInfo::Arg(_, _, _, _) => false,
         ElementInfo::Assignment => false,
@@ -425,6 +427,24 @@ pub fn function_call1(
     outdent_if_last_expected_child(compiler);
     parents::indent::indent(&mut compiler.ast);
     seol_if_last_in_line(compiler)
+}
+
+/// Append struct edit
+pub fn struct_edit(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.ast.log(format!("append::struct_edit {:?}", ""));
+    //let parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    //if let ElementInfo::Assignment = parent.0 {
+    append(
+        &mut compiler.ast,
+        (
+            ElementInfo::StructEdit(current_token.clone(), vec![]),
+            vec![],
+        ),
+    );
+    //};
+    errors::error_if_parent_is_invalid(compiler)?;
+    parents::indent::indent(&mut compiler.ast);
+    Ok(())
 }
 
 /// Append start of a struct

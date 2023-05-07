@@ -164,7 +164,14 @@ pub fn token_by_first_chars(
         }*/
         first_char if "abcdefghijklmnopqrstuvwxyz_".contains(&first_char.to_string()) => {
             //dbg!("constant or constantRef", first_char);
-            constant(compiler, &current_token)
+
+            //check if contains a dot, so could be a struct edit, e.g. structname.key
+            let token_split: Vec<&str> = current_token.split(".").into_iter().collect();
+            if token_split.len() > 1 {
+                struct_edit(compiler, &current_token)
+            } else {
+                constant(compiler, &current_token)
+            }
         }
         _ => return errors::append_error(compiler, 0, 1, "parser - unknown error"),
     }
@@ -297,6 +304,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 Some((ElementInfo::Root, _)) => (),
                 Some((ElementInfo::Struct(_, _, _), _)) => (),
+                Some((ElementInfo::StructEdit(_, _), _)) => (),
                 Some((ElementInfo::List(_), _)) => (),
                 Some((ElementInfo::CommentSingleLine(_), _)) => (),
                 Some((ElementInfo::Int(_), _)) => (),
@@ -370,6 +378,12 @@ pub fn list_empty(compiler: &mut Compiler) -> Result<(), ()> {
 pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.ast.log(format!("parse::struct_start {:?}", ""));
     elements::append::struct_start(compiler)
+}
+
+/// Parses start of a Struct Edit
+pub fn struct_edit(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
+    compiler.ast.log(format!("parse::struct_edit {:?}", ""));
+    elements::append::struct_edit(compiler, current_token)
 }
 
 /// Parses end of a Struct

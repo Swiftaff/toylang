@@ -114,6 +114,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
                 ElementInfo::Struct(_, _, _) => (),
+                ElementInfo::StructEdit(_, _) => (),
                 ElementInfo::Assignment => (),
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
                 ElementInfo::FunctionDefWIP => (),
@@ -253,6 +254,16 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
     if current_parent.1.len() > 0 {
         outdent(compiler);
     }
+}
+
+/// Outdents from Struct Edit
+pub fn struct_edit(compiler: &mut Compiler, current_parent: Element) {
+    dbg!("outdent struct_edit");
+    compiler
+        .ast
+        .log(format!("outdent::struct_edit {:?}", current_parent));
+    //outdent if any children at all. This is being called so there is at least one child!
+    outdent(compiler);
 }
 
 /// Outdents from Constant

@@ -27,9 +27,10 @@ pub enum ElementInfo {
     Indent,                                    //no children
     Unused,                                    //no children
     ConstantRef(Name, ReturnType, RefName),    //no children
-    Struct(Name, ArgNames, Vec<ReturnType>),   //no children
-    Constant(Name, ReturnType),                //1 child, value
-    Assignment,                                //1 child, constant
+    Struct(Name, ArgNames, Vec<ReturnType>), //children = each key value (Assignment > Constant > Value)
+    StructEdit(Name, ArgNames),              //1 child, value
+    Constant(Name, ReturnType),              //1 child, value
+    Assignment,                              //1 child, constant
     InbuiltFunctionDef(Name, ArgNames, ArgTypes, ArgModifiers, ReturnType, Format), //children = lines of function contents
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
     FunctionDefWIP,                                 //children = lines of function contents
@@ -58,6 +59,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::Bool(_) => replaceme,
         ElementInfo::Arg(_, _, _, _) => replaceme,
         ElementInfo::Struct(_, _, _) => replaceme,
+        ElementInfo::StructEdit(_, _) => replaceme,
         ElementInfo::Constant(_, _) => replaceme,
         ElementInfo::ConstantRef(_, _, _) => replaceme,
         ElementInfo::Assignment => replaceme,
@@ -94,6 +96,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::Bool(_), _)) => replaceme,
         Some((ElementInfo::Arg(_, _, _, _), _)) => replaceme,
         Some((ElementInfo::Struct(_, _, _), _)) => replaceme,
+        Some((ElementInfo::StructEdit(_, _), _)) => replaceme,
         Some((ElementInfo::Constant(_, _), _)) => replaceme,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
         Some((ElementInfo::Assignment, _)) => replaceme,
@@ -321,6 +324,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::String(_) => (),
             ElementInfo::Bool(_) => (),
             ElementInfo::Struct(_, _, _) => (),
+            ElementInfo::StructEdit(_, _) => (),
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
@@ -373,13 +377,13 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         }
         ElementInfo::Struct(name, _, _) => return name.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
+        ElementInfo::StructEdit(_, _) => (),
         ElementInfo::Root => (),
         ElementInfo::CommentSingleLine(_) => (),
         ElementInfo::Int(_) => (),
         ElementInfo::Float(_) => (),
         ElementInfo::String(_) => (),
         ElementInfo::Bool(_) => (),
-
         ElementInfo::Assignment => (),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),
@@ -549,7 +553,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::String(_) => "String".to_string(),
         ElementInfo::Bool(_) => "bool".to_string(),
         ElementInfo::Assignment => undefined,
-        ElementInfo::Struct(_, _, _) => undefined,
+        ElementInfo::Struct(name, _, _) => name.clone(),
         ElementInfo::Constant(_, returntype) => returntype.clone(),
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
         ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
@@ -559,6 +563,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::If(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => undefined,
+        ElementInfo::StructEdit(_, _) => undefined,
         ElementInfo::CommentSingleLine(_) => undefined,
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => undefined, // don't want to 'find' definitions
         ElementInfo::FunctionDefWIP => undefined,
@@ -765,6 +770,9 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::Struct(name, keys, keytypes) => {
                 format!("Struct: {} keys: {:?} keytypes: {:?}", name, keys, keytypes)
+            }
+            ElementInfo::StructEdit(name, keys) => {
+                format!("StructEdit: {} keys: {:?}", name, keys)
             }
             ElementInfo::Constant(name, returntype) => {
                 format!("Constant: {} ({})", name, returntype)

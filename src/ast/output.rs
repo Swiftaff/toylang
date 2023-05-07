@@ -231,6 +231,7 @@ fn get_output_for_element_index(
         ElementInfo::Struct(name, _, _) => {
             get_output_for_struct(ast, name, children, element_index)
         }
+        ElementInfo::StructEdit(name, _) => name,
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => name,
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
@@ -284,6 +285,7 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
         Some((ElementInfo::If(_), _)) => true,
         Some((ElementInfo::Struct(_, _, _), _)) => true,
         // explicitly listing other types rather than using _ to not overlook new types in future.
+        Some((ElementInfo::StructEdit(_, _), _)) => false,
         Some((ElementInfo::Root, _)) => false,
         Some((ElementInfo::CommentSingleLine(_), _)) => false,
         Some((ElementInfo::Int(_), _)) => false,
@@ -424,6 +426,7 @@ fn get_output_for_assignment(ast: &mut Ast, children: Vec<usize>) -> String {
             _ => (),
         }
         let mut mut_if_assigning_to_struct = "".to_string();
+        let mut let_if_not_struct_edit = "let ".to_string();
         let first_child_ref = children[0];
         if let ElementInfo::Constant(_, _) = ast.elements[first_child_ref].0 {
             let constant_first_child_ref = ast.elements[first_child_ref].1[0];
@@ -431,9 +434,15 @@ fn get_output_for_assignment(ast: &mut Ast, children: Vec<usize>) -> String {
                 mut_if_assigning_to_struct = "mut ".to_string();
             }
         }
+        if let ElementInfo::StructEdit(_, _) = ast.elements[first_child_ref].0 {
+            let_if_not_struct_edit = "".to_string();
+            returntype = "".to_string();
+        } else {
+            returntype = format!(": {}", returntype);
+        }
         format!(
-            "let {}{}: {} = ",
-            mut_if_assigning_to_struct, constant_output, returntype
+            "{}{}{}{} = ",
+            let_if_not_struct_edit, mut_if_assigning_to_struct, constant_output, returntype
         )
     }
 }
@@ -546,21 +555,28 @@ fn get_output_for_parens(ast: &mut Ast, children: Vec<usize>) -> String {
 
 /// Output for Println
 fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
+    dbg!(&ast);
     ast.log(format!("output::get_output_for_println {:?}", ""));
     let mut output = "".to_string();
-    let child_ref = children[0];
-    let child = get_output_for_element_index(ast, child_ref, false);
-    output = format!("{}{}", output, child);
+    if children.len() > 0 {
+        let child_ref = children[0];
+        let child = get_output_for_element_index(ast, child_ref, false);
+        output = format!("{}{}", output, child);
 
-    // print with Display {} or Debug {:?}
-    let mut debug = "".to_string();
-    let constant_el = ast.elements[child_ref].clone();
-    if let ElementInfo::ConstantRef(name, _, _) = constant_el.0 {
-        if let Some(_) = elements::get_struct_index_by_name(ast, &name) {
-            debug = ":?".to_string();
+        // print with Display {} or Debug {:?}
+        let mut debug = "".to_string();
+        let mut borrowed = "".to_string();
+        let constant_el = ast.elements[child_ref].clone();
+        if let ElementInfo::ConstantRef(name, _, _) = constant_el.0 {
+            if let Some(_) = elements::get_struct_index_by_name(ast, &name) {
+                debug = ":?".to_string();
+                borrowed = "&".to_string();
+            }
         }
+        format!("println!(\"{{{}}}\", {}{})", debug, borrowed, output)
+    } else {
+        format!("println!(\"[Error - no child element to print!]\")")
     }
-    format!("println!(\"{{{}}}\", {})", debug, output)
 }
 
 /// Output for If statement
