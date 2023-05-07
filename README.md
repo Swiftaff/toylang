@@ -434,12 +434,13 @@ fn main() {
 
 ```
 // Define a struct
-= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }
+= newstruct { = firstname "firstname" = surname "surname" = age 21 }
 
-
-
-
-
+// Or, using short notation using ConstantRefs
+// = firstname "firstname"
+// = surname "surname"
+// = age 21
+// = newstruct { firstname surname age }
 
 
 
@@ -459,7 +460,7 @@ fn main() {
 
 //Print (debug) a full struct
 @ newstruct
-
+//
 ```
 
 </td><td>

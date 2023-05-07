@@ -228,9 +228,7 @@ fn get_output_for_element_index(
         ElementInfo::String(val) => format!("{}.to_string()", val),
         ElementInfo::Bool(val) => format!("{}.to_string()", val),
         ElementInfo::Arg(name, _scope, _argmodifier, _returntype) => name,
-        ElementInfo::Struct(name, _, _) => {
-            get_output_for_struct(ast, name, children, element_index)
-        }
+        ElementInfo::Struct(name, _, _) => get_output_for_struct(ast, name, children),
         ElementInfo::StructEdit(name, _) => name,
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => name,
@@ -341,23 +339,39 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
 fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
     ast.log(format!("output::get_premain_output_for_struct {:?}", name));
 
-    // a Structs children should all be Assignments
-    // each Assignment should have one child Constant
+    // a Structs children should all be:
+    // - Assignments, each Assignment should have one child Constant, and one Value
+    // - ConstantRef
     let mut struct_pub_keys_types = "".to_string();
     let mut struct_keys_types = "".to_string();
     let mut struct_keys = "".to_string();
     for i in 0..children.len() as usize {
-        let assignment_ref = ast.elements[children[i]].1[0];
-        if let ElementInfo::Constant(key, a_type) = &ast.elements[assignment_ref].0 {
-            struct_pub_keys_types = format!(
-                "{}    pub {}: {},\r\n",
-                &struct_pub_keys_types, &key, &a_type
-            );
-            struct_keys_types = format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
-            struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+        let child_el = ast.elements[children[i]].clone();
+        match child_el.0 {
+            ElementInfo::Assignment => {
+                let assignment_ref = child_el.1[0];
+                if let ElementInfo::Constant(key, a_type) = &ast.elements[assignment_ref].0 {
+                    struct_pub_keys_types = format!(
+                        "{}    pub {}: {},\r\n",
+                        &struct_pub_keys_types, &key, &a_type
+                    );
+                    struct_keys_types =
+                        format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
+                    struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+                }
+            }
+            ElementInfo::ConstantRef(key, a_type, _) => {
+                struct_pub_keys_types = format!(
+                    "{}    pub {}: {},\r\n",
+                    &struct_pub_keys_types, &key, &a_type
+                );
+                struct_keys_types =
+                    format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
+                struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+            }
+            _ => (),
         }
     }
-
     let derive = "#[derive(Clone, Debug)]\r\n".to_string();
     let a_struct = format!(
         "pub struct {} {{\r\n{}}}\r\n\r\n",
@@ -374,27 +388,37 @@ fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usiz
 }
 
 /// Output for Struct
-fn get_output_for_struct(
-    ast: &mut Ast,
-    name: String,
-    children: Vec<usize>,
-    element_index: usize,
-) -> String {
+fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
     ast.log(format!("output::get_output_for_struct {:?}", name));
-    // a Structs children should all be Assignments
-    // each Assignment should have one child Constant
-    let mut constants = vec![];
+    // a Structs children should all be:
+    // - Assignments, each Assignment should have one child Constant, and one Value
+    // - ConstantRef
+    let mut arg_expressions = vec![];
     for i in 0..children.len() as usize {
-        let constant = ast.elements[children[i]].1[0];
-        constants.push(constant);
+        let child_el = ast.elements[children[i]].clone();
+        match child_el.0 {
+            ElementInfo::Assignment => {
+                if child_el.1.len() > 0 {
+                    let constant_index = child_el.1[0];
+                    let constant = ast.elements[constant_index].clone();
+                    if constant.1.len() > 0 {
+                        let expr_ref = constant.1[0];
+                        arg_expressions.push(expr_ref);
+                    }
+                }
+            }
+            ElementInfo::ConstantRef(_, _, _) => {
+                arg_expressions.push(children[i]);
+            }
+            _ => (),
+        }
     }
 
+    // each Expression will be used as an argument to the fn new(arg1, arg2)
     let mut args_output = "".to_string();
-
-    // each Constant should have one child Value or Expression that will be used as an argument to the fn new(arg1, arg2)
-    for i in 0..constants.len() as usize {
-        let arg_ref = ast.elements[constants[i]].1[0];
-        let arg = get_output_for_element_index(ast, arg_ref, false);
+    for i in 0..arg_expressions.len() as usize {
+        let expr_ref = arg_expressions[i];
+        let arg = get_output_for_element_index(ast, expr_ref, false);
         let no_first_comma = if i == 0 {
             "".to_string()
         } else {
