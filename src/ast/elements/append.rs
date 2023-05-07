@@ -626,7 +626,7 @@ pub fn function_ref_or_call(
     }
 
     /// TODO look at again, may not be the best solution...
-    /// if parens parent is an InbuiltFunctionCall it is possible it is List.map with an argmodifier on this functioncall, if so, apply argmodifier.
+    /// if parens parent is an InbuiltFunctionCall it is possible it is List::map with an argmodifier on this functioncall, if so, apply argmodifier.
     /// start by getting the parens_parent
     fn check_parens_parent(compiler: &mut Compiler, current_token: &String, parens_ref: usize) {
         if let Some(parens_parent_ref) =
@@ -716,7 +716,7 @@ pub fn function_ref_or_call(
         fn_arg_modifier: Vec<String>,
         parens_ref: usize,
     ) {
-        let name_snake_case = name.replace(".", "_").to_lowercase();
+        let name_snake_case = name.replace(".", "_").replace("::", "_").to_lowercase();
         let new_fn_name = format!("{}_for_{}", current_token, name_snake_case);
         if let None = elements::get_constant_index_by_name(&compiler.ast, &new_fn_name) {
             duplicate_fn(

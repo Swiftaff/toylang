@@ -90,7 +90,7 @@ impl IntegrationTests {
             ),
             //
             // List len
-            ("test_pass_list_len", "= list [ 1 2 3 ]\r\n= len List.len list", "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n"),
+            ("test_pass_list_len", "= list [ 1 2 3 ]\r\n= len List::len list", "fn main() {\r\n    let list: Vec<i64> = vec![ 1, 2, 3 ];\r\n    let len: i64 = list.len() as i64;\r\n}\r\n"),
             //
             // List map
             (

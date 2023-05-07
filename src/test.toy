@@ -1,2 +1,3 @@
 = newstruct { = firstname "firstname" = surname "surname" = age 21 }
+= newstruct.age 99
 @ newstruct
