@@ -2,3 +2,6 @@
 = surname "surname"
 = age 21
 = newstruct { firstname surname age }
+@ newstruct
+= newstruct2 { firstname surname age }
+@ newstruct2

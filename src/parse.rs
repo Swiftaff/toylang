@@ -1,5 +1,6 @@
 /*! Main Parser functions
  */
+use crate::ast::output;
 use crate::ast::parents;
 use crate::elements;
 use crate::elements::{Element, ElementInfo};
@@ -389,10 +390,40 @@ pub fn struct_edit(compiler: &mut Compiler, current_token: &String) -> Result<()
 /// Parses end of a Struct
 pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.ast.log(format!("parse::struct_end {:?}", ""));
+
     let a_struct = parents::get_current_parent_element_from_parents(&compiler.ast);
     if let (ElementInfo::Struct(_, _, _), children) = a_struct {
         if children.len() == 0 {
             return append_error(compiler, 0, 1, ERRORS.a_struct);
+        }
+        if let Some(existing_struct_ref) =
+            output::get_existing_identical_struct_el_ref(&mut compiler.ast.clone(), children)
+        {
+            let this_struct_el_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+            if existing_struct_ref != this_struct_el_ref {
+                // don't redefine a ne struct if it's the same as an existing struct, reuse it instead, i.e.
+                // remove this struct and it's children
+                // and replace the Constant's reference to it, to use the existing struct ref instead
+                let mut struct_and_children = compiler.ast.elements[this_struct_el_ref].1.clone();
+                struct_and_children.push(this_struct_el_ref);
+                dbg!(&struct_and_children);
+                for i in 0..struct_and_children.len() as usize {
+                    compiler.ast.elements[struct_and_children[i]] = (ElementInfo::Unused, vec![]);
+                }
+                if let Some(structs_parent_ref) =
+                    parents::get_current_parent_ref_from_element_children_search(
+                        &compiler.ast,
+                        this_struct_el_ref,
+                    )
+                {
+                    if let ElementInfo::Constant(_, _) = compiler.ast.elements[structs_parent_ref].0
+                    {
+                        compiler.ast.elements[structs_parent_ref].1 = vec![existing_struct_ref];
+                    }
+                }
+
+                dbg!("got copy", struct_and_children);
+            }
         }
     }
     parents::outdent::outdent(compiler);

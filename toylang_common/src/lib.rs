@@ -202,35 +202,38 @@ impl IntegrationTests {
             (
                 "test_pass_define_struct",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }",
-                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string(), \"surname\".to_string(), 21);\r\n}\r\n",
+                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string().clone(), \"surname\".to_string().clone(), 21.clone());\r\n}\r\n",
             ),
             (
                 "test_pass_define_struct_debug_print",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n@ newstruct",
-                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string(), \"surname\".to_string(), 21);\r\n    println!(\"{:?}\", &newstruct);\r\n}\r\n",
+                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string().clone(), \"surname\".to_string().clone(), 21.clone());\r\n    println!(\"{:?}\", &newstruct);\r\n}\r\n",
             ),
             (
                 "test_pass_define_struct_with_short_notation_using_constantref",
                 "= firstname \"firstname\"\r\n= surname \"surname\"\r\n= age 21\r\n= newstruct { firstname surname age }",
-                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let firstname: String = \"firstname\".to_string();\r\n    let surname: String = \"surname\".to_string();\r\n    let age: i64 = 21;\r\n    let mut newstruct: Newstruct = Newstruct::new(firstname, surname, age);\r\n}\r\n",
+                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let firstname: String = \"firstname\".to_string();\r\n    let surname: String = \"surname\".to_string();\r\n    let age: i64 = 21;\r\n    let mut newstruct: Newstruct = Newstruct::new(firstname.clone(), surname.clone(), age.clone());\r\n}\r\n",
             ),
-            /*
-            // TODO - needs to work with scoping
             (
-                "test_pass_define_two_structs_with_same_fields_reuses_existing_struct",
+                "test_pass_define_two_structs_with_same_short_notation_fields_reuses_existing_struct",
+                "= firstname \"firstname\"\r\n= surname \"surname\"\r\n= age 21\r\n= newstruct { firstname surname age }\r\n= newstruct2 { firstname surname age }",
+                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let firstname: String = \"firstname\".to_string();\r\n    let surname: String = \"surname\".to_string();\r\n    let age: i64 = 21;\r\n    let mut newstruct: Newstruct = Newstruct::new(firstname.clone(), surname.clone(), age.clone());\r\n    let mut newstruct2: Newstruct = Newstruct::new(firstname.clone(), surname.clone(), age.clone());\r\n}\r\n",
+            ),
+            // TODO - version with inline fields needs to work with scoping
+            /*
+            (
+                "test_pass_define_two_structs_with_same_inline_fields_reuses_existing_struct",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n= newstruct2 { = firstname \"firstname2\" = surname \"surname2\" = age 22 }",
                 "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string(), \"surname\".to_string(), 21);\r\n    let mut newstruct2: Newstruct = Newstruct::new(\"firstname2\".to_string(), \"surname2\".to_string(), 22);}\r\n",
             ),
-
+            */
             // TODO - Also how to print a key - it is same as a struct edit - need to check for assignment before to differentiate
             // TODO - need to outdent at end of struct def only once for constantref, compared to 3 times for assign, constant, value - depending on what last struct item is defined
             // TODO -- not possible? create a new outdent_until fn (current parent ref) - so you no longer have to count
-
-            */
             (
                 "test_pass_define_struct_edit_and_print",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n= newstruct.age 99\r\n@ newstruct",
-                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string(), \"surname\".to_string(), 21);\r\n    newstruct.age = 99;\r\n    println!(\"{:?}\", &newstruct);\r\n}\r\n",
+                "#[derive(Clone, Debug)]\r\npub struct Newstruct {\r\n    pub firstname: String,\r\n    pub surname: String,\r\n    pub age: i64,\r\n}\r\n\r\nimpl Newstruct {\r\n    pub fn new(\r\n        firstname: String,\r\n        surname: String,\r\n        age: i64,\r\n) -> Newstruct {\r\n        Newstruct {\r\n            firstname,\r\n            surname,\r\n            age,\r\n        }\r\n    }\r\n}\r\n\r\nfn main() {\r\n    let mut newstruct: Newstruct = Newstruct::new(\"firstname\".to_string().clone(), \"surname\".to_string().clone(), 21.clone());\r\n    newstruct.age = 99;\r\n    println!(\"{:?}\", &newstruct);\r\n}\r\n",
             ),
             //
             // Type inference

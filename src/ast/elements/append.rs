@@ -201,7 +201,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             }
             // explicitly listing other types rather than using _ to not overlook new types in future
             ElementInfo::Root => (),
-            ElementInfo::Struct(_, _, _) => (), //the end_struct tag will outdent insstead of this start_struct tag
+            ElementInfo::Struct(_, _, _) => (), //the end_struct tag will outdent instead of this start_struct tag
             ElementInfo::StructEdit(_, _) => outdent::struct_edit(compiler, current_parent),
             ElementInfo::List(_) => (),
             ElementInfo::CommentSingleLine(_) => (),
@@ -458,6 +458,7 @@ pub fn struct_start(compiler: &mut Compiler) -> Result<(), ()> {
     };
     struct_name = struct_name.to_lowercase().replace("_", "");
     struct_name = upper_first_char(&struct_name);
+
     append(
         &mut compiler.ast,
         (ElementInfo::Struct(struct_name, vec![], vec![]), vec![]),

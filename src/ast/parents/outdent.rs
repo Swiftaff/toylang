@@ -258,7 +258,7 @@ pub fn println(compiler: &mut Compiler, current_parent: Element) {
 
 /// Outdents from Struct Edit
 pub fn struct_edit(compiler: &mut Compiler, current_parent: Element) {
-    dbg!("outdent struct_edit");
+    //dbg!("outdent struct_edit");
     compiler
         .ast
         .log(format!("outdent::struct_edit {:?}", current_parent));

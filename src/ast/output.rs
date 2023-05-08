@@ -339,12 +339,82 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
 fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> String {
     ast.log(format!("output::get_premain_output_for_struct {:?}", name));
 
+    //skip defining the struct if it has been defined before
+    if ast
+        .premain_output
+        .contains(&format!("pub struct {} {{", name))
+    {
+        "".to_string()
+    } else {
+        let struct_child_info = get_struct_child_info(ast, children);
+        let derive = "#[derive(Clone, Debug)]\r\n".to_string();
+        let a_struct = format!(
+            "pub struct {} {{\r\n{}}}\r\n\r\n",
+            name, struct_child_info.0
+        );
+        let new_fn = format!(
+            "    pub fn new(\r\n{}) -> {} {{\r\n        {} {{\r\n{}        }}\r\n    }}",
+            struct_child_info.1, name, name, struct_child_info.2
+        );
+        format!(
+            "{}{}impl Newstruct {{\r\n{}\r\n}}\r\n\r\n",
+            derive, a_struct, new_fn
+        )
+    }
+}
+
+pub fn get_existing_identical_struct_el_ref(ast: &mut Ast, children: Vec<usize>) -> Option<usize> {
+    let mut found = None;
+    let struct_child_info = get_struct_child_info(ast, children);
+    for el_ref in 0..ast.elements.len() as usize {
+        let el = ast.elements[el_ref].clone();
+        if let (ElementInfo::Struct(n, _, _), existing_struct_children) = el {
+            let existing_struct_child_info = get_struct_child_info(ast, existing_struct_children);
+            let existing_struct_has_keys = existing_struct_child_info.3.len() > 0;
+            let new_struct_has_keys = struct_child_info.3.len() > 0;
+            let new_struct_has_same_num_types_as_keys =
+                struct_child_info.3.len() == struct_child_info.4.len();
+            let new_struct_has_same_num_types_as_existing_struct =
+                struct_child_info.4.len() == existing_struct_child_info.4.len();
+            let both_have_same_num_keys_and_types = existing_struct_has_keys
+                && new_struct_has_keys
+                && new_struct_has_same_num_types_as_keys
+                && new_struct_has_same_num_types_as_existing_struct;
+            if both_have_same_num_keys_and_types {
+                let mut all_keys_and_types_match = true;
+                for i in 0..struct_child_info.3.len() {
+                    let new_key = &struct_child_info.3[i];
+                    let existing_key = &existing_struct_child_info.3[i];
+                    let new_type = &struct_child_info.4[i];
+                    let existing_type = &existing_struct_child_info.4[i];
+                    if new_key != existing_key || new_type != existing_type {
+                        all_keys_and_types_match = false;
+                        break;
+                    }
+                }
+                if all_keys_and_types_match {
+                    found = Some(el_ref);
+                    break;
+                }
+            }
+        }
+    }
+    found
+}
+
+fn get_struct_child_info(
+    ast: &mut Ast,
+    children: Vec<usize>,
+) -> (String, String, String, Vec<String>, Vec<String>) {
     // a Structs children should all be:
     // - Assignments, each Assignment should have one child Constant, and one Value
     // - ConstantRef
+
     let mut struct_pub_keys_types = "".to_string();
-    let mut struct_keys_types = "".to_string();
-    let mut struct_keys = "".to_string();
+    let mut struct_new_fn_keys_types = "".to_string();
+    let mut struct_new_fn_keys = "".to_string();
+    let mut struct_keys: Vec<String> = vec![];
+    let mut struct_types: Vec<String> = vec![];
     for i in 0..children.len() as usize {
         let child_el = ast.elements[children[i]].clone();
         match child_el.0 {
@@ -355,9 +425,14 @@ fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usiz
                         "{}    pub {}: {},\r\n",
                         &struct_pub_keys_types, &key, &a_type
                     );
-                    struct_keys_types =
-                        format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
-                    struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+                    struct_new_fn_keys_types = format!(
+                        "{}        {}: {},\r\n",
+                        &struct_new_fn_keys_types, &key, &a_type
+                    );
+                    struct_new_fn_keys =
+                        format!("{}            {},\r\n", &struct_new_fn_keys, &key);
+                    struct_keys.push(key.clone());
+                    struct_types.push(a_type.clone());
                 }
             }
             ElementInfo::ConstantRef(key, a_type, _) => {
@@ -365,26 +440,24 @@ fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usiz
                     "{}    pub {}: {},\r\n",
                     &struct_pub_keys_types, &key, &a_type
                 );
-                struct_keys_types =
-                    format!("{}        {}: {},\r\n", &struct_keys_types, &key, &a_type);
-                struct_keys = format!("{}            {},\r\n", &struct_keys, &key);
+                struct_new_fn_keys_types = format!(
+                    "{}        {}: {},\r\n",
+                    &struct_new_fn_keys_types, &key, &a_type
+                );
+                struct_new_fn_keys = format!("{}            {},\r\n", &struct_new_fn_keys, &key);
+                struct_keys.push(key);
+                struct_types.push(a_type);
             }
             _ => (),
         }
     }
-    let derive = "#[derive(Clone, Debug)]\r\n".to_string();
-    let a_struct = format!(
-        "pub struct {} {{\r\n{}}}\r\n\r\n",
-        name, struct_pub_keys_types
+    return (
+        struct_pub_keys_types,
+        struct_new_fn_keys_types,
+        struct_new_fn_keys,
+        struct_keys,
+        struct_types,
     );
-    let new_fn = format!(
-        "    pub fn new(\r\n{}) -> {} {{\r\n        {} {{\r\n{}        }}\r\n    }}",
-        struct_keys_types, name, name, struct_keys
-    );
-    format!(
-        "{}{}impl Newstruct {{\r\n{}\r\n}}\r\n\r\n",
-        derive, a_struct, new_fn
-    )
 }
 
 /// Output for Struct
@@ -424,7 +497,7 @@ fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> S
         } else {
             ", ".to_string()
         };
-        args_output = format!("{}{}{}", &args_output, &no_first_comma, &arg);
+        args_output = format!("{}{}{}.clone()", &args_output, &no_first_comma, &arg);
     }
 
     format!("{}::new({})", name, args_output)
@@ -579,7 +652,7 @@ fn get_output_for_parens(ast: &mut Ast, children: Vec<usize>) -> String {
 
 /// Output for Println
 fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
-    dbg!(&ast);
+    //dbg!(&ast);
     ast.log(format!("output::get_output_for_println {:?}", ""));
     let mut output = "".to_string();
     if children.len() > 0 {
