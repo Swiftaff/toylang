@@ -665,7 +665,26 @@ fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
         let mut borrowed = "".to_string();
         let constant_el = ast.elements[child_ref].clone();
         if let ElementInfo::ConstantRef(name, _, _) = constant_el.0 {
+            let mut is_a_struct = false;
+            let mut is_a_list = false;
             if let Some(_) = elements::get_struct_index_by_name(ast, &name) {
+                is_a_struct = true;
+            }
+            if let Some(constant_ref) = elements::get_constant_index_by_name(ast, &name) {
+                if let (ElementInfo::Constant(_, _), constant_children) =
+                    ast.elements[constant_ref].clone()
+                {
+                    if constant_children.len() > 0 {
+                        if let (ElementInfo::List(_), _) =
+                            ast.elements[constant_children[0]].clone()
+                        {
+                            is_a_list = true;
+                        }
+                    }
+                }
+            }
+
+            if is_a_struct || is_a_list {
                 debug = ":?".to_string();
                 borrowed = "&".to_string();
             }
