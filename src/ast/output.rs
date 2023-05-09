@@ -231,7 +231,7 @@ fn get_output_for_element_index(
         ElementInfo::Struct(name, _, _) => get_output_for_struct(ast, name, children),
         ElementInfo::StructEdit(name, _) => name,
         ElementInfo::Constant(name, _) => name,
-        ElementInfo::ConstantRef(name, _, _reference) => name,
+        ElementInfo::ConstantRef(name, _, _reference) => format!("{}.clone()", name),
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
         ElementInfo::InbuiltFunctionDef(name, _, _, _, _, _) => {
             format!("fn {}() ->{{ /* stuff */ }}", name)
@@ -497,7 +497,7 @@ fn get_output_for_struct(ast: &mut Ast, name: String, children: Vec<usize>) -> S
         } else {
             ", ".to_string()
         };
-        args_output = format!("{}{}{}.clone()", &args_output, &no_first_comma, &arg);
+        args_output = format!("{}{}{}", &args_output, &no_first_comma, &arg);
     }
 
     format!("{}::new({})", name, args_output)
