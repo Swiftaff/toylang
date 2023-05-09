@@ -276,7 +276,7 @@ pub fn get_last_element(ast: &Ast) -> Element {
 pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize) -> ElementInfo {
     let el = ast.elements[el_index].clone();
     let el_type = get_elementinfo_type(ast, &el.0);
-    if el_type == "Undefined".to_string() || el_type.contains("|") {
+    if el_type.contains("Undefined") || el_type.contains("|") {
         let infered_type = get_infered_type_of_any_element(ast, el_index);
         match el.0 {
             ElementInfo::Arg(name, scope, argmodifier, _) => {
@@ -337,8 +337,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::LoopForRangeWIP => (),
             ElementInfo::LoopForRange(_, _, _) => (),
             ElementInfo::Println => (),
-        }
-        //dbg!(el_index, &ast.elements[el_index].0);
+        };
     }
     el.0
 }
@@ -546,13 +545,14 @@ pub fn get_infered_type_of_if_element(ast: &Ast, children: Vec<usize>) -> String
 /// Get type of an ElementInfo
 pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
     let undefined = "Undefined".to_string();
+    let none = "None".to_string();
     match elementinfo {
         ElementInfo::List(returntype) => returntype.clone(),
         ElementInfo::Int(_) => "i64".to_string(),
         ElementInfo::Float(_) => "f64".to_string(),
         ElementInfo::String(_) => "String".to_string(),
         ElementInfo::Bool(_) => "bool".to_string(),
-        ElementInfo::Assignment => undefined,
+        ElementInfo::Assignment => none,
         ElementInfo::Struct(name, _, _) => name.clone(),
         ElementInfo::Constant(_, returntype) => returntype.clone(),
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
@@ -562,20 +562,20 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::Type(returntype) => returntype.clone(),
         ElementInfo::If(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
-        ElementInfo::Root => undefined,
-        ElementInfo::StructEdit(_, _) => undefined,
-        ElementInfo::CommentSingleLine(_) => undefined,
+        ElementInfo::Root => none,
+        ElementInfo::StructEdit(_, _) => none,
+        ElementInfo::CommentSingleLine(_) => none,
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => undefined, // don't want to 'find' definitions
-        ElementInfo::FunctionDefWIP => undefined,
+        ElementInfo::FunctionDefWIP => none,
         ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
-        ElementInfo::Parens => undefined,
-        ElementInfo::Eol => undefined,
-        ElementInfo::Seol => undefined,
-        ElementInfo::Indent => undefined,
-        ElementInfo::Unused => undefined,
-        ElementInfo::LoopForRangeWIP => undefined,
-        ElementInfo::LoopForRange(_, _, _) => undefined,
-        ElementInfo::Println => undefined,
+        ElementInfo::Parens => none,
+        ElementInfo::Eol => none,
+        ElementInfo::Seol => none,
+        ElementInfo::Indent => none,
+        ElementInfo::Unused => none,
+        ElementInfo::LoopForRangeWIP => none,
+        ElementInfo::LoopForRange(_, _, _) => none,
+        ElementInfo::Println => none,
     }
 }
 

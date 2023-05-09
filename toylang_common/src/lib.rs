@@ -197,6 +197,7 @@ impl IntegrationTests {
                 "= a \\ ( i64 i64 ) i64 i64 arg1 arg2 =>\r\n arg1 arg2\r\n= b \\ i64 i64 arg3 => + 123 arg3\r\n= c a ( b ) 456",
                 "fn main() {\r\n    fn a(arg1: &dyn Fn(i64) -> i64, arg2: i64) -> i64 {\r\n        arg1(arg2.clone())\r\n    }\r\n    fn b(arg3: i64) -> i64 {\r\n        123 + arg3.clone()\r\n    }\r\n    let c: i64 = a(&b.clone(), 456);\r\n}\r\n",
             ),
+            // TODO func with no args and return value
             //
             // Struct
             (
