@@ -27,6 +27,7 @@ pub enum ElementInfo {
     Indent,                                    //no children
     Unused,                                    //no children
     ConstantRef(Name, ReturnType, RefName),    //no children
+    Rust(Code, CodePosition),                  //no children
     Struct(Name, ArgNames, Vec<ReturnType>), //children = each key value (Assignment > Constant > Value)
     StructEdit(Name, ArgNames),              //1 child, value
     Constant(Name, ReturnType),              //1 child, value
@@ -62,6 +63,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::StructEdit(_, _) => replaceme,
         ElementInfo::Constant(_, _) => replaceme,
         ElementInfo::ConstantRef(_, _, _) => replaceme,
+        ElementInfo::Rust(_, _) => replaceme,
         ElementInfo::Assignment => replaceme,
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => replaceme,
         ElementInfo::InbuiltFunctionCall(_, _, _) => replaceme,
@@ -99,6 +101,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::StructEdit(_, _), _)) => replaceme,
         Some((ElementInfo::Constant(_, _), _)) => replaceme,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => replaceme,
+        Some((ElementInfo::Rust(_, _), _)) => replaceme,
         Some((ElementInfo::Assignment, _)) => replaceme,
         Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => replaceme,
         Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => replaceme,
@@ -129,6 +132,7 @@ type From = usize;
 type To = usize;
 type ReturnType = String;
 type Name = String;
+type Code = String;
 type RefName = String;
 type ArgNames = Vec<String>;
 type ArgTypes = Vec<String>;
@@ -142,6 +146,12 @@ pub enum ArgModifier {
     Arg(String),
     FnArg(Vec<String>),
     None,
+}
+
+#[derive(Clone, Debug)]
+pub enum CodePosition {
+    PreMain,
+    Main,
 }
 
 /// Finds the original element referred to, e.g. when using a variable name
@@ -325,6 +335,7 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::Bool(_) => (),
             ElementInfo::Struct(_, _, _) => (),
             ElementInfo::StructEdit(_, _) => (),
+            ElementInfo::Rust(_, _) => (),
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::FunctionDef(_, _, _, _) => (),
@@ -383,6 +394,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::Float(_) => (),
         ElementInfo::String(_) => (),
         ElementInfo::Bool(_) => (),
+        ElementInfo::Rust(_, _) => (),
         ElementInfo::Assignment => (),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
         ElementInfo::FunctionDefWIP => (),
@@ -569,6 +581,7 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::FunctionDefWIP => none,
         ElementInfo::FunctionDef(_, _, _, _) => undefined, // don't want to 'find' definitions
         ElementInfo::Parens => none,
+        ElementInfo::Rust(_, _) => none,
         ElementInfo::Eol => none,
         ElementInfo::Seol => none,
         ElementInfo::Indent => none,
@@ -782,6 +795,9 @@ impl fmt::Debug for ElementInfo {
             }
             ElementInfo::Assignment => {
                 format!("Assignment")
+            }
+            ElementInfo::Rust(code, code_position) => {
+                format!("Rust({:?}): {}", code_position, code)
             }
             ElementInfo::InbuiltFunctionDef(
                 name,

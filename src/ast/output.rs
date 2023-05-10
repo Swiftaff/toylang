@@ -2,6 +2,7 @@
  */
 
 use crate::ast::elements;
+use crate::ast::elements::CodePosition;
 use crate::ast::elements::ElementInfo;
 use crate::ast::parents;
 use crate::formatting;
@@ -190,12 +191,12 @@ fn get_premain_output_for_element_index(
     if request_skip_if_element_is_handled_by_parent
         && is_skippable_due_to_parent(ast, element_index)
     {
-        return "".to_string();
+        return empty_string;
     }
-    if let ElementInfo::Struct(name, _, _) = element.0 {
-        get_premain_output_for_struct(ast, name, children)
-    } else {
-        "".to_string()
+    match element.0 {
+        ElementInfo::Struct(name, _, _) => get_premain_output_for_struct(ast, name, children),
+        ElementInfo::Rust(code, CodePosition::PreMain) => format!("{}\r\n", code),
+        _ => empty_string,
     }
 }
 
@@ -232,6 +233,14 @@ fn get_output_for_element_index(
         ElementInfo::StructEdit(name, _) => name,
         ElementInfo::Constant(name, _) => name,
         ElementInfo::ConstantRef(name, _, _reference) => format!("{}.clone()", name),
+        ElementInfo::Rust(code, code_position) => {
+            let indent = format!("{}\r\n", &(" ".repeat(4 * (ast.parents.len()))));
+            if let CodePosition::Main = code_position {
+                return format!("{}", code.replace("\\r\\n", &indent));
+            } else {
+                return "".to_string();
+            }
+        }
         ElementInfo::Assignment => get_output_for_assignment(ast, children),
         ElementInfo::InbuiltFunctionDef(name, _, _, _, _, _) => {
             format!("fn {}() ->{{ /* stuff */ }}", name)
@@ -293,6 +302,7 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
         Some((ElementInfo::Arg(_, _, _, _), _)) => false,
         Some((ElementInfo::Constant(_, _), _)) => false,
         Some((ElementInfo::ConstantRef(_, _, _), _)) => false,
+        Some((ElementInfo::Rust(_, _), _)) => false,
         Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => false,
         Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => false,
         Some((ElementInfo::FunctionDefWIP, _)) => false,

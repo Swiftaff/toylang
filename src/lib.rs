@@ -383,7 +383,11 @@ impl Compiler {
             let is_a_comment_line = this_line_so_far.len() > 1
                 && this_line_so_far[0] == '/'
                 && this_line_so_far[1] == '/';
-            let is_colon_for_singlelinefunction = c == '=' && d == '>' && !is_a_comment_line;
+            let is_a_rustcode_line = this_line_so_far.len() > 1
+                && this_line_so_far[0] == '#'
+                && this_line_so_far[1] == '#';
+            let is_colon_for_singlelinefunction =
+                c == '=' && d == '>' && !is_a_comment_line && !is_a_rustcode_line;
             if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
                 self.lines_of_chars.push(
                     char_vec[index_from
@@ -433,7 +437,12 @@ impl Compiler {
                     }
                 };
                 let is_comment = char_vec.len() > 1 && char_vec[0] == '/' && char_vec[1] == '/';
-                if (c.is_whitespace() && index_to != 0 && !inside_quotes && !is_comment)
+                let is_rustcode = char_vec.len() > 1 && char_vec[0] == '#' && char_vec[1] == '#';
+                if (c.is_whitespace()
+                    && index_to != 0
+                    && !inside_quotes
+                    && !is_comment
+                    && !is_rustcode)
                     || eof
                     || count_quotes == 2
                 {

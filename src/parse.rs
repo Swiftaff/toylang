@@ -112,6 +112,7 @@ pub fn token_by_first_chars(
         '(' => functiontypesig_or_functionreference_start(compiler),
         ')' => functiontypesig_or_functionreference_end(compiler),
         '/' => comment_single_line(compiler, current_token_vec),
+        '#' => rustcode(compiler, current_token_vec),
         '@' => println(compiler),
         '?' => if_expression(compiler),
         '=' => match second_char {
@@ -192,6 +193,27 @@ pub fn comment_single_line(
     }
     let val = concatenate_vec_strings(&compiler.lines_of_tokens[compiler.current_line]);
     elements::append::comment_single_line(compiler, val)
+}
+
+/// Parses raw rust code to be inserted in place, either in main fn, or before it
+pub fn rustcode(compiler: &mut Compiler, current_token_vec: &Vec<char>) -> Result<(), ()> {
+    compiler
+        .ast
+        .log(format!("parse::rustcode {:?}", current_token_vec));
+
+    if current_token_vec.len() < 3 || current_token_vec[1] != '#' {
+        return errors::append_error(compiler, 0, 1, ERRORS.rustcode);
+    }
+    let is_premain = current_token_vec[2] == '#';
+    let mut val = concatenate_vec_strings(&compiler.lines_of_tokens[compiler.current_line]);
+    let mut chars = val.chars();
+    chars.next();
+    chars.next();
+    if is_premain {
+        chars.next();
+    }
+    val = chars.as_str().to_string();
+    elements::append::rustcode_main(compiler, val, is_premain)
 }
 
 /// Parses a Println
@@ -326,6 +348,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::LoopForRangeWIP, _)) => (),
                 Some((ElementInfo::LoopForRange(_, _, _), _)) => (),
                 Some((ElementInfo::Println, _)) => (),
+                Some((ElementInfo::Rust(_, _), _)) => (),
                 None => (),
             }
         }

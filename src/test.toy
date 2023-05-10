@@ -1,7 +1,10 @@
-= firstname "firstname"
-= surname "surname"
-= age 21
-= newstruct { firstname surname age }
-@ newstruct
-= newstruct2 { firstname surname age }
-@ newstruct2
+= recurs \ i64 i64 arg =>
+  = row0 [ 0 0 0 0 ]
+  = row1 [ 0 0 0 0 ]
+  = row2 [ 0 0 0 0 ]
+  = row3 [ 0 0 0 0 ]
+  = grid [ row0 row1 row2 row3 ]
+  @ grid
+  @ arg
+  arg
+recurs 1

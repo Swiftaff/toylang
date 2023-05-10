@@ -85,6 +85,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::Arg(_, _, _, _) => {
                     //TODO
                 }
+
                 ElementInfo::Constant(_, _) => {
                     //dbg!("FunctionDef outdent Constant", &self.ast.parents,);
                     outdent(compiler);
@@ -113,6 +114,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 // explicitly listing other types rather than using _ to not overlook new types in future
                 ElementInfo::Root => (),
                 ElementInfo::CommentSingleLine(_) => (),
+                ElementInfo::Rust(_, _) => (),
                 ElementInfo::Struct(_, _, _) => (),
                 ElementInfo::StructEdit(_, _) => (),
                 ElementInfo::Assignment => (),

@@ -103,6 +103,30 @@ pub fn indent_if_first_in_line(compiler: &mut Compiler) {
     }
 }
 
+/// Append Rust code
+pub fn rustcode_main(compiler: &mut Compiler, val: String, is_premain: bool) -> Result<(), ()> {
+    compiler.ast.log(format!("append::rustcode_main {:?}", val));
+    if is_premain {
+        append(
+            &mut compiler.ast,
+            (
+                ElementInfo::Rust(val, elements::CodePosition::PreMain),
+                vec![],
+            ),
+        );
+        errors::error_if_parent_is_invalid(compiler)?;
+    } else {
+        append(&mut compiler.ast, (ElementInfo::Indent, vec![]));
+        append(
+            &mut compiler.ast,
+            (ElementInfo::Rust(val, elements::CodePosition::Main), vec![]),
+        );
+        errors::error_if_parent_is_invalid(compiler)?;
+        append(&mut compiler.ast, (ElementInfo::Eol, vec![]));
+    }
+    Ok(())
+}
+
 /// Append Comment single line
 pub fn comment_single_line(compiler: &mut Compiler, val: String) -> Result<(), ()> {
     compiler
@@ -211,6 +235,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::Bool(_) => (),
             ElementInfo::Arg(_, _, _, _) => (),
             ElementInfo::ConstantRef(_, _, _) => (),
+            ElementInfo::Rust(_, _) => (),
             ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => (),
             ElementInfo::FunctionDefWIP => (),
             ElementInfo::Parens => (),
@@ -308,6 +333,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         // explicitly listing other types rather than using _ to not overlook new types in future
         ElementInfo::Root => false,
         ElementInfo::StructEdit(_, _) => false,
+        ElementInfo::Rust(_, _) => false,
         ElementInfo::CommentSingleLine(_) => false,
         ElementInfo::Arg(_, _, _, _) => false,
         ElementInfo::Assignment => false,

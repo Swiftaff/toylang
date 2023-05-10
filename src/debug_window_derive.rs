@@ -287,6 +287,7 @@ impl ToylangDebugger {
 
     fn rich_text_control_set_text(&self, control: &nwg::RichTextBox, text: &str) {
         control.set_text(text);
+
         control.set_selection(0..(control.text().len() as u32));
         control.set_char_format(&nwg::CharFormat {
             height: Some(150),
@@ -294,11 +295,9 @@ impl ToylangDebugger {
             font_face_name: Some("Courier".to_string()),
             ..Default::default()
         });
-        //control.set_para_format(&nwg::ParaFormat {
-        //    numbering: Some(nwg::ParaNumbering::Arabic),
-        //    ..Default::default()
-        //});
         control.set_selection(0..0);
+        control.scroll_lastline();
+        control.scroll(-50);
     }
 
     fn close(&self) {
