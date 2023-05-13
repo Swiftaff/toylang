@@ -146,6 +146,8 @@ impl IntegrationTests {
             ("test_pass_nested_internal_function_call3", "= a + 1 * 3 2", "fn main() {\r\n    let a: i64 = 1 + 3 * 2;\r\n}\r\n"),
             ("test_pass_func_def_singleline1", "= a \\ i64 => 123", "fn main() {\r\n    fn a() -> i64 {\r\n        123 as i64\r\n    }\r\n}\r\n"),
             ("test_pass_func_def_singleline2", "= a \\ i64 i64 arg1 => + 123 arg1", "fn main() {\r\n    fn a(arg1: i64) -> i64 {\r\n        123 + arg1.clone()\r\n    }\r\n}\r\n"),
+            ("test_pass_func_def_singleline_list", "= a \\ [ i64 ] => [ 1 2 3 ]", "fn main() {\r\n    fn a() -> Vec<i64> {\r\n        vec![ 1, 2, 3 ]\r\n    }\r\n}\r\n"),
+            ("test_pass_func_def_singleline_nested_list", "= a \\ [ [ i64 ] ] => [ [ 1 2 3 ] [ 4 5 6 ] ]", "fn main() {\r\n    fn a() -> Vec<Vec<i64>> {\r\n        vec![ vec![ 1, 2, 3 ], vec![ 4, 5, 6 ] ]\r\n    }\r\n}\r\n"),
             ("test_pass_func_def_multiline1", "= a \\ i64 i64 i64 arg1 arg2 =>\r\n+ arg1 arg2", "fn main() {\r\n    fn a(arg1: i64, arg2: i64) -> i64 {\r\n        arg1.clone() + arg2.clone()\r\n    }\r\n}\r\n"),
             (
                 "test_pass_func_def_multiline2",

@@ -286,7 +286,7 @@ pub fn get_last_element(ast: &Ast) -> Element {
 pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize) -> ElementInfo {
     let el = ast.elements[el_index].clone();
     let el_type = get_elementinfo_type(ast, &el.0);
-    if el_type.contains("Undefined") || el_type.contains("|") {
+    if el_type.contains("None") || el_type.contains("Undefined") || el_type.contains("|") {
         let infered_type = get_infered_type_of_any_element(ast, el_index);
         match el.0 {
             ElementInfo::Arg(name, scope, argmodifier, _) => {
@@ -655,12 +655,11 @@ pub fn replace_funcdefwip_with_funcdef(
     let returntype = get_returntype_from_argtokens(compiler, &children);
     let argnames = get_argnames_from_argtokens(compiler, &children, &argtypes);
     let new_funcdef = ElementInfo::FunctionDef(name.clone(), argnames, argtypes, returntype);
-
     // replace original funcdefWIP with funcdef
     compiler.ast.elements[func_def_ref] = (new_funcdef, vec![]);
 }
 
-/// Get a vec of types based on child refs, assuming they are Types or Parens (containing a Dyn Fn with types)
+/// Get a vec of types based on child refs, assuming they are Types, Lists or Parens (containing a Dyn Fn with types)
 pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) -> Vec<String> {
     compiler.ast.log(format!(
         "elements::get_argtypes_from_argtokens {:?}",
@@ -679,6 +678,8 @@ pub fn get_argtypes_from_argtokens(compiler: &mut Compiler, children: &[usize]) 
                     argtypes.push(fn_type_signature)
                 }
             }
+            // If this is an empty List with a type signature we can use that for the argtype
+            (ElementInfo::List(typename), _) => argtypes.push(typename.clone()),
             _ => (),
         }
     }

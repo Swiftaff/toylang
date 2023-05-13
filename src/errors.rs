@@ -62,6 +62,7 @@ pub struct Errors {
     pub rustcode: &'static str,
     pub impossible_error: &'static str,
     pub issue_with_raw_rust_code: &'static str,
+    pub testing: &'static str,
 }
 
 pub const ERRORS: Errors = Errors {
@@ -117,7 +118,8 @@ pub const ERRORS: Errors = Errors {
     loop_for:"Found character after \".\" For loops start with \"..\"",
     rustcode: "Raw rust code can be entered after #. ONe # means inline rust code. two ## means pull this code out and prepend it at the top of the file before the main fn, e.g. ##a use std::io::{stdin, stdout, Write}; or #c /// document comment",
     impossible_error: "Oh no, this error should be impossible... 'Well here's another nice mess you've gotten me into.'",
-    issue_with_raw_rust_code: "There is an issue with the raw rust code here - unhelpful error!"
+    issue_with_raw_rust_code: "There is an issue with the raw rust code here - unhelpful error!",
+    testing: "error testing"
     };
 
 /// Adds an error to the compiler error_stack
@@ -675,10 +677,41 @@ pub fn error_if_parent_is_invalid_for_constant(
         parent
     ));
     match parent.0 {
+        ElementInfo::Root => Ok(()),
+        ElementInfo::FunctionDefWIP => Ok(()),
+        ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
+        ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
-        _ => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::List(_) => Ok(()),
+        ElementInfo::Constant(_, _) => Ok(()),
+        ElementInfo::InbuiltFunctionCall(_, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.constant_undefined)
+        }
+        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Println => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::If(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Struct(_, _, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::StructEdit(_, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::CommentSingleLine(_) => {
+            append_error(compiler, 0, 1, ERRORS.constant_undefined)
+        }
+        ElementInfo::Rust(_, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Int(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Float(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::String(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Bool(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Arg(_, _, _, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Type(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Parens => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Eol => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Seol => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Indent => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::Unused => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::ConstantRef(_, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.constant_undefined)
+        }
     }
 }
 

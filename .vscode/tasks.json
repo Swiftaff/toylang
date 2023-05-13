@@ -178,6 +178,14 @@
 			"type": "cargo",
 			"command":"run",
 			"args":[
+				 "--bin", "output_test"
+			],
+			"label": "4.1b compile output_test.rs into dev output_test.exe and run it",
+		},
+		{
+			"type": "cargo",
+			"command":"run",
+			"args":[
 				"--release", "--bin", "output", 
 			],
 			"label": "4.2 compile output.rs into release output.exe and run it",

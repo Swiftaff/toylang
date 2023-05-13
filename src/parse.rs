@@ -464,11 +464,22 @@ pub fn list_start(compiler: &mut Compiler) -> Result<(), ()> {
 /// Parses end of a List
 pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
     compiler.ast.log(format!("parse::list_end {:?}", ""));
-    let list = parents::get_current_parent_element_from_parents(&compiler.ast);
-    match list {
+    let list_parent_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+    let list_parent = parents::get_current_parent_element_from_parents(&compiler.ast);
+    match list_parent {
         (ElementInfo::List(returntype), children) => {
-            if returntype == "Undefined".to_string() && children.len() == 0 {
-                return append_error(compiler, 0, 1, ERRORS.list);
+            if returntype == "Undefined".to_string() {
+                if children.len() == 0 {
+                    return append_error(compiler, 0, 1, ERRORS.list);
+                } else {
+                    // may as well get type now if child is a list - removes an error if it is a nested list as an arg for a func def
+                    if let ElementInfo::List(list_type) =
+                        compiler.ast.elements[children[0]].0.clone()
+                    {
+                        compiler.ast.elements[list_parent_ref].0 =
+                            ElementInfo::List(format!("Vec<{}>", list_type));
+                    }
+                }
             }
         }
         _ => (),
@@ -606,95 +617,100 @@ pub fn function_definition_end(compiler: &mut Compiler) -> Result<(), ()> {
     */
 
     //get parent funcdef
-    if let Some(func_def_ref) = parents::get_current_parent_ref_from_element_children_search(
-        &compiler.ast,
-        compiler.ast.elements.len() - 1,
-    ) {
-        //get child refs
-        let func_def: Element = compiler.ast.elements[func_def_ref].clone();
-        let children = func_def.1.clone();
-        //dbg!(&children);
-        //error if count is NOT odd (argtypes + returntype + argnames)
-        if children.len() % 2 == 0 || children.len() == 0 {
-            return errors::append_error(compiler, 0, 1, ERRORS.funcdef_args);
+    let func_def_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+    //no need to get fancy - child elements should already be outdented so current parent should be func_def
+    //parents::get_current_parent_ref_from_element_children_search(&compiler.ast,compiler.ast.elements.len() - 1,){
+
+    //get child refs
+    let func_def: Element = compiler.ast.elements[func_def_ref].clone();
+    let children = func_def.1.clone();
+
+    //error if count is NOT odd (argtypes + returntype + argnames)
+    if children.len() % 2 == 0 || children.len() == 0 {
+        return errors::append_error(compiler, 0, 1, ERRORS.funcdef_args);
+    }
+
+    //TODO deal with brackets later (i.e. for type signature containing argument(s) which are fns)
+
+    //error if arg types are NOT first
+    let first_child_ref = children[0];
+
+    let first_child: Element = compiler.ast.elements[first_child_ref].clone();
+    match first_child.0 {
+        ElementInfo::Type(_) => (),
+        ElementInfo::Parens => (),
+        ElementInfo::List(_) => (),
+        _ => return errors::append_error(compiler, 0, 1, ERRORS.funcdef_argtypes_first),
+    }
+
+    // now change any top level List items into Types
+    for child_ref in children.clone() {
+        if let ElementInfo::List(list_type) = compiler.ast.elements[child_ref].0.clone() {
+            compiler.ast.elements[child_ref].0 = ElementInfo::Type(list_type);
         }
+    }
 
-        //TODO deal with brackets later (i.e. for type signature containing argument(s) which are fns)
+    match func_def.0 {
+        ElementInfo::FunctionDefWIP => {
+            //Constant is parent of functionDefWIP
+            if let Some(constant_ref) = parents::get_current_parent_ref_from_element_children_search(
+                &compiler.ast,
+                func_def_ref,
+            ) {
+                let constant = compiler.ast.elements[constant_ref].clone();
 
-        //error if arg types are NOT first
-        let first_child_ref = children[0];
-
-        let first_child: Element = compiler.ast.elements[first_child_ref].clone();
-        match first_child.0 {
-            ElementInfo::Type(_) => (),
-            ElementInfo::Parens => (),
-            _ => return errors::append_error(compiler, 0, 1, ERRORS.funcdef_argtypes_first),
-        }
-
-        match func_def.0 {
-            ElementInfo::FunctionDefWIP => {
-                //Constant is parent of functionDefWIP
-                if let Some(constant_ref) =
+                //assignment is parent of constant
+                if let Some(assignment_ref) =
                     parents::get_current_parent_ref_from_element_children_search(
                         &compiler.ast,
-                        func_def_ref,
+                        constant_ref,
                     )
                 {
-                    let constant = compiler.ast.elements[constant_ref].clone();
+                    match constant.0 {
+                        ElementInfo::Constant(name, _) => {
+                            elements::replace_funcdefwip_with_funcdef(
+                                compiler,
+                                &children,
+                                &name,
+                                func_def_ref,
+                            );
 
-                    //assignment is parent of constant
-                    if let Some(assignment_ref) =
-                        parents::get_current_parent_ref_from_element_children_search(
-                            &compiler.ast,
-                            constant_ref,
-                        )
-                    {
-                        match constant.0 {
-                            ElementInfo::Constant(name, _) => {
-                                elements::replace_funcdefwip_with_funcdef(
-                                    compiler,
-                                    &children,
-                                    &name,
+                            // replace assignment with unused
+                            compiler.ast.elements[assignment_ref] = (ElementInfo::Unused, vec![]);
+
+                            // replace constant with Unused
+                            compiler.ast.elements[constant_ref] = (ElementInfo::Unused, vec![]);
+
+                            // replace parents child reference to the assignment, with the func_def_ref
+                            if let Some(index) =
+                                parents::get_current_parent_ref_from_element_children_search(
+                                    &compiler.ast,
+                                    assignment_ref,
+                                )
+                            {
+                                elements::replace_element_child(
+                                    &mut compiler.ast,
+                                    index,
+                                    assignment_ref,
                                     func_def_ref,
                                 );
-
-                                // replace assignment with unused
-                                compiler.ast.elements[assignment_ref] =
-                                    (ElementInfo::Unused, vec![]);
-
-                                // replace constant with Unused
-                                compiler.ast.elements[constant_ref] = (ElementInfo::Unused, vec![]);
-
-                                // replace parents child reference to the assignment, with the func_def_ref
-                                if let Some(index) =
-                                    parents::get_current_parent_ref_from_element_children_search(
-                                        &compiler.ast,
-                                        assignment_ref,
-                                    )
-                                {
-                                    elements::replace_element_child(
-                                        &mut compiler.ast,
-                                        index,
-                                        assignment_ref,
-                                        func_def_ref,
-                                    );
-                                }
-
-                                //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
-                                parents::outdent::outdent(compiler);
-                                parents::outdent::outdent(compiler);
-                                parents::outdent::outdent(compiler);
-                                parents::indent::indent_this(&mut compiler.ast, func_def_ref);
-                                //dbg!(&self.ast.parents);
                             }
-                            _ => (),
+
+                            //re-add the new funcdef as latest parent, so we can continue parsing with it's child statements
+                            parents::outdent::outdent(compiler);
+                            parents::outdent::outdent(compiler);
+                            parents::outdent::outdent(compiler);
+                            parents::indent::indent_this(&mut compiler.ast, func_def_ref);
+                            //dbg!(&self.ast.parents);
                         }
+                        _ => (),
                     }
                 }
             }
-            _ => (),
         }
+        _ => (),
     }
+
     elements::append::outdent_if_last_expected_child(compiler);
     Ok(())
 }
