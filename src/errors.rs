@@ -6,6 +6,7 @@
 use crate::ast::elements::{get_last_element, Element, ElementInfo};
 use crate::ast::parents;
 use crate::Compiler;
+use crate::Tokens;
 
 #[derive(Clone, Debug)]
 pub struct Errors {
@@ -138,7 +139,7 @@ pub fn append_error(
         arrow_indent = line_of_tokens[0..compiler.current_line_token]
             .iter()
             .cloned()
-            .collect::<String>()
+            .collect::<Tokens>()
             .len()
             + compiler.current_line_token;
     }
@@ -149,6 +150,7 @@ pub fn append_error(
         compiler.current_line + 1,
         compiler.lines_of_chars[compiler.current_line]
             .iter()
+            .map(|p| p.0)
             .collect::<String>(),
         " ".repeat(arrow_indent),
         "^".repeat(arrow_len),

@@ -36,10 +36,17 @@ use file::File;
 use std::error::Error;
 use std::fmt;
 
-pub type Tokens = Vec<String>;
-type ErrorStack = Vec<String>;
-type LinesOfChars = Vec<Vec<char>>;
+pub type Col = usize;
+pub type CharPosition = (char, Col);
+type LinesOfChars = Vec<Vec<CharPosition>>;
+
+pub type Row = usize;
+pub type Start = usize;
+pub type End = usize;
+pub type Tokens = Vec<(String, Row, Start, End)>;
 type LinesOfTokens = Vec<Tokens>;
+
+type ErrorStack = Vec<String>;
 
 fn rem_first_and_last(value: &str) -> String {
     let mut chars = value.chars();
@@ -358,8 +365,9 @@ impl Compiler {
     /// Initially generate lines of characters based on input file
     fn set_lines_of_chars(self: &mut Self) {
         self.ast.log(format!("lib::set_lines_of_chars {:?}", ""));
-        let mut index_from = 0;
-        let mut index_to = 0;
+        let mut current_line: usize = 0;
+        let mut index_from: usize = 0;
+        let mut index_to: usize = 0;
         let char_vec: Vec<char> = self.file.filecontents.chars().collect();
         while index_to < char_vec.len() {
             let c = char_vec[index_to];
@@ -386,22 +394,31 @@ impl Compiler {
             let is_a_rustcode_line = this_line_so_far.len() > 1
                 && this_line_so_far[0] == '#'
                 && this_line_so_far[1] == '#';
-            let is_colon_for_singlelinefunction =
+            let is_marker_for_singlelinefunction =
                 c == '=' && d == '>' && !is_a_comment_line && !is_a_rustcode_line;
-            if c == '\r' || c == '\n' || eof || is_colon_for_singlelinefunction {
-                self.lines_of_chars.push(
-                    char_vec[index_from
-                        ..index_to
-                            + (if is_colon_for_singlelinefunction {
-                                2
-                            } else if eof {
-                                1
-                            } else {
-                                0
-                            })]
-                        .to_vec(),
-                );
+            if c == '\r' || c == '\n' || eof || is_marker_for_singlelinefunction {
+                let start = index_from;
+                let end = index_to
+                    + (if is_marker_for_singlelinefunction {
+                        2
+                    } else if eof {
+                        1
+                    } else {
+                        0
+                    });
+                let mut offset = 0;
+                let line = char_vec[start..end]
+                    .iter()
+                    .map(|c| {
+                        let char_position: CharPosition = (*c, start + offset);
+                        offset = offset + 1;
+                        return char_position;
+                    })
+                    .collect();
+
+                self.lines_of_chars.push(line);
                 index_from = index_to + incr;
+                current_line = current_line + 1;
             }
             index_to = index_to + incr;
         }
@@ -415,8 +432,8 @@ impl Compiler {
             let mut index_to = 0;
             let mut count_quotes = 0;
 
-            let char_vec_initial: &Vec<char> = &self.lines_of_chars[line];
-            let char_as_string = char_vec_initial.iter().collect::<String>();
+            let char_vec_initial: &Vec<CharPosition> = &self.lines_of_chars[line];
+            let char_as_string = char_vec_initial.iter().map(|p| p.0).collect::<String>();
             let removed_leading_whitespace = parse::strip_leading_whitespace(&char_as_string);
             let removed_trailing_whitespace =
                 parse::strip_trailing_whitespace(&removed_leading_whitespace);
@@ -424,6 +441,7 @@ impl Compiler {
 
             let mut inside_quotes = false;
             let mut line_of_tokens: Tokens = vec![];
+            let start_of_this_line = char_vec_initial[0].1;
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
                 let eof = index_to == char_vec.len() - 1;
@@ -446,11 +464,15 @@ impl Compiler {
                     || eof
                     || count_quotes == 2
                 {
-                    let token_chars = char_vec
-                        [index_from..index_to + (if eof || count_quotes == 2 { 1 } else { 0 })]
-                        .iter()
-                        .collect::<String>();
-                    line_of_tokens.push(token_chars);
+                    let start = index_from;
+                    let end = index_to + (if eof || count_quotes == 2 { 1 } else { 0 });
+                    let token_chars = char_vec[start..end].iter().collect::<String>();
+                    line_of_tokens.push((
+                        token_chars,
+                        line,
+                        start_of_this_line + start,
+                        start_of_this_line + end - 1,
+                    ));
                     index_from = index_to + 1;
                     inside_quotes = false;
                     count_quotes = 0;

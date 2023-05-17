@@ -38,35 +38,35 @@ pub fn current_token(compiler: &mut Compiler, tokens: &Tokens) -> Result<(), ()>
         .ast
         .log(format!("parse::current_token {:?}", &tokens));
     let current_token = &tokens[compiler.current_line_token];
-    let current_token_vec: &Vec<char> = &tokens[compiler.current_line_token].chars().collect();
+    let current_token_vec: &Vec<char> = &tokens[compiler.current_line_token].0.chars().collect();
     if current_token_vec.len() == 0 {
         return Ok(());
     }
 
-    match elements::get_inbuilt_function_index_by_name(&mut compiler.ast, &current_token) {
+    match elements::get_inbuilt_function_index_by_name(&mut compiler.ast, &current_token.0) {
         Some(index_of_function) => {
             //dbg!(&current_token);
             let func = &compiler.ast.elements[index_of_function];
             match &func.0 {
                 ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
-                    inbuilt_function_call(compiler, &current_token, index_of_function)
+                    inbuilt_function_call(compiler, &current_token.0, index_of_function)
                 }
                 ElementInfo::FunctionDef(_, _, _, _) => {
-                    function_call(compiler, &current_token, index_of_function)
+                    function_call(compiler, &current_token.0, index_of_function)
                 }
                 ElementInfo::Arg(_, _, _, returntype) => {
                     if returntype.contains("&dyn Fn") {
-                        function_call(compiler, &current_token, index_of_function)
+                        function_call(compiler, &current_token.0, index_of_function)
                     } else {
-                        token_by_first_chars(compiler, &current_token, &current_token_vec)
+                        token_by_first_chars(compiler, &current_token.0, &current_token_vec)
                     }
                 }
-                _ => token_by_first_chars(compiler, &current_token, &current_token_vec),
+                _ => token_by_first_chars(compiler, &current_token.0, &current_token_vec),
             }
         }
-        _ => match elements::get_inbuilt_type_index_by_name(&mut compiler.ast, &current_token) {
+        _ => match elements::get_inbuilt_type_index_by_name(&mut compiler.ast, &current_token.0) {
             Some(index_of_type) => elements::append::types(compiler, index_of_type),
-            _ => token_by_first_chars(compiler, &current_token, &current_token_vec),
+            _ => token_by_first_chars(compiler, &current_token.0, &current_token_vec),
         },
     }
 }
@@ -424,7 +424,7 @@ pub fn struct_end(compiler: &mut Compiler) -> Result<(), ()> {
         {
             let this_struct_el_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
             if existing_struct_ref != this_struct_el_ref {
-                // don't redefine a ne struct if it's the same as an existing struct, reuse it instead, i.e.
+                // don't redefine a new struct if it's the same as an existing struct, reuse it instead, i.e.
                 // remove this struct and it's children
                 // and replace the Constant's reference to it, to use the existing struct ref instead
                 let mut struct_and_children = compiler.ast.elements[this_struct_el_ref].1.clone();
@@ -820,7 +820,7 @@ pub fn get_args_from_dyn_fn(string: &String) -> usize {
 pub fn concatenate_vec_strings(tokens: &Tokens) -> String {
     let mut output = "".to_string();
     for i in 0..tokens.len() {
-        output = format!("{}{}", output, tokens[i]);
+        output = format!("{}{}", output, tokens[i].0);
     }
     output
 }
@@ -960,23 +960,49 @@ mod tests {
     #[test]
     fn test_concatenate_vec_strings() {
         let test_cases = [
-            vec!["1".to_string()],
-            vec!["1 2 3".to_string()],
-            vec!["1".to_string(), "1".to_string()],
-            vec!["1 2 3".to_string(), "1 2 3".to_string()],
+            vec![("1".to_string(), 0 as usize, 0 as usize, 0 as usize)],
+            vec![("1 2 3".to_string(), 0 as usize, 0 as usize, 4 as usize)],
             vec![
-                "1 2 3".to_string(),
-                " 1 2 3".to_string(),
-                " 1 2 3".to_string(),
-                " 1 2 3".to_string(),
+                ("1".to_string(), 0 as usize, 0 as usize, 0 as usize),
+                ("1".to_string(), 0 as usize, 0 as usize, 0 as usize),
             ],
             vec![
-                "               \r\n1".to_string(),
-                "               \r\n1".to_string(),
+                ("1 2 3".to_string(), 0 as usize, 0 as usize, 4 as usize),
+                ("1 2 3".to_string(), 0 as usize, 0 as usize, 4 as usize),
             ],
             vec![
-                "               \r\n1 2 3".to_string(),
-                "               \r\n1 2 3".to_string(),
+                ("1 2 3".to_string(), 0 as usize, 0 as usize, 4 as usize),
+                (" 1 2 3".to_string(), 0 as usize, 0 as usize, 5 as usize),
+                (" 1 2 3".to_string(), 0 as usize, 0 as usize, 5 as usize),
+                (" 1 2 3".to_string(), 0 as usize, 0 as usize, 5 as usize),
+            ],
+            vec![
+                (
+                    "               \r\n1".to_string(),
+                    0 as usize,
+                    0 as usize,
+                    17 as usize,
+                ),
+                (
+                    "               \r\n1".to_string(),
+                    0 as usize,
+                    0 as usize,
+                    17 as usize,
+                ),
+            ],
+            vec![
+                (
+                    "               \r\n1 2 3".to_string(),
+                    0 as usize,
+                    0 as usize,
+                    21 as usize,
+                ),
+                (
+                    "               \r\n1 2 3".to_string(),
+                    0 as usize,
+                    0 as usize,
+                    21 as usize,
+                ),
             ],
         ];
         let test_case_passes = [

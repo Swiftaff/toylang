@@ -3,32 +3,40 @@
 	"tasks": [
 		{
 			"type": "cargo",
-			"command":"test",
+			"command": "test",
 			"label": "1.1 test",
 		},
 		{
 			"type": "cargo",
-			"command":"test",
-			"args":["--doc"],
+			"command": "test",
+			"args": [
+				"--doc"
+			],
 			"label": "1.1b test doc",
 		},
 		{
 			"type": "cargo",
-			"command":"doc",
-			"args":["--document-private-items","--no-deps","--open","--lib"],
+			"command": "doc",
+			"args": [
+				"--document-private-items",
+				"--no-deps",
+				"--open",
+				"--lib"
+			],
 			"label": "1.1d doc private",
 		},
 		{
 			"type": "shell",
-			"command":"docs.bat",
-			"args":[],
+			"command": "docs.bat",
+			"args": [],
 			"label": "1.1e copy to docs folder",
 		},
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test"
+			"args": [
+				"-x",
+				"test"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -38,8 +46,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test_run --no-run"
+			"args": [
+				"-x",
+				"test test_run --no-run"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -49,8 +58,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test_run_passes --no-run"
+			"args": [
+				"-x",
+				"test test_run_passes --no-run"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -60,8 +70,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test_run -- --show-output"
+			"args": [
+				"-x",
+				"test test_run -- --show-output"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -71,8 +82,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test_is_float -- --show-output"
+			"args": [
+				"-x",
+				"test test_is_float -- --show-output"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -82,8 +94,10 @@
 		{
 			"type": "cargo",
 			"command": "test",
-			"args":[
-				"test_get_depths_vec", "--", "--show-output"
+			"args": [
+				"test_get_depths_vec",
+				"--",
+				"--show-output"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -93,8 +107,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test test_get_depths_vec"
+			"args": [
+				"-x",
+				"test test test_get_depths_vec"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -104,8 +119,9 @@
 		{
 			"type": "cargo",
 			"command": "watch",
-			"args":[
-				"-x", "test test_get_depths_vec -- --show-output"
+			"args": [
+				"-x",
+				"test test_get_depths_vec -- --show-output"
 			],
 			"problemMatcher": [
 				"$rustc"
@@ -115,86 +131,117 @@
 		{
 			"type": "cargo",
 			"command": "build",
-			"args":[],
+			"args": [],
 			"label": "2.1 build dev toylang",
 		},
 		{
 			"type": "cargo",
 			"command": "build",
-			"args":[
+			"args": [
 				"--release"
 			],
 			"label": "2.2 build release toylang",
 		},
 		{
 			"type": "process",
-			"command":"target\\debug\\toylang.exe",
-			"args":[
-				"-i", "src\\test.toy", "-o", "src\\bin"
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"src\\test.toy",
+				"-o",
+				"src\\bin"
 			],
 			"label": "3.0 run dev toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
-			"command":"target\\debug\\toylang.exe",
-			"args":[
-				"-i", "src\\test.toy", "-n"
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"src\\test.toy",
+				"-n"
 			],
 			"label": "3.0 run dev no save toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
-			"command":"target\\debug\\toylang.exe",
-			"args":[
-				"-i", "src\\test.toy", "-o", "src\\bin", "-d"
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"src\\test.toy",
+				"-o",
+				"src\\bin",
+				"-d"
 			],
 			"label": "3.1 run dev debug toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
-			"command":"target\\release\\toylang.exe",
-			"args":[
-				"-i", "src/test.toy", "-o", "src\\bin"
+			"command": "target\\release\\toylang.exe",
+			"args": [
+				"-i",
+				"src/test.toy",
+				"-o",
+				"src\\bin"
 			],
 			"label": "3.2 run release toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
-			"command":"target\\release\\toylang.exe",
-			"args":[
-				"-i", "src/test.toy", "-o", "src\\bin", "-d"
+			"command": "target\\release\\toylang.exe",
+			"args": [
+				"-i",
+				"src/test.toy",
+				"-o",
+				"src\\bin",
+				"-d"
 			],
 			"label": "3.3 run release -d toylang on src\\test.toy",
 		},
 		{
 			"type": "cargo",
-			"command":"run",
-			"args":[
-				 "--bin", "output"
+			"command": "run",
+			"args": [
+				"--bin",
+				"output"
 			],
 			"label": "4.1 compile output.rs into dev output.exe and run it",
 		},
 		{
 			"type": "cargo",
-			"command":"run",
-			"args":[
-				 "--bin", "output_test"
+			"command": "run",
+			"args": [
+				"--release",
+				"--bin",
+				"output"
+			],
+			"label": "4.1a compile output.rs into release output.exe and run it",
+		},
+		{
+			"type": "cargo",
+			"command": "run",
+			"args": [
+				"--bin",
+				"output_test"
 			],
 			"label": "4.1b compile output_test.rs into dev output_test.exe and run it",
 		},
 		{
 			"type": "cargo",
-			"command":"run",
-			"args":[
-				"--release", "--bin", "output", 
+			"command": "run",
+			"args": [
+				"--release",
+				"--bin",
+				"output",
 			],
 			"label": "4.2 compile output.rs into release output.exe and run it",
 		},
 		{
 			"type": "cargo",
-			"command":"run",
-			"args":[
-				"--bin", "testy", 
+			"command": "run",
+			"args": [
+				"--bin",
+				"testy",
 			],
 			"label": "5.1 testing - compile testy.rs into dev testy.exe and run it",
 		}
