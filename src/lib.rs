@@ -33,6 +33,7 @@ use ast::elements;
 use ast::output;
 use ast::Ast;
 use file::File;
+use serde::Serialize;
 use std::error::Error;
 use std::fmt;
 
@@ -43,10 +44,16 @@ type LinesOfChars = Vec<Vec<CharPosition>>;
 pub type Row = usize;
 pub type Start = usize;
 pub type End = usize;
-pub type Tokens = Vec<(String, Row, Start, End)>;
+pub type Token = (String, Row, Start, End);
+pub type Tokens = Vec<Token>;
 type LinesOfTokens = Vec<Tokens>;
 
-type ErrorStack = Vec<String>;
+type ErrorStack = Vec<(String, Token)>;
+
+#[derive(Serialize)]
+struct ErrorStackJson {
+    errors: ErrorStack,
+}
 
 fn rem_first_and_last(value: &str) -> String {
     let mut chars = value.chars();
@@ -67,7 +74,7 @@ impl<'a> fmt::Debug for DebugErrorStack<'a> {
                 debug,
                 spaces,
                 el,
-                rem_first_and_last(&self.0[el])
+                rem_first_and_last(&self.0[el].0)
             );
         }
         write!(f, "Custom Debug of ErrorStack [{}\r\n]", debug)
@@ -81,7 +88,7 @@ impl<'a> fmt::Debug for DebugLogs<'a> {
         let mut debug = "".to_string();
         for el in 0..self.0.len() {
             let spaces = left_pad(self.0.len(), el);
-            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, &self.0[el]);
+            debug = format!("{}\r\n  {}{}: {},", debug, spaces, el, &self.0[el].0);
         }
         write!(f, "Custom Debug of Logs\r\n{}", debug)
     }
@@ -157,13 +164,13 @@ impl Compiler {
         debug: bool,
         option_outputdir: Option<String>,
         nosave: bool,
+        tokens: bool,
     ) -> Result<Compiler, String> {
-        println!("\r\nOUTPUT: {:?}", &option_outputdir);
+        if !tokens {
+            println!("\r\nOUTPUT: {:?}", &option_outputdir);
+        }
         if debug {
             println!("DEBUG:  true");
-            //let ui = debug_window::run();
-            //println!("1");
-            //ui.win_title("testy2");
         }
         let debug_step = 0;
         let debug_line = 0 as usize;
@@ -203,18 +210,37 @@ impl Compiler {
     }
 
     /// Begins running the compiler, run_main_tasks, write_file_or_error
-    pub fn run(self: &mut Self) -> Result<(), Box<dyn Error>> {
+    pub fn run(self: &mut Self, tokens: bool, code: bool) -> Result<(), Box<dyn Error>> {
         self.ast.log(format!("lib::run {:?}", ""));
-        self.file.get(&self.filepath)?;
-        match self.run_main_tasks() {
-            Ok(_) => (),
-            Err(_e) => (),
+        match self.file.get(&self.filepath, tokens, code) {
+            Ok(_) => {
+                match self.run_main_tasks(tokens) {
+                    Ok(_) => (),
+                    Err(_e) => (),
+                }
+                self.print_lines_of_tokens(tokens);
+                self.file.writefile_or_error(
+                    &self.ast.output,
+                    &self.outputdir,
+                    self.error_stack.len() > 0,
+                    tokens,
+                )
+            }
+            Err(e) => {
+                println!("{{error:\"Error\"}}");
+                Err(e)
+            }
         }
-        self.file.writefile_or_error(
-            &self.ast.output,
-            &self.outputdir,
-            self.error_stack.len() > 0,
-        )
+    }
+
+    /// If tokens cli flag is true - this will print the lines_of_tokens as basic JSON for use with VS Code extension
+    pub fn print_lines_of_tokens(self: &mut Self, tokens: bool) {
+        if tokens {
+            let output = format!("{:?}", &self.lines_of_tokens)
+                .replace("(", "[")
+                .replace(")", "]");
+            println!("{}", output);
+        }
     }
 
     /// Used by the debugger program to request to run one of the steps in the compiler
@@ -226,7 +252,7 @@ impl Compiler {
 
         if self.debug_step == 1 as usize {
             //dbg!("1");
-            let _result = self.file.get(&self.filepath);
+            let _result = self.file.get(&self.filepath, false, false);
         }
 
         if self.debug_step == 2 as usize {
@@ -291,15 +317,15 @@ impl Compiler {
     }
 
     /// The main tasks run by the compiler, set lines_of_chars, lines_of_tokens, run_main_loop
-    pub fn run_main_tasks(self: &mut Self) -> Result<(), ()> {
+    pub fn run_main_tasks(self: &mut Self, tokens: bool) -> Result<(), ()> {
         self.ast.log(format!("lib::run_main_tasks {:?}", ""));
         self.set_lines_of_chars();
         self.set_lines_of_tokens();
-        self.run_main_loop()
+        self.run_main_loop(tokens)
     }
 
     /// Calling the main loop where the lines_of_tokens are parsed and compiler errors are generated
-    fn run_main_loop(self: &mut Self) -> Result<(), ()> {
+    fn run_main_loop(self: &mut Self, tokens: bool) -> Result<(), ()> {
         self.ast.log(format!("lib::run_main_loop {:?}", ""));
         // ref: https://doc.rust-lang.org/reference/tokens.html
         // ref: https://elm-lang.org/docs/syntax
@@ -311,25 +337,34 @@ impl Compiler {
                     eprintln!("{:?}", &self.ast);
                     eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
                     for error in &self.error_stack {
-                        println!("{}", error);
+                        eprintln!("{}", error.0);
                     }
                     eprintln!("----------\r\n");
                 } else {
                     output::set_output(self);
-                    println!("\r\nToylang compiled successfully:\r\n----------\r\n");
+                    if !tokens {
+                        println!("\r\nToylang compiled successfully:\r\n----------\r\n");
+                    }
                     if self.debug {
                         println!("{:?}\r\n----------\r\n", self.ast);
                     }
                 }
             }
             Err(_e) => {
-                eprintln!("{:?}", &self.ast);
-                eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
-                //println!("{:?}", e);
-                for error in &self.error_stack {
-                    println!("{}", error);
+                if tokens {
+                    let e = ErrorStackJson {
+                        errors: self.error_stack.clone(),
+                    };
+                    let j = serde_json::to_string(&e).unwrap();
+                    eprintln!("{}", j);
+                } else {
+                    eprintln!("{:?}", &self.ast);
+                    eprintln!("----------\r\n\r\nTOYLANG COMPILE ERROR:");
+                    for error in &self.error_stack {
+                        eprintln!("{:?}", error);
+                    }
+                    eprintln!("----------\r\n");
                 }
-                eprintln!("----------\r\n");
             }
         };
         Ok(())
@@ -441,7 +476,6 @@ impl Compiler {
 
             let mut inside_quotes = false;
             let mut line_of_tokens: Tokens = vec![];
-            let start_of_this_line = char_vec_initial[0].1;
             while index_to < char_vec.len() {
                 let c = char_vec[index_to];
                 let eof = index_to == char_vec.len() - 1;
@@ -467,12 +501,7 @@ impl Compiler {
                     let start = index_from;
                     let end = index_to + (if eof || count_quotes == 2 { 1 } else { 0 });
                     let token_chars = char_vec[start..end].iter().collect::<String>();
-                    line_of_tokens.push((
-                        token_chars,
-                        line,
-                        start_of_this_line + start,
-                        start_of_this_line + end - 1,
-                    ));
+                    line_of_tokens.push((token_chars, line, start, end - 1));
                     index_from = index_to + 1;
                     inside_quotes = false;
                     count_quotes = 0;

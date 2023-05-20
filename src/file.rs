@@ -5,6 +5,8 @@ use std::error::Error;
 use std::fmt;
 use std::fs;
 use std::path::Path;
+extern crate base64;
+use base64::{engine::general_purpose, Engine as _};
 
 type FileContents = String;
 
@@ -47,18 +49,31 @@ impl File {
     }
 
     /// Get filename, path, contents from the users supplied filepath
-    pub fn get(self: &mut Self, filepath: &str) -> Result<(), Box<dyn Error>> {
-        let filename = Path::new(&filepath)
-            .file_name()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-        let filecontents = fs::read_to_string(&filepath)?;
-        println!("INPUT:  {:?}", &filepath);
-        self.filename = filename;
+    pub fn get(
+        self: &mut Self,
+        filepath: &str,
+        tokens: bool,
+        code: bool,
+    ) -> Result<(), Box<dyn Error>> {
+        if !tokens {
+            println!("INPUT:  {:?}", &filepath);
+        }
         self.filepath = filepath.to_string().clone();
-        self.filecontents = filecontents;
+        if code {
+            self.filename = "".to_string();
+            let bytes = general_purpose::STANDARD.decode(filepath).unwrap();
+            self.filecontents = String::from_utf8_lossy(&*bytes).to_string(); // unsure if good enough
+        } else {
+            let filename = Path::new(&filepath)
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
+            self.filename = filename;
+            self.filecontents = fs::read_to_string(&filepath)?;
+        };
+
         Ok(())
     }
 
@@ -68,17 +83,24 @@ impl File {
         output: &String,
         outputdir: &String,
         is_error: bool,
+        tokens: bool,
     ) -> Result<(), Box<(dyn std::error::Error + 'static)>> {
         if self.nosave {
-            println!("-n / -nosave flag is true - DIDN'T SAVE");
+            if !tokens {
+                println!("-n / -nosave flag is true - DIDN'T SAVE");
+            }
         } else {
             if is_error {
-                println!("DIDN'T SAVE");
+                if !tokens {
+                    println!("Error saving - DIDN'T SAVE");
+                }
             } else {
                 let current_dir = env::current_dir().unwrap();
                 let final_path = current_dir.join(outputdir).join("output.rs");
                 fs::write(&final_path, output)?;
-                println!("SAVED to {:?}", final_path);
+                if !tokens {
+                    println!("SAVED to {:?}", final_path);
+                }
             }
         }
         Ok(())

@@ -64,13 +64,20 @@ use crate::Compiler;
 use std::process;
 
 /// Only function for compiler_runner
-pub fn main(input: String, debug: bool, output: Option<String>, nosave: bool) {
-    let mut compiler = Compiler::new(input, debug, output, nosave).unwrap_or_else(|err| {
+pub fn main(
+    input: String,
+    debug: bool,
+    output: Option<String>,
+    nosave: bool,
+    tokens: bool,
+    code: bool,
+) {
+    let mut compiler = Compiler::new(input, debug, output, nosave, tokens).unwrap_or_else(|err| {
         println!("Problem parsing arguments: {}", err);
         process::exit(1);
     });
 
-    if let Err(e) = compiler.run() {
+    if let Err(e) = compiler.run(tokens, code) {
         println!("Application error: {}", e);
         process::exit(1);
     }

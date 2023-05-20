@@ -255,11 +255,11 @@ pub fn int(compiler: &mut Compiler, current_token: &String) -> Result<(), ()> {
     if (!first_char_is_negative_sign && !all_chars_are_numeric)
         || is_negative_all_other_chars_are_not_numeric
     {
-        errors::append_error(compiler, 0, 1, ERRORS.int)?;
+        errors::append_error(compiler, 0, current_token.len(), ERRORS.int)?;
     }
     match current_token.parse::<i64>() {
         Ok(_) => (),
-        Err(_) => errors::append_error(compiler, 0, 1, ERRORS.int_out_of_bounds)?,
+        Err(_) => errors::append_error(compiler, 0, current_token.len(), ERRORS.int_out_of_bounds)?,
     }
     elements::append::int(compiler, current_token)
     //errors::error_if_parent_is_invalid(compiler)

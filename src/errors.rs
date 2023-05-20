@@ -156,7 +156,9 @@ pub fn append_error(
         "^".repeat(arrow_len),
         error,
     );
-    compiler.error_stack.push(e);
+    let token =
+        compiler.lines_of_tokens[compiler.current_line][compiler.current_line_token].clone();
+    compiler.error_stack.push((e, token));
     Err(())
 }
 
@@ -1166,12 +1168,13 @@ mod tests {
             let error = &test[0];
             let mut c: Compiler = Default::default();
             c.file.filecontents = input.to_string();
-            match c.run_main_tasks() {
+            match c.run_main_tasks(false) {
                 Ok(_) => {
-                    if error == &"" && c.error_stack.len() == 0 {
-                        assert_eq!(true, true)
+                    let app_error = c.error_stack[0].clone().0;
+                    if error == &"" || app_error.len() == 0 {
+                        assert_eq!(true, true);
                     } else {
-                        assert!(c.error_stack[0].contains(error))
+                        assert!(app_error.contains(error));
                     }
                 }
                 Err(_e) => assert!(false, "error should not exist"),

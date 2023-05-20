@@ -14,6 +14,10 @@ struct Cli {
     #[arg(short, long)]
     input: String,
 
+    /// optional - if true, the input is expected to be the raw toylang code, encoded as base64, instead of a filename. Primarily for VS Code Extension to use
+    #[arg(short, long)]
+    code: bool,
+
     /// optional - turn debugging information on
     #[arg(short, long)]
     debug: bool,
@@ -25,18 +29,24 @@ struct Cli {
     /// optional - nosave flag. Avoid saving output, useful if compiling an in progress toylang file causes an invalid rust output file, which then won't allow compilation next time. Default is false, i.e. it will save
     #[arg(short, long)]
     nosave: bool,
+
+    /// optional - lines of tokens flag. If true it will print the "lines of tokens" containing positional info as JSON to stdout. Experimental for use with Toylang VS Code extension. Default is false.
+    #[arg(short, long)]
+    tokens: bool,
 }
 
 fn main() {
     let cli = Cli::parse();
     let input = cli.input;
+    let code = cli.code;
     let debug = cli.debug;
     let output = cli.output;
     let nosave = cli.nosave;
+    let tokens = cli.tokens;
 
     if debug {
         debug_window_derive::run(input, debug, output);
     } else {
-        compiler_runner::main(input, debug, output, nosave);
+        compiler_runner::main(input, debug, output, nosave, tokens, code);
     }
 }

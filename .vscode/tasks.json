@@ -180,7 +180,7 @@
 			"command": "target\\release\\toylang.exe",
 			"args": [
 				"-i",
-				"src/test.toy",
+				"src\\test.toy",
 				"-o",
 				"src\\bin"
 			],
@@ -191,12 +191,34 @@
 			"command": "target\\release\\toylang.exe",
 			"args": [
 				"-i",
-				"src/test.toy",
+				"src\\test.toy",
 				"-o",
 				"src\\bin",
 				"-d"
 			],
 			"label": "3.3 run release -d toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"src\\test.toy",
+				"-n",
+				"-t"
+			],
+			"label": "3.4 run tokens nosave toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"@ \"123\"\r\n@ 123",
+				"-t",
+				"-c"
+			],
+			"label": "3.5 run tokens code nosave toylang on src\\test.toy",
 		},
 		{
 			"type": "cargo",

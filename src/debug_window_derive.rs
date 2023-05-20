@@ -337,10 +337,12 @@ fn init(
     ui.rich_text_control_set_text(&ui.richtext_logs, " ");
     //ui.rich_text_control_set_text(&ui.richtext_tree, " ");
     ui.rich_text_control_set_text(&ui.richtext_output, " ");
-    return Compiler::new(input.clone(), debug, output.clone(), true).unwrap_or_else(|err| {
-        println!("Problem parsing arguments: {}", err);
-        process::exit(1);
-    });
+    return Compiler::new(input.clone(), debug, output.clone(), true, false).unwrap_or_else(
+        |err| {
+            println!("Problem parsing arguments: {}", err);
+            process::exit(1);
+        },
+    );
 }
 
 pub fn run(input: String, debug: bool, output: Option<String>) {
@@ -388,8 +390,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 //dbg!(step, step_max, completed_step);
                 let txt_input_debug = DebugFileContents(&compiler.file.filecontents);
                 let txt_input = format!("{:?}", txt_input_debug);
-                let txt_ast = format!("{:?}", compiler.ast);
-                let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
+                let _txt_ast = format!("{:?}", compiler.ast);
+                let _txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
                 let txt_error = format!("{:?}", DebugErrorStack(&compiler.error_stack));
                 let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
                 let txt_output = compiler.ast.output.to_string();
@@ -453,8 +455,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                     //let current_text = ui.richtext_ast_current.text();
                     let new_text = format!("{:?}", compiler.ast);
                     let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
-                    let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
-                    let new_len = new_text.len() as u32;
+                    let _txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
+                    let _new_len = new_text.len() as u32;
                     //let mut first_non_matching_char = 0;
                     //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
                     //    if c1 != c2 {
@@ -532,8 +534,8 @@ pub fn run(input: String, debug: bool, output: Option<String>) {
                 //let current_text = ui.richtext_ast_current.text();
                 let new_text = format!("{:?}", compiler.ast);
                 let txt_logs = format!("{:?}", DebugLogs(&compiler.ast.logs));
-                let txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
-                let new_len = new_text.len() as u32;
+                let _txt_tree = format!("{:?}", ElementsVec(compiler.ast.elements.clone()));
+                let _new_len = new_text.len() as u32;
                 //let mut first_non_matching_char = 0;
                 //for (c1, c2) in new_text.chars().zip(current_text.chars()) {
                 //    if c1 != c2 {

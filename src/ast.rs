@@ -5,9 +5,10 @@ pub mod output;
 pub mod parents;
 
 use crate::ast::elements::{ArgModifier, DebugElements, ElIndex, Element, ElementInfo, Elements};
+use crate::Token;
 use std::fmt;
 
-type Logs = Vec<String>;
+type Logs = Vec<(String, Token)>;
 
 /// AST containing Elements as an adjacency list of tree nodes.
 /// Each node is represented by a tuple containing its identifier and a list of the indexes of its children.
@@ -62,7 +63,7 @@ impl Ast {
     }
     /// Called by all functions - inserts a single log line, and a copy of the AST state
     pub fn log(self: &mut Self, string: String) {
-        self.logs.push(string);
+        self.logs.push((string, ("".to_string(), 0, 0, 0)));
         let debug_els = format!(
             "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput_stack:\r\n{:?}\r\n\r\nPre-main Output:\r\n{:?}r\n\r\nOutput:\r\n{:?}",
             DebugElements(&self.elements),

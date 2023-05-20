@@ -15,6 +15,9 @@ toylang_macros = { path = "toylang_macros" }
 toylang_common = { path = "toylang_common" }
 syn = { version = "1.0.82", features = ["full", "extra-traits"] }
 lazy_static = "1.4.0"
+base64 = "0.21.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [build-dependencies]
 winres = "0.1"
