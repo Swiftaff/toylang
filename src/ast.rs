@@ -39,6 +39,7 @@ pub struct Ast {
     //note: parents are only used for building, ignored output.
     //becuse of that, split outputting to be less confusing?
     pub parents: Vec<ElIndex>,
+    pub debug: bool,
     pub logs: Logs,
     pub debug_compiler_history: Vec<String>,
 }
@@ -51,6 +52,7 @@ impl Default for Ast {
             output_stack: vec![],
             premain_output: "".to_string(),
             parents: vec![0], // get current indent from length of parents
+            debug: false,
             logs: vec![],
             debug_compiler_history: vec![],
         }
@@ -58,11 +60,15 @@ impl Default for Ast {
 }
 
 impl Ast {
-    pub fn new() -> Ast {
-        Ast::default()
+    pub fn new(debug: bool) -> Ast {
+        Ast {
+            debug,
+            ..Ast::default()
+        }
     }
     /// Called by all functions - inserts a single log line, and a copy of the AST state
     pub fn log(self: &mut Self, string: String) {
+        if self.debug {
         self.logs.push((string, ("".to_string(), 0, 0, 0)));
         let debug_els = format!(
             "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput_stack:\r\n{:?}\r\n\r\nPre-main Output:\r\n{:?}r\n\r\nOutput:\r\n{:?}",
@@ -73,6 +79,7 @@ impl Ast {
             &self.output,
         );
         self.debug_compiler_history.push(debug_els);
+        }
     }
 }
 

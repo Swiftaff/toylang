@@ -187,7 +187,7 @@ impl Compiler {
         let current_line = 0;
         let current_line_token = 0;
         let error_stack = vec![];
-        let ast = Ast::new();
+        let ast = Ast::new(debug);
         //let logs = vec![format!(
         //    "lib::new {:?} {:?} {:?}",
         //    filepath, debug, option_outputdir
@@ -553,7 +553,7 @@ mod tests {
         let el6: Element = (ElementInfo::CommentSingleLine("6".to_string()), vec![]);
         let el7: Element = (ElementInfo::CommentSingleLine("7".to_string()), vec![]);
         let el8: Element = (ElementInfo::CommentSingleLine("8".to_string()), vec![]);
-        let mut ast: Ast = Ast::new();
+        let mut ast: Ast = Ast::new(false);
         elements::append::append(&mut ast, el1);
         elements::append::append(&mut ast, el2);
         elements::append::append(&mut ast, el3);

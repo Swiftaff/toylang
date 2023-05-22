@@ -168,12 +168,35 @@
 			"command": "target\\debug\\toylang.exe",
 			"args": [
 				"-i",
-				"src\\test.toy",
+				"H:\\Development\\toylang\\src\\test.toy",
 				"-o",
 				"src\\bin",
 				"-d"
 			],
 			"label": "3.1 run dev debug toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"src\\test.toy",
+				"-o",
+				"src\\bin",
+				"-s"
+			],
+			"label": "3.1a run dev server toylang on src\\test.toy",
+		},
+		{
+			"type": "process",
+			"command": "target\\debug\\toylang.exe",
+			"args": [
+				"-i",
+				"H:\\Development\\toylang\\src\\test.toy",
+				"-n",
+				"-t"
+			],
+			"label": "3.1b run nosave tokens toylang on src\\test.toy",
 		},
 		{
 			"type": "process",
