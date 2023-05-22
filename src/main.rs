@@ -6,6 +6,7 @@ extern crate toylang_macros;
 use clap::Parser;
 use toylang::compiler_runner;
 use toylang::debug_window_derive;
+use toylang::server;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -33,6 +34,10 @@ struct Cli {
     /// optional - lines of tokens flag. If true it will print the "lines of tokens" containing positional info as JSON to stdout. Experimental for use with Toylang VS Code extension. Default is false.
     #[arg(short, long)]
     tokens: bool,
+
+    /// optional - turn on server for use with VS Code extension
+    #[arg(short, long)]
+    server: bool,
 }
 
 fn main() {
@@ -43,9 +48,12 @@ fn main() {
     let output = cli.output;
     let nosave = cli.nosave;
     let tokens = cli.tokens;
+    let server = cli.server;
 
     if debug {
         debug_window_derive::run(input, debug, output);
+    } else if server {
+        server::main();
     } else {
         compiler_runner::main(input, debug, output, nosave, tokens, code);
     }

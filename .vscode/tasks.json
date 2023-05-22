@@ -181,11 +181,9 @@
 			"args": [
 				"-i",
 				"src\\test.toy",
-				"-o",
-				"src\\bin",
 				"-s"
 			],
-			"label": "3.1a run dev server toylang on src\\test.toy",
+			"label": "3.1a run toylang server",
 		},
 		{
 			"type": "process",

@@ -937,14 +937,14 @@ mod tests {
     #[test]
     fn test_get_depths_vec() {
         //1 el
-        let mut ast1 = Ast::new();
+        let mut ast1 = Ast::new(false);
         let mut n = ast1.elements.len();
         let el1: Element = (ElementInfo::Int("1".to_string()), vec![]);
         append::append(&mut ast1, el1);
         assert_eq!(output::get_depths_vec(&mut ast1), vec![[n]]);
 
         //3 el under root
-        let mut ast2 = Ast::new();
+        let mut ast2 = Ast::new(false);
         n = ast2.elements.len();
         let el21: Element = (ElementInfo::Int("1".to_string()), vec![]);
         let el22: Element = (ElementInfo::Int("1".to_string()), vec![]);
@@ -955,7 +955,7 @@ mod tests {
         assert_eq!(output::get_depths_vec(&mut ast2), vec![[n, n + 1, n + 2]]);
 
         //1 el under with 2 children, under root
-        let mut ast3 = Ast::new();
+        let mut ast3 = Ast::new(false);
         n = ast3.elements.len();
         let el31: Element = (
             ElementInfo::InbuiltFunctionCall("+".to_string(), 1, "i64|f64".to_string()),

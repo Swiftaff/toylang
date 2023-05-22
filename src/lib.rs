@@ -29,6 +29,7 @@ mod file;
 pub mod formatting;
 pub mod integration_tests;
 mod parse;
+pub mod server;
 use ast::elements;
 use ast::output;
 use ast::Ast;
