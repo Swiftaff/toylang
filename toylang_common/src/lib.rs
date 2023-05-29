@@ -294,6 +294,14 @@ impl IntegrationTests {
                 "= get_truer \\ i64 bool arg1 => > arg1 5\r\n? get_truer 10 1 0",
                 "fn main() {\r\n    fn get_truer(arg1: i64) -> bool {\r\n        arg1.clone() > 5\r\n    }\r\n    if get_truer(10) {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n",
             ),
+            //
+            // Rust code
+            ("test_pass_rustcode_premain_only", "###use std::io::{stdin, stdout, Write};\r\n= x 1", "use std::io::{stdin, stdout, Write};\r\nfn main() {\r\n    let x: i64 = 1;\r\n}\r\n"),
+            ("test_pass_rustcode_premain_and_main", "###use std::io::{stdin, stdout, Write};\r\n= x 1\r\n##stdout().flush().unwrap();", "use std::io::{stdin, stdout, Write};\r\nfn main() {\r\n    let x: i64 = 1;\r\n    stdout().flush().unwrap();\r\n}\r\n"),
+            ("test_pass_rustcode_main_only", "= x 1\r\n##println!(\"{}\",x);", "fn main() {\r\n    let x: i64 = 1;\r\n    println!(\"{}\",x);\r\n}\r\n"),
+
+            
+            
             /*
             (TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
             ("test_pass_if_assignment_with_if_expr", "= a ? true 1 0", "fn main() {\r\n    let a: i64 =             if true {\r\n                1\r\n            } else {\r\n                0\r\n            };\r\n}\r\n"),
