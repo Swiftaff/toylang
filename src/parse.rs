@@ -338,7 +338,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => (),
                 Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
                 Some((ElementInfo::FunctionDefWIP, _)) => (),
-                Some((ElementInfo::FunctionCall(_, _), _)) => (),
+                Some((ElementInfo::FunctionCall(_, _, _), _)) => (),
                 Some((ElementInfo::Parens, _)) => (),
                 Some((ElementInfo::Type(_), _)) => (),
                 Some((ElementInfo::Eol, _)) => (),

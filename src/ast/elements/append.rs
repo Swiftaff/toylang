@@ -217,7 +217,7 @@ pub fn outdent_if_last_expected_child(compiler: &mut Compiler) {
             ElementInfo::FunctionDef(_, _argnames, _, _) => {
                 outdent::within_fndef_from_return_expression(compiler);
             }
-            ElementInfo::FunctionCall(name, _) => {
+            ElementInfo::FunctionCall(name, _, _) => {
                 outdent::fncall(compiler, current_parent, name);
             }
             ElementInfo::If(_) => {
@@ -327,7 +327,7 @@ pub fn is_return_expression(elinfo: &ElementInfo) -> bool {
         ElementInfo::Constant(_, _) => true,
         ElementInfo::ConstantRef(_, _, _) => true,
         ElementInfo::InbuiltFunctionCall(_, _, _) => true,
-        ElementInfo::FunctionCall(_, _) => true,
+        ElementInfo::FunctionCall(_, _, _) => true,
         ElementInfo::If(_) => true,
         ElementInfo::Parens => true,
         // explicitly listing other types rather than using _ to not overlook new types in future
@@ -445,7 +445,7 @@ pub fn function_call1(
     append(
         &mut compiler.ast,
         (
-            ElementInfo::FunctionCall(current_token.clone(), returntype),
+            ElementInfo::FunctionCall(current_token.clone(), false, returntype),
             vec![],
         ),
     );
@@ -875,7 +875,7 @@ pub fn function_call(
     append(
         &mut compiler.ast,
         (
-            ElementInfo::FunctionCall(current_token.clone(), returntype.clone()),
+            ElementInfo::FunctionCall(current_token.clone(), false, returntype.clone()),
             vec![],
         ),
     );

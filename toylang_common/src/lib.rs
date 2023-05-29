@@ -114,9 +114,8 @@ impl IntegrationTests {
             // List mapindex
             (
                 "test_pass_list_mapindex",
-                "= set_list_item \\ [ i64 ] i64 i64 list index1 => list",
-                //"= set_index0_to_1 \\ i64 i64 i64 index2 val =>\r\n    ? == index2 0 1 val\r\n\r\n= set_list_item \\ [ i64 ] i64 [ i64 ] list index1 =>\r\n    List::mapindex list set_index0_to_1\r\n= list2 [ 0 1 2 ]\r\n= updated_list set_list_item list2 2",
-                ""
+                "= set_index0_to_1 \\ i64 i64 i64 index2 val =>\r\n    ? == index2 0 1 val\r\n\r\n= set_list_item \\ [ i64 ] i64 [ i64 ] list index1 =>\r\n    List::mapindex list set_index0_to_1\r\n= list2 [ 0 1 2 ]\r\n= updated_list set_list_item list2 2",
+                "fn main() {\r\n    fn set_index0_to_1(index2: i64, val: i64) -> i64 {\r\n        if index2.clone() == 0 {\r\n            1\r\n        } else {\r\n            val.clone()\r\n        }\r\n    }\r\n    fn set_list_item(list: Vec<i64>, index1: i64) -> Vec<i64> {\r\n        list.clone().iter().enumerate().map(|(index, val)| set_index0_to_1(index.try_into().unwrap(), *val)).collect()\r\n    }\r\n    let list2: Vec<i64> = vec![ 0, 1, 2 ];\r\n    let updated_list: Vec<i64> = set_list_item(list2.clone(), 2);\r\n}\r\n"
             ),
             //
             // Basic arithmetic function calls

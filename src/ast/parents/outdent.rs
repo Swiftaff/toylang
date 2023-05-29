@@ -104,7 +104,7 @@ pub fn within_fndef_from_return_expression(compiler: &mut Compiler) {
                 ElementInfo::InbuiltFunctionCall(_, fndefref, _) => {
                     within_fndef_for_inbuiltfncall_from_inbuiltfndef(compiler, fndefref);
                 }
-                ElementInfo::FunctionCall(name, _) => {
+                ElementInfo::FunctionCall(name, _, _) => {
                     within_fndef_for_fncall_from_fndef(compiler, &name);
                 }
                 ElementInfo::Parens => {
@@ -310,11 +310,37 @@ pub fn functioncall_of_arg(compiler: &mut Compiler, returntype: &String, num_chi
 
 /// Outdents from FnCall of FnDef?
 pub fn functioncall_of_functiondef(compiler: &mut Compiler, num_children: usize, args: usize) {
+    let this_el_ref = parents::get_current_parent_ref_from_parents(&compiler.ast);
+    let parent_el_option = parents::get_current_parent_element_from_element_children_search(
+        &compiler.ast,
+        this_el_ref,
+    );
     compiler.ast.log(format!(
-        "outdent::functioncall_of_functiondef {:?} {:?}",
-        num_children, args
+        "######################## outdent::functioncall_of_functiondef {:?} {:?} {:?} {:?}",
+        num_children, args, this_el_ref, parent_el_option
     ));
-    if num_children > 0 && num_children == args {
+    let mut is_an_arg_of_a_fn_which_assigns_its_own_args_so_outdent_immediately = false;
+    if let Some((ElementInfo::InbuiltFunctionCall(name, _, _), _)) =
+        parents::get_current_parent_element_from_element_children_search(&compiler.ast, this_el_ref)
+    {
+        compiler
+            .ast
+            .log(format!("########### {} ###########", name));
+        is_an_arg_of_a_fn_which_assigns_its_own_args_so_outdent_immediately =
+            name == "List::mapindex";
+        if is_an_arg_of_a_fn_which_assigns_its_own_args_so_outdent_immediately {
+            // update the SkipArgs bool
+            if let ElementInfo::FunctionCall(fn_name, _, fn_return_type) =
+                compiler.ast.elements[this_el_ref].0.clone()
+            {
+                compiler.ast.elements[this_el_ref].0 =
+                    ElementInfo::FunctionCall(fn_name, true, fn_return_type);
+            }
+        }
+    }
+    if (num_children > 0 && num_children == args)
+        || is_an_arg_of_a_fn_which_assigns_its_own_args_so_outdent_immediately
+    {
         outdent(compiler);
     }
 }

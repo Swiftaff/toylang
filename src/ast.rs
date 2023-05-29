@@ -183,8 +183,11 @@ fn init_list_functions() -> Vec<elements::Element> {
         ),
         (
             "mapindex",
-            "arg~1.iter().enumerate().map(|x| {\r\nlet index = x.0;\r\nlet val = x.1;\r\n|index, val| arg~2).collect()",
-            vec![ArgModifier::None, ArgModifier::FnArg(vec!["".to_string(),"&".to_string()])],
+            "arg~1.iter().enumerate().map(|(index, val)| arg~2(index.try_into().unwrap(), *val)).collect()",
+            vec![
+                ArgModifier::None,
+                ArgModifier::FnArg(vec!["".to_string(), "&".to_string()]),
+            ],
             vecs,
             vecs,
         ),
