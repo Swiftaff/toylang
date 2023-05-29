@@ -681,7 +681,7 @@ pub fn error_if_parent_is_invalid_for_constant(
         parent
     ));
     match parent.0 {
-        ElementInfo::Root => Ok(()),
+        ElementInfo::Root => append_error(compiler, 0, 1, ERRORS.constant_undefined),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
@@ -1170,11 +1170,20 @@ mod tests {
             c.file.filecontents = input.to_string();
             match c.run_main_tasks(false) {
                 Ok(_) => {
-                    let app_error = c.error_stack[0].clone().0;
-                    if error == &"" || app_error.len() == 0 {
-                        assert_eq!(true, true);
+                    let e = c.error_stack;
+                    if e.len() == 0 {
+                        if error == &"" {
+                            assert_eq!(true, true);
+                        } else {
+                            assert!(false, "should have found an error - none found");
+                        }
                     } else {
-                        assert!(app_error.contains(error));
+                        let app_error = e[0].clone();
+                        if error == &"" || app_error.0.len() == 0 {
+                            assert_eq!(true, true);
+                        } else {
+                            assert!(app_error.0.contains(error));
+                        }
                     }
                 }
                 Err(_e) => assert!(false, "error should not exist"),

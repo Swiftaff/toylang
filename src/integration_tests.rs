@@ -39,7 +39,7 @@ mod tests {
         let output = &test[1];
         let mut c: Compiler = Default::default();
         c.file.filecontents = input.to_string();
-        match c.run_main_tasks() {
+        match c.run_main_tasks(false) {
             Ok(_) => {
                 assert_eq!(&c.ast.output, output);
             }

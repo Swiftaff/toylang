@@ -111,6 +111,14 @@ impl IntegrationTests {
                 "fn main() {\r\n    let list: Vec<f64> = vec![ 1.1, 2.1, 3.1 ];\r\n    let reversed: Vec<f64> = list.clone().into_iter().rev().collect();\r\n}\r\n",
             ),
             //
+            // List mapindex
+            (
+                "test_pass_list_mapindex",
+                "= set_list_item \\ [ i64 ] i64 i64 list index1 => list",
+                //"= set_index0_to_1 \\ i64 i64 i64 index2 val =>\r\n    ? == index2 0 1 val\r\n\r\n= set_list_item \\ [ i64 ] i64 [ i64 ] list index1 =>\r\n    List::mapindex list set_index0_to_1\r\n= list2 [ 0 1 2 ]\r\n= updated_list set_list_item list2 2",
+                ""
+            ),
+            //
             // Basic arithmetic function calls
             ("test_pass_internal_function_calls_plus", "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"),
             ("test_pass_internal_function_calls_negative", "- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"),
