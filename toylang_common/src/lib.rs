@@ -240,6 +240,19 @@ impl IntegrationTests {
             // TODO - Also how to print a key - it is same as a struct edit - need to check for assignment before to differentiate
             // TODO - need to outdent at end of struct def only once for constantref, compared to 3 times for assign, constant, value - depending on what last struct item is defined
             // TODO -- not possible? create a new outdent_until fn (current parent ref) - so you no longer have to count
+
+            // TODO - handle returning a function
+
+            // TODO - Also may need a way of identifying any fns or constants
+            // which are defined in rust code, so the compiler doesn't complain,
+            // e.g. something like this
+            //= testy ##
+            //##
+            //##
+            //##
+            //##fn testy<T>(a:T) -> fn(T) -> T {
+            //##    return a;
+            //##}
             (
                 "test_pass_define_struct_edit_and_print",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n= newstruct.age 99\r\n@ newstruct",

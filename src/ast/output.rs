@@ -700,6 +700,13 @@ fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
                             ast.elements[constant_children[0]].clone()
                         {
                             is_a_list = true;
+                        } else if elements::get_infered_type_of_any_element(
+                            &ast,
+                            constant_children[0],
+                        )
+                        .contains("Vec")
+                        {
+                            is_a_list = true
                         }
                     }
                 }
