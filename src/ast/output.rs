@@ -378,7 +378,7 @@ pub fn get_existing_identical_struct_el_ref(ast: &mut Ast, children: Vec<usize>)
     let struct_child_info = get_struct_child_info(ast, children);
     for el_ref in 0..ast.elements.len() as usize {
         let el = ast.elements[el_ref].clone();
-        if let (ElementInfo::Struct(n, _, _), existing_struct_children) = el {
+        if let (ElementInfo::Struct(_n, _, _), existing_struct_children) = el {
             let existing_struct_child_info = get_struct_child_info(ast, existing_struct_children);
             let existing_struct_has_keys = existing_struct_child_info.3.len() > 0;
             let new_struct_has_keys = struct_child_info.3.len() > 0;

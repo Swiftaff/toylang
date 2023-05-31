@@ -23,7 +23,6 @@
 // TODO make most function arguments refs
 mod ast;
 pub mod compiler_runner;
-pub mod debug_window_derive;
 mod errors;
 mod file;
 pub mod formatting;
@@ -37,6 +36,9 @@ use file::File;
 use serde::Serialize;
 use std::error::Error;
 use std::fmt;
+
+#[cfg(feature = "windows_debugger")]
+pub mod debug_window_derive;
 
 pub type Col = usize;
 pub type CharPosition = (char, Col);

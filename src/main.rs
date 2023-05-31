@@ -5,8 +5,10 @@ extern crate toylang_macros;
 
 use clap::Parser;
 use toylang::compiler_runner;
-use toylang::debug_window_derive;
 use toylang::server;
+
+#[cfg(feature = "windows_debugger")]
+use toylang::debug_window_derive;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -51,7 +53,9 @@ fn main() {
     let server = cli.server;
 
     if debug {
+	#[cfg(feature = "windows_debugger")]
         debug_window_derive::run(input, debug, output);
+
     } else if server {
         server::main();
     } else {
