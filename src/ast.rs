@@ -69,16 +69,16 @@ impl Ast {
     /// Called by all functions - inserts a single log line, and a copy of the AST state
     pub fn log(self: &mut Self, string: String) {
         if self.debug {
-        self.logs.push((string, ("".to_string(), 0, 0, 0)));
-        let debug_els = format!(
-            "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput_stack:\r\n{:?}\r\n\r\nPre-main Output:\r\n{:?}r\n\r\nOutput:\r\n{:?}",
-            DebugElements(&self.elements),
-            &self.parents,
-            &self.output_stack,
-            &self.premain_output,
-            &self.output,
-        );
-        self.debug_compiler_history.push(debug_els);
+            self.logs.push((string, ("".to_string(), 0, 0, 0)));
+            let debug_els = format!(
+                "{:?}\r\n\r\nParents:\r\n{:?}\r\n\r\nOutput_stack:\r\n{:?}\r\n\r\nPre-main Output:\r\n{:?}r\n\r\nOutput:\r\n{:?}",
+                DebugElements(&self.elements),
+                &self.parents,
+                &self.output_stack,
+                &self.premain_output,
+                &self.output,
+            );
+            self.debug_compiler_history.push(debug_els);
         }
     }
 }
@@ -177,8 +177,17 @@ fn init_list_functions() -> Vec<elements::Element> {
         (
             "map",
             "arg~1.iter().map(arg~2).collect()",
-            //"arg~1.iter().map(|i: &~returntype~| arg~2(*i)).collect::<Vec<~returntype~>>()",
             vec![ArgModifier::None, ArgModifier::FnArg(vec!["&".to_string()])],
+            vecs,
+            vecs,
+        ),
+        (
+            "mapindex",
+            "arg~1.iter().enumerate().map(|(index, val)| arg~2(index.try_into().unwrap(), *val)).collect()",
+            vec![
+                ArgModifier::None,
+                ArgModifier::FnArg(vec!["".to_string(), "&".to_string()]),
+            ],
             vecs,
             vecs,
         ),

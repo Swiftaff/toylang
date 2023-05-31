@@ -259,7 +259,9 @@ fn get_output_for_element_index(
             );
             format!("fn {}({}) -> {} {{\r\n", name, args, returntype)
         }
-        ElementInfo::FunctionCall(name, _) => get_output_for_functioncall(ast, name, children),
+        ElementInfo::FunctionCall(name, skip_args, _) => {
+            get_output_for_functioncall(ast, name, skip_args, children)
+        }
         ElementInfo::Parens => get_output_for_parens(ast, children),
         ElementInfo::LoopForRangeWIP => empty_string,
         ElementInfo::LoopForRange(name, from, to) => {
@@ -286,7 +288,7 @@ fn is_skippable_due_to_parent(ast: &mut Ast, element_index: usize) -> bool {
     ));
     match parent {
         Some((ElementInfo::Assignment, _)) => true,
-        Some((ElementInfo::FunctionCall(_, _), _)) => true,
+        Some((ElementInfo::FunctionCall(_, _, _), _)) => true,
         Some((ElementInfo::Println, _)) => true,
         Some((ElementInfo::List(_), _)) => true,
         Some((ElementInfo::If(_), _)) => true,
@@ -615,37 +617,46 @@ fn get_output_for_inbuiltfncall(ast: &mut Ast, name: String, children: Vec<usize
 }
 
 /// Output for FunctionCall
-fn get_output_for_functioncall(ast: &mut Ast, name: String, arguments: Vec<usize>) -> String {
+fn get_output_for_functioncall(
+    ast: &mut Ast,
+    name: String,
+    skip_args: bool,
+    arguments: Vec<usize>,
+) -> String {
     ast.log(format!("output::get_output_for_functioncall {:?}", ""));
-    let empty_string = "".to_string();
-    let mut args = empty_string.clone();
-    for i in 0..arguments.len() {
-        let arg_el_ref = arguments[i];
-        //let arg_el = ast.elements[arg_el_ref];
-        let arg = get_output_for_element_index(ast, arg_el_ref, false);
-        let mut borrow = empty_string.clone();
-        if let Some(fndef_ref) = elements::get_function_index_by_name(ast, &name) {
-            let fndef = &ast.elements[fndef_ref];
-            match &fndef.0 {
-                ElementInfo::FunctionDef(_, _, argtypes, _) => {
-                    if argtypes.len() == arguments.len() {
-                        if argtypes[i].contains("&dyn Fn") {
-                            borrow = "&".to_string();
+    if skip_args {
+        name
+    } else {
+        let empty_string = "".to_string();
+        let mut args = empty_string.clone();
+        for i in 0..arguments.len() {
+            let arg_el_ref = arguments[i];
+            //let arg_el = ast.elements[arg_el_ref];
+            let arg = get_output_for_element_index(ast, arg_el_ref, false);
+            let mut borrow = empty_string.clone();
+            if let Some(fndef_ref) = elements::get_function_index_by_name(ast, &name) {
+                let fndef = &ast.elements[fndef_ref];
+                match &fndef.0 {
+                    ElementInfo::FunctionDef(_, _, argtypes, _) => {
+                        if argtypes.len() == arguments.len() {
+                            if argtypes[i].contains("&dyn Fn") {
+                                borrow = "&".to_string();
+                            }
                         }
                     }
+                    _ => (),
                 }
-                _ => (),
             }
-        }
 
-        let comma = if i == arguments.len() - 1 {
-            empty_string.clone()
-        } else {
-            ", ".to_string()
-        };
-        args = format!("{}{}{}{}", args, borrow, arg, comma);
+            let comma = if i == arguments.len() - 1 {
+                empty_string.clone()
+            } else {
+                ", ".to_string()
+            };
+            args = format!("{}{}{}{}", args, borrow, arg, comma);
+        }
+        format!("{}({})", name, args)
     }
-    format!("{}({})", name, args)
 }
 
 /// Output for Parens
@@ -689,6 +700,13 @@ fn get_output_for_println(ast: &mut Ast, children: Vec<usize>) -> String {
                             ast.elements[constant_children[0]].clone()
                         {
                             is_a_list = true;
+                        } else if elements::get_infered_type_of_any_element(
+                            &ast,
+                            constant_children[0],
+                        )
+                        .contains("Vec")
+                        {
+                            is_a_list = true
                         }
                     }
                 }

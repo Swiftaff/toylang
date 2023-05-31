@@ -192,7 +192,7 @@ pub fn error_if_parent_is_invalid(compiler: &mut Compiler) -> Result<(), ()> {
         ElementInfo::InbuiltFunctionCall(_, _, _) => {
             error_if_parent_is_invalid_for_inbuiltfncall(compiler, &parent)?
         }
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             error_if_parent_is_invalid_for_fncall(compiler, &parent)?
         }
         ElementInfo::Parens => error_if_parent_is_invalid_for_parenthesis(compiler, &parent)?,
@@ -234,7 +234,7 @@ pub fn error_if_parent_is_invalid_for_list(
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::If(_) => Ok(()),
         ElementInfo::Struct(_, _, _) => append_error(compiler, 0, 1, ERRORS.struct_undefined), // list shouldn't be direct child it should be preceeded by Assignment and key name
         ElementInfo::StructEdit(_, _) => Ok(()),
@@ -288,7 +288,7 @@ pub fn error_if_parent_is_invalid_for_rustcode(
             1,
             ERRORS.comment_cant_be_child_of_inbuiltfncall,
         ),
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_fncall)
         }
         ElementInfo::Parens => {
@@ -343,7 +343,7 @@ pub fn error_if_parent_is_invalid_for_commentsingleline(
             1,
             ERRORS.comment_cant_be_child_of_inbuiltfncall,
         ),
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.comment_cant_be_child_of_fncall)
         }
         ElementInfo::Parens => {
@@ -382,7 +382,7 @@ pub fn error_if_parent_is_invalid_for_int(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
@@ -428,7 +428,7 @@ pub fn error_if_parent_is_invalid_for_float(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
@@ -474,7 +474,7 @@ pub fn error_if_parent_is_invalid_for_string(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
@@ -520,7 +520,7 @@ pub fn error_if_parent_is_invalid_for_bool(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::LoopForRange(_, _, _) => Ok(()),
@@ -572,7 +572,7 @@ pub fn error_if_parent_is_invalid_for_arg(
         ElementInfo::InbuiltFunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
-        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
+        ElementInfo::FunctionCall(_, _, _) => append_error(compiler, 0, 1, ERRORS.impossible_error),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => {
             append_error(compiler, 0, 1, ERRORS.impossible_error)
         }
@@ -612,7 +612,7 @@ pub fn error_if_parent_is_invalid_for_constantref(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::Println => Ok(()),
         ElementInfo::If(_) => Ok(()),
@@ -681,7 +681,7 @@ pub fn error_if_parent_is_invalid_for_constant(
         parent
     ));
     match parent.0 {
-        ElementInfo::Root => Ok(()),
+        ElementInfo::Root => append_error(compiler, 0, 1, ERRORS.constant_undefined),
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
@@ -693,7 +693,9 @@ pub fn error_if_parent_is_invalid_for_constant(
         ElementInfo::InbuiltFunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.constant_undefined)
         }
-        ElementInfo::FunctionCall(_, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
+        ElementInfo::FunctionCall(_, _, _) => {
+            append_error(compiler, 0, 1, ERRORS.constant_undefined)
+        }
         ElementInfo::Println => append_error(compiler, 0, 1, ERRORS.constant_undefined),
         ElementInfo::If(_) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
         ElementInfo::Struct(_, _, _) => append_error(compiler, 0, 1, ERRORS.constant_undefined),
@@ -749,7 +751,7 @@ pub fn error_if_parent_is_invalid_for_assignment(
             1,
             ERRORS.assignment_cant_be_child_of_inbuiltfncall,
         ),
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.assignment_cant_be_child_of_fncal)
         }
         ElementInfo::Assignment => append_error(
@@ -800,7 +802,7 @@ pub fn error_if_parent_is_invalid_for_inbuiltfncall(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
@@ -847,7 +849,7 @@ pub fn error_if_parent_is_invalid_for_fncall(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
@@ -889,7 +891,7 @@ pub fn error_if_parent_is_invalid_for_parenthesis(
         ElementInfo::FunctionDefWIP => Ok(()),
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
         ElementInfo::LoopForRangeWIP => Ok(()),
         ElementInfo::If(_) => Ok(()),
@@ -943,7 +945,7 @@ pub fn error_if_parent_is_invalid_for_loopfor(
         ElementInfo::FunctionDef(_, _, _, _) => Ok(()),
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::List(_) => append_error(compiler, 0, 1, ERRORS.list_cant_be_child),
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.loopfor_cant_be_child)
         }
         ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _) => Ok(()),
@@ -1013,7 +1015,7 @@ pub fn error_if_parent_is_invalid_for_fndefwip(
             1,
             ERRORS.fndefwip_can_only_be_child_of_constant,
         ),
-        ElementInfo::FunctionCall(_, _) => append_error(
+        ElementInfo::FunctionCall(_, _, _) => append_error(
             compiler,
             0,
             1,
@@ -1073,7 +1075,7 @@ pub fn error_if_parent_is_invalid_for_println(
         ElementInfo::List(_) => {
             append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element)
         }
-        ElementInfo::FunctionCall(_, _) => {
+        ElementInfo::FunctionCall(_, _, _) => {
             append_error(compiler, 0, 1, ERRORS.println_cant_be_child_of_element)
         }
         ElementInfo::Parens => {
@@ -1126,7 +1128,7 @@ pub fn error_if_parent_is_invalid_for_if_expression(
         ElementInfo::InbuiltFunctionCall(_, _, _) => Ok(()),
         ElementInfo::If(_) => Ok(()),
         ElementInfo::List(_) => Ok(()),
-        ElementInfo::FunctionCall(_, _) => Ok(()),
+        ElementInfo::FunctionCall(_, _, _) => Ok(()),
         ElementInfo::Assignment => Ok(()),
         ElementInfo::Constant(_, _) => Ok(()),
         ElementInfo::StructEdit(_, _) => Ok(()),
@@ -1170,11 +1172,20 @@ mod tests {
             c.file.filecontents = input.to_string();
             match c.run_main_tasks(false) {
                 Ok(_) => {
-                    let app_error = c.error_stack[0].clone().0;
-                    if error == &"" || app_error.len() == 0 {
-                        assert_eq!(true, true);
+                    let e = c.error_stack;
+                    if e.len() == 0 {
+                        if error == &"" {
+                            assert_eq!(true, true);
+                        } else {
+                            assert!(false, "should have found an error - none found");
+                        }
                     } else {
-                        assert!(app_error.contains(error));
+                        let app_error = e[0].clone();
+                        if error == &"" || app_error.0.len() == 0 {
+                            assert_eq!(true, true);
+                        } else {
+                            assert!(app_error.0.contains(error));
+                        }
                     }
                 }
                 Err(_e) => assert!(false, "error should not exist"),

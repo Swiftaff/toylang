@@ -36,7 +36,7 @@ pub enum ElementInfo {
     InbuiltFunctionCall(Name, ElIndex, ReturnType), //fndef argnames.len() children
     FunctionDefWIP,                                 //children = lines of function contents
     FunctionDef(Name, ArgNames, ArgTypes, ReturnType), //children = lines of function contents
-    FunctionCall(Name, ReturnType),                 //fndef argnames.len() children
+    FunctionCall(Name, SkipArgs, ReturnType),       //fndef argnames.len() children
     Parens,          //either 1 child, for function_ref, or 1+ for function type sig
     LoopForRangeWIP, //children = lines of loop contents
     LoopForRange(Name, From, To), //children = lines of loop contents
@@ -69,7 +69,7 @@ fn _cut_and_paste_element_infos(el: ElementInfo) -> bool {
         ElementInfo::InbuiltFunctionCall(_, _, _) => replaceme,
         ElementInfo::FunctionDefWIP => replaceme,
         ElementInfo::FunctionDef(_, _, _, _) => replaceme,
-        ElementInfo::FunctionCall(_, _) => replaceme,
+        ElementInfo::FunctionCall(_, _, _) => replaceme,
         ElementInfo::Parens => replaceme,
         ElementInfo::Type(_) => replaceme,
 
@@ -107,7 +107,7 @@ fn _cut_and_paste_elements(el_option: Option<Element>) -> bool {
         Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => replaceme,
         Some((ElementInfo::FunctionDefWIP, _)) => replaceme,
         Some((ElementInfo::FunctionDef(_, _, _, _), _)) => replaceme,
-        Some((ElementInfo::FunctionCall(_, _), _)) => replaceme,
+        Some((ElementInfo::FunctionCall(_, _, _), _)) => replaceme,
         Some((ElementInfo::Parens, _)) => replaceme,
         Some((ElementInfo::Type(_), _)) => replaceme,
         Some((ElementInfo::Eol, _)) => replaceme,
@@ -140,6 +140,7 @@ type ArgTypes = Vec<String>;
 type ArgModifiers = Vec<ArgModifier>;
 type Format = String;
 type Scope = ElIndex;
+type SkipArgs = bool;
 
 #[derive(Clone, Debug)]
 pub enum ArgModifier {
@@ -304,8 +305,8 @@ pub fn get_updated_elementinfo_with_infered_type(ast: &mut Ast, el_index: usize)
             ElementInfo::InbuiltFunctionCall(name, fndef_index, _) => {
                 return ElementInfo::InbuiltFunctionCall(name, fndef_index, infered_type);
             }
-            ElementInfo::FunctionCall(name, _) => {
-                return ElementInfo::FunctionCall(name, infered_type);
+            ElementInfo::FunctionCall(name, skip_args, _) => {
+                return ElementInfo::FunctionCall(name, skip_args, infered_type);
             }
             ElementInfo::List(returntype) => {
                 if el.1.len() == 0 {
@@ -370,7 +371,7 @@ pub fn get_infered_type_of_any_element(ast: &Ast, el_index: usize) -> String {
         ElementInfo::InbuiltFunctionCall(_, fndef_index, _) => {
             return get_infered_type_of_inbuiltfunctioncall_element(ast, &el, *fndef_index);
         }
-        ElementInfo::FunctionCall(name, _) => {
+        ElementInfo::FunctionCall(name, _, _) => {
             return get_infered_type_of_functioncall_element(ast, &name);
         }
         ElementInfo::List(returntype) => {
@@ -570,7 +571,9 @@ pub fn get_elementinfo_type(ast: &Ast, elementinfo: &ElementInfo) -> String {
         ElementInfo::ConstantRef(_, returntype, _) => returntype.clone(),
         ElementInfo::InbuiltFunctionCall(_, _fndef_index, returntype) => returntype.clone(),
         ElementInfo::Arg(_, _, _, returntype) => returntype.clone(),
-        ElementInfo::FunctionCall(name, _) => get_infered_type_of_functioncall_element(ast, &name),
+        ElementInfo::FunctionCall(name, _, _) => {
+            get_infered_type_of_functioncall_element(ast, &name)
+        }
         ElementInfo::Type(returntype) => returntype.clone(),
         ElementInfo::If(returntype) => returntype.clone(),
         // explicitly listing other types rather than using _ to not overlook new types in future
@@ -826,8 +829,8 @@ impl fmt::Debug for ElementInfo {
                 );
                 format!("FunctionDef: {} ({}) -> ({})", name, args, returntype)
             }
-            ElementInfo::FunctionCall(name, returntype) => {
-                format!("FunctionCall: {} ({})", name, returntype)
+            ElementInfo::FunctionCall(name, skip_args, returntype) => {
+                format!("FunctionCall: {} ({}) ({})", name, skip_args, returntype)
             }
             ElementInfo::Parens => "Parens".to_string(),
             ElementInfo::Eol => "Eol".to_string(),

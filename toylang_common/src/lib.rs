@@ -111,6 +111,13 @@ impl IntegrationTests {
                 "fn main() {\r\n    let list: Vec<f64> = vec![ 1.1, 2.1, 3.1 ];\r\n    let reversed: Vec<f64> = list.clone().into_iter().rev().collect();\r\n}\r\n",
             ),
             //
+            // List mapindex
+            (
+                "test_pass_list_mapindex",
+                "= set_index0_to_1 \\ i64 i64 i64 index2 val =>\r\n    ? == index2 0 1 val\r\n\r\n= set_list_item \\ [ i64 ] i64 [ i64 ] list index1 =>\r\n    List::mapindex list set_index0_to_1\r\n= list2 [ 0 1 2 ]\r\n= updated_list set_list_item list2 2",
+                "fn main() {\r\n    fn set_index0_to_1(index2: i64, val: i64) -> i64 {\r\n        if index2.clone() == 0 {\r\n            1\r\n        } else {\r\n            val.clone()\r\n        }\r\n    }\r\n    fn set_list_item(list: Vec<i64>, index1: i64) -> Vec<i64> {\r\n        list.clone().iter().enumerate().map(|(index, val)| set_index0_to_1(index.try_into().unwrap(), *val)).collect()\r\n    }\r\n    let list2: Vec<i64> = vec![ 0, 1, 2 ];\r\n    let updated_list: Vec<i64> = set_list_item(list2.clone(), 2);\r\n}\r\n"
+            ),
+            //
             // Basic arithmetic function calls
             ("test_pass_internal_function_calls_plus", "+ 1 2", "fn main() {\r\n    1 + 2;\r\n}\r\n"),
             ("test_pass_internal_function_calls_negative", "- 1.1 2.2", "fn main() {\r\n    1.1 - 2.2;\r\n}\r\n"),
@@ -233,6 +240,19 @@ impl IntegrationTests {
             // TODO - Also how to print a key - it is same as a struct edit - need to check for assignment before to differentiate
             // TODO - need to outdent at end of struct def only once for constantref, compared to 3 times for assign, constant, value - depending on what last struct item is defined
             // TODO -- not possible? create a new outdent_until fn (current parent ref) - so you no longer have to count
+
+            // TODO - handle returning a function
+
+            // TODO - Also may need a way of identifying any fns or constants
+            // which are defined in rust code, so the compiler doesn't complain,
+            // e.g. something like this
+            //= testy ##
+            //##
+            //##
+            //##
+            //##fn testy<T>(a:T) -> fn(T) -> T {
+            //##    return a;
+            //##}
             (
                 "test_pass_define_struct_edit_and_print",
                 "= newstruct { = firstname \"firstname\" = surname \"surname\" = age 21 }\r\n= newstruct.age 99\r\n@ newstruct",
@@ -294,6 +314,14 @@ impl IntegrationTests {
                 "= get_truer \\ i64 bool arg1 => > arg1 5\r\n? get_truer 10 1 0",
                 "fn main() {\r\n    fn get_truer(arg1: i64) -> bool {\r\n        arg1.clone() > 5\r\n    }\r\n    if get_truer(10) {\r\n        1\r\n    } else {\r\n        0\r\n    };\r\n}\r\n",
             ),
+            //
+            // Rust code
+            ("test_pass_rustcode_premain_only", "###use std::io::{stdin, stdout, Write};\r\n= x 1", "use std::io::{stdin, stdout, Write};\r\nfn main() {\r\n    let x: i64 = 1;\r\n}\r\n"),
+            ("test_pass_rustcode_premain_and_main", "###use std::io::{stdin, stdout, Write};\r\n= x 1\r\n##stdout().flush().unwrap();", "use std::io::{stdin, stdout, Write};\r\nfn main() {\r\n    let x: i64 = 1;\r\n    stdout().flush().unwrap();\r\n}\r\n"),
+            ("test_pass_rustcode_main_only", "= x 1\r\n##println!(\"{}\",x);", "fn main() {\r\n    let x: i64 = 1;\r\n    println!(\"{}\",x);\r\n}\r\n"),
+
+            
+            
             /*
             (TODO is valid output but has extra spaces - need to find way to remove Indents when If is used in an assignment)
             ("test_pass_if_assignment_with_if_expr", "= a ? true 1 0", "fn main() {\r\n    let a: i64 =             if true {\r\n                1\r\n            } else {\r\n                0\r\n            };\r\n}\r\n"),

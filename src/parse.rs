@@ -338,7 +338,7 @@ pub fn constant(compiler: &mut Compiler, current_token: &String) -> Result<(), (
                 Some((ElementInfo::InbuiltFunctionDef(_, _, _, _, _, _), _)) => (),
                 Some((ElementInfo::InbuiltFunctionCall(_, _, _), _)) => (),
                 Some((ElementInfo::FunctionDefWIP, _)) => (),
-                Some((ElementInfo::FunctionCall(_, _), _)) => (),
+                Some((ElementInfo::FunctionCall(_, _, _), _)) => (),
                 Some((ElementInfo::Parens, _)) => (),
                 Some((ElementInfo::Type(_), _)) => (),
                 Some((ElementInfo::Eol, _)) => (),
@@ -484,9 +484,12 @@ pub fn list_end(compiler: &mut Compiler) -> Result<(), ()> {
         }
         _ => (),
     }
+    compiler.ast.log(format!(
+        "parse::list_end - outdent_if_last_expected_child {:?}",
+        ""
+    ));
     parents::outdent::outdent(compiler);
-    parents::outdent::outdent(compiler);
-    parents::outdent::outdent(compiler);
+    elements::append::outdent_if_last_expected_child(compiler);
     elements::append::seol_if_last_in_line(compiler)
 }
 
