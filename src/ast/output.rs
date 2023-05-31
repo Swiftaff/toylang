@@ -369,8 +369,8 @@ fn get_premain_output_for_struct(ast: &mut Ast, name: String, children: Vec<usiz
             struct_child_info.1, name, name, struct_child_info.2
         );
         format!(
-            "{}{}impl Newstruct {{\r\n{}\r\n}}\r\n\r\n",
-            derive, a_struct, new_fn
+            "{}{}impl {} {{\r\n{}\r\n}}\r\n\r\n",
+            derive, a_struct, name, new_fn
         )
     }
 }
