@@ -1,0 +1,67 @@
+###use std::io::{stdin, stdout, Write};
+
+= set_index0_to_1 \ i64 i64 i64 index2 val =>
+  ? == index2 0 1 val
+
+= set_list_item \ [ i64 ] i64 [ i64 ] list index1 =>
+  List::mapindex list set_index0_to_1
+
+= recurs \ i64 i64 String x y =>
+  //
+  // init
+  = row0 [ 0 0 0 0 ]
+  = row1 [ 0 0 0 0 ]
+  = row2 [ 0 0 0 0 ]
+  = row3 [ 0 0 0 0 ]
+  = grid [ row0 row1 row2 row3 ]
+  = direction ""
+  //
+  // print rows
+  @ row0
+  @ row1
+  @ row2
+  @ row3
+  //
+  // testy
+  = row0v2 set_list_item row0 x
+  @ row0v2
+  //
+  // get user input
+  @ "Enter a move (WASD): "
+  ##stdout().flush().unwrap();
+  ##let mut input = String::new();
+  ##stdin().read_line(&mut input).unwrap();
+  ##direction = input.trim().to_string();
+  //
+  // change X and Y based on user input
+  = stop == direction "X"
+  = u_bool == direction "W"
+  = d_bool == direction "S"
+  = l_bool == direction "D"
+  = r_bool == direction "A"
+  //
+  // give the udlr values based on this grid
+  // and not going outside grid
+  //   3
+  // 1 2 3
+  //   1
+  = u ? u_bool ? < x 3 3 2
+  = d ? d_bool ? > x 0 1 2
+  = l ? r_bool ? > y 0 3 2
+  = r ? l_bool ? < y 3 1 2
+  @ u
+  @ d
+  @ l
+  @ r
+  //
+  //
+  = y2 + - + u d 2 y
+  = x2 + - + l r 2 x
+  @ y
+  @ x
+  @ y2
+  @ x2
+
+  // game loop
+  ? stop "Game cancelled" recurs x2 y2
+@ recurs 0 0
